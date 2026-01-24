@@ -4,14 +4,6 @@ import { promisify } from "util";
 import "load-env";
 const execPromise = promisify(exec);
 
-if (process.env.VERCEL) {
-  console.log("Vercel detected — skipping migrations");
-  process.exit(0);
-}
-
-
-
-
 async function runCommand(command: string, description: string) {
   console.log(`Starting: ${description}`);
   try {
