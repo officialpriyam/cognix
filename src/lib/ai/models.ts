@@ -204,7 +204,7 @@ export const customModelProvider = {
     }
 
     // If not, try to create it dynamically for certain providers
-    if (provider === "openRouter") {
+    if (provider === "openRouter" || provider === "openRouterFree") {
       return openrouter(modelName);
     }
     if (provider === "google") {

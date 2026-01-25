@@ -150,7 +150,7 @@ export function AppSidebarUserInner(props: {
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => {
-                window.open("https://discord.gg/gCRu69Upnp", "_blank");
+                window.open("https://cognixdc.iampriyam.me", "_blank");
               }}
             >
               <DiscordIcon className="size-4 fill-foreground" />
