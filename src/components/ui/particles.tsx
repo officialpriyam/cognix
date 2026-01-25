@@ -109,10 +109,10 @@ const Particles: React.FC<ParticlesProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const mouseRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const { theme } = useTheme();
+  const { theme, resolvedTheme } = useTheme();
 
   const getDefaultColors = (): [number, number, number][] => {
-    if (theme === "dark") {
+    if ((resolvedTheme || theme) === "dark") {
       return [
         [1.0, 1.0, 1.0], // 순수 흰색
         [0.9, 0.9, 0.9], // 밝은 회색
@@ -276,6 +276,7 @@ const Particles: React.FC<ParticlesProps> = ({
     cameraDistance,
     disableRotation,
     theme,
+    resolvedTheme,
   ]);
 
   return (

@@ -11,7 +11,7 @@ import {
 // Security: Block dangerous keywords that could compromise sandbox
 const FORBIDDEN_KEYWORDS = [
   // DOM and browser globals
-  "document.",
+  // "document.", // ALLOWED: User request for testing
   "globalThis.",
   "self.",
   "window",
@@ -154,11 +154,11 @@ function createSafeEnvironment(
     // Node.js environment APIs (for testing)
     ...(typeof global !== "undefined" &&
       typeof self === "undefined" && {
-        setTimeout: global.setTimeout.bind(global),
-        setInterval: global.setInterval.bind(global),
-        clearTimeout: global.clearTimeout.bind(global),
-        clearInterval: global.clearInterval.bind(global),
-      }),
+      setTimeout: global.setTimeout.bind(global),
+      setInterval: global.setInterval.bind(global),
+      clearTimeout: global.clearTimeout.bind(global),
+      clearInterval: global.clearInterval.bind(global),
+    }),
   };
 
   return { safeGlobals };

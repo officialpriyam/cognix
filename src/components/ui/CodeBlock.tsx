@@ -21,7 +21,7 @@ export function CodeBlock({
   className?: string;
   showLineNumbers?: boolean;
 }) {
-  const { theme } = useTheme();
+  const { theme, resolvedTheme } = useTheme();
 
   const [component, setComponent] = useState<JSX.Element | null>(null);
 
@@ -30,7 +30,7 @@ export function CodeBlock({
       .map(async () => {
         const out = await codeToHast(code || "", {
           lang: lang,
-          theme: theme == "dark" ? "github-dark" : "github-light",
+          theme: (resolvedTheme || theme) === "dark" ? "github-dark" : "github-light",
         });
         return toJsxRuntime(out, {
           Fragment,
@@ -60,7 +60,7 @@ export function CodeBlock({
         }) as JSX.Element;
       })
       .ifOk(setComponent);
-  }, [theme, lang, code]);
+  }, [theme, resolvedTheme, lang, code]);
 
   if (!code) return fallback;
 

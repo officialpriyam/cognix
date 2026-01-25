@@ -5,10 +5,10 @@ import { useMemo } from "react";
 import { Toaster as Sonner, type ToasterProps } from "sonner";
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme } = useTheme();
+  const { theme, resolvedTheme } = useTheme();
   const themeBase = useMemo(() => {
-    return theme == "dark" ? "dark" : "default";
-  }, [theme]);
+    return (resolvedTheme || theme) === "dark" ? "dark" : "default";
+  }, [theme, resolvedTheme]);
   return (
     <Sonner
       theme={themeBase as ToasterProps["theme"]}

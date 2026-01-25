@@ -34,10 +34,10 @@ const hexToRgb = (hex: string): [number, number, number] => {
   const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return m
     ? [
-        parseInt(m[1], 16) / 255,
-        parseInt(m[2], 16) / 255,
-        parseInt(m[3], 16) / 255,
-      ]
+      parseInt(m[1], 16) / 255,
+      parseInt(m[2], 16) / 255,
+      parseInt(m[3], 16) / 255,
+    ]
     : [1, 1, 1];
 };
 
@@ -82,32 +82,32 @@ const LightRays: React.FC<LightRaysProps> = ({
   distortion = 0.0,
   className = "",
 }) => {
-  const { theme } = useTheme();
+  const { theme, resolvedTheme } = useTheme();
 
   const raysColor = useMemo(() => {
     if (defaultColor) return defaultColor;
-    if (theme === "dark") {
+    if ((resolvedTheme || theme) === "dark") {
       return "#ffffff80";
     } else {
       return "#00000040";
     }
-  }, [defaultColor, theme]);
+  }, [defaultColor, theme, resolvedTheme]);
 
   const themeFadeDistance = useMemo(() => {
-    if (theme === "dark") {
+    if ((resolvedTheme || theme) === "dark") {
       return fadeDistance * 1.2;
     } else {
       return fadeDistance * 0.8;
     }
-  }, [theme, fadeDistance]);
+  }, [theme, resolvedTheme, fadeDistance]);
 
   const themeSaturation = useMemo(() => {
-    if (theme === "dark") {
+    if ((resolvedTheme || theme) === "dark") {
       return saturation * 0.9;
     } else {
       return saturation * 0.7;
     }
-  }, [theme, saturation]);
+  }, [theme, resolvedTheme, saturation]);
   const containerRef = useRef<HTMLDivElement>(null);
   const uniformsRef = useRef<any>(null);
   const rendererRef = useRef<Renderer | null>(null);

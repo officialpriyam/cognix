@@ -188,7 +188,7 @@
       "createAccount": "Opprett konto"
     },
     "Intro": {
-      "description": "Velkommen til better-chatbot. Logg inn for å oppleve våre AI-drevne samtaleverktøy."
+      "description": "Velkommen til Cognix. Logg inn for å oppleve våre AI-drevne samtaleverktøy."
     }
   },
   "Chat": {
@@ -425,7 +425,7 @@
     "generateAgentGreeting": "Hei! Jeg hjelper deg med å opprette din egen agent. Hva vil du lage?",
     "generateAgentDetailedGreeting": "Hei! Jeg hjelper deg med å opprette din egen agent. Hva vil du lage? Du kan skrive kort eller detaljert.",
     "inputPromptHere": "skriv ledetekst her...",
-    "agentNamePlaceholder": "bedre-agent",
+    "agentNamePlaceholder": "cognix-agent",
     "myAgents": "Mine agenter",
     "bookmarkedAgents": "Bokmerkede agenter",
     "sharedAgents": "Delte agenter",

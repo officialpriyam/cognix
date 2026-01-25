@@ -118,7 +118,7 @@ export async function Highlight(
 
 export function PreBlock({ children }: { children: any }) {
   const code = children.props.children;
-  const { theme } = useTheme();
+  const { theme, resolvedTheme } = useTheme();
   const language = children.props.className?.split("-")?.[1] || "bash";
   const [loading, setLoading] = useState(true);
   const [component, setComponent] = useState<JSX.Element | null>(
@@ -133,12 +133,12 @@ export function PreBlock({ children }: { children: any }) {
         Highlight(
           code,
           language,
-          theme == "dark" ? "dark-plus" : "github-light",
+          (resolvedTheme || theme) === "dark" ? "dark-plus" : "github-light",
         ),
       )
       .ifOk(setComponent)
       .watch(() => setLoading(false));
-  }, [theme, language, code]);
+  }, [theme, resolvedTheme, language, code]);
 
   // For other code blocks, render as before
   return (

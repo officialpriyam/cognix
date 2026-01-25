@@ -20,6 +20,7 @@ import {
   ANTHROPIC_FILE_MIME_TYPES,
   XAI_FILE_MIME_TYPES,
 } from "./file-support";
+import { cache } from "react";
 
 const ollama = createOllama({
   baseURL: process.env.OLLAMA_BASE_URL || "http://localhost:11434/api",
@@ -194,9 +195,77 @@ export const customModelProvider = {
   })),
   getModel: (model?: ChatModel): LanguageModel => {
     if (!model) return fallbackModel;
-    return allModels[model.provider]?.[model.model] || fallbackModel;
+    const provider = model.provider;
+    const modelName = model.model;
+
+    // Check if it's a known static model
+    if (allModels[provider]?.[modelName]) {
+      return allModels[provider][modelName];
+    }
+
+    // If not, try to create it dynamically for certain providers
+    if (provider === "openRouter") {
+      return openrouter(modelName);
+    }
+    if (provider === "google") {
+      return google(modelName);
+    }
+
+    return allModels[provider]?.[modelName] || fallbackModel;
   },
 };
+
+export const fetchOpenRouterModels = cache(async () => {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey || apiKey === "****") return [];
+
+  try {
+    const response = await fetch("https://openrouter.ai/api/v1/models", {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "HTTP-Referer": "https://cognix.ai", // Optional
+        "X-Title": "Cognix", // Optional
+      },
+    });
+    const data = await response.json();
+    if (!data.data) return [];
+
+    return data.data.map((m: any) => ({
+      name: m.id,
+      isToolCallUnsupported: false, // Default to supported, search handles filtering if needed
+      isImageInputUnsupported: false, // Difficult to know exactly without more metadata
+      supportedFileMimeTypes: [],
+    }));
+  } catch (e) {
+    console.error("Failed to fetch OpenRouter models", e);
+    return [];
+  }
+});
+
+export const fetchGoogleModels = cache(async () => {
+  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  if (!apiKey || apiKey === "****") return [];
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`,
+    );
+    const data = await response.json();
+    if (!data.models) return [];
+
+    return data.models
+      .filter((m: any) => m.supportedGenerationMethods.includes("generateContent"))
+      .map((m: any) => ({
+        name: m.name.replace("models/", ""),
+        isToolCallUnsupported: false,
+        isImageInputUnsupported: false,
+        supportedFileMimeTypes: GEMINI_FILE_MIME_TYPES,
+      }));
+  } catch (e) {
+    console.error("Failed to fetch Google models", e);
+    return [];
+  }
+});
 
 function checkProviderAPIKey(provider: keyof typeof staticModels) {
   let key: string | undefined;

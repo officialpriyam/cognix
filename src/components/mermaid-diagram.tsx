@@ -19,7 +19,7 @@ interface MermaidDiagramProps {
 }
 
 export function MermaidDiagram({ chart }: MermaidDiagramProps) {
-  const { theme } = useTheme();
+  const { theme, resolvedTheme } = useTheme();
   const [state, setState] = useState<{
     svg: string;
     error: string | null;
@@ -53,7 +53,7 @@ export function MermaidDiagram({ chart }: MermaidDiagramProps) {
         // Initialize mermaid with theme
         mermaid.initialize({
           startOnLoad: false,
-          theme: theme == "dark" ? "dark" : "default",
+          theme: (resolvedTheme || theme) === "dark" ? "dark" : "default",
           securityLevel: "loose",
         });
 
@@ -79,7 +79,7 @@ export function MermaidDiagram({ chart }: MermaidDiagramProps) {
     return () => {
       debounce.clear();
     };
-  }, [chart, theme, debounce]);
+  }, [chart, theme, resolvedTheme, debounce]);
 
   if (state.loading) {
     return (

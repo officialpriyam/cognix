@@ -88,16 +88,16 @@ export function EditWorkflowPopup({
   onOpenChange?: (open: boolean) => void;
 }) {
   const t = useTranslations();
-  const { theme } = useTheme();
+  const { theme, resolvedTheme } = useTheme();
 
   const getInitialConfig = () => {
     return defaultValue
       ? {
-          description: defaultValue.description || "",
-          icon: defaultValue.icon || defaultConfig.icon,
-          name: defaultValue.name || "",
-          id: defaultValue.id || "",
-        }
+        description: defaultValue.description || "",
+        icon: defaultValue.icon || defaultConfig.icon,
+        name: defaultValue.name || "",
+        id: defaultValue.id || "",
+      }
       : { ...defaultConfig };
   };
 
@@ -241,7 +241,7 @@ export function EditWorkflowPopup({
                     lazyLoadEmojis
                     open
                     className="fade-300"
-                    theme={theme == "dark" ? Theme.DARK : Theme.LIGHT}
+                    theme={(resolvedTheme || theme) === "dark" ? Theme.DARK : Theme.LIGHT}
                     onEmojiClick={(emoji) => {
                       setConfig({
                         icon: {

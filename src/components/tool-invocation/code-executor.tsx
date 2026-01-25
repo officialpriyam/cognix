@@ -71,17 +71,17 @@ export const CodeExecutor = memo(function CodeExecutor({
           logs:
             logstring.length > 5000
               ? [
-                  {
-                    type: "info",
-                    args: [
-                      {
-                        type: "data",
-                        value:
-                          "Log output exceeded storage limit (10KB). Full output was displayed to user but truncated for server storage.",
-                      },
-                    ],
-                  },
-                ]
+                {
+                  type: "info",
+                  args: [
+                    {
+                      type: "data",
+                      value:
+                        "Log output exceeded storage limit (10KB). Full output was displayed to user but truncated for server storage.",
+                    },
+                  ],
+                },
+              ]
               : result.logs,
         }),
         guide:
@@ -215,7 +215,7 @@ export const CodeExecutor = memo(function CodeExecutor({
           ) : (
             <div className="w-1 h-1 mr-1 ring ring-border rounded-full" />
           )}
-          better-chatbot
+          cognix
           <Percent className="size-2" />
         </div>
         {logs}
