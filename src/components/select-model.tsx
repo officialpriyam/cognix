@@ -117,7 +117,7 @@ export const SelectModel = (props: PropsWithChildren<SelectModelProps>) => {
                       data-testid={`model-option-${provider.provider}-${item.name}`}
                     >
                       {model?.provider === provider.provider &&
-                      model?.model === item.name ? (
+                        model?.model === item.name ? (
                         <CheckIcon
                           className="size-3"
                           data-testid="selected-model-check"
@@ -158,7 +158,7 @@ const ProviderHeader = memo(function ProviderHeader({
       ) : (
         <ModelProviderIcon provider={provider} className="size-3" />
       )}
-      {provider}
+      {provider === "openRouterFree" ? "OpenRouter (Free)" : provider}
       {!hasAPIKey && (
         <>
           <span className="text-xs ml-auto text-muted-foreground">
