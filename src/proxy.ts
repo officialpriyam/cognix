@@ -15,6 +15,9 @@ export async function proxy(request: NextRequest) {
   if (pathname === "/admin") {
     return NextResponse.redirect(new URL("/admin/users", request.url));
   }
+  if (pathname === "/" || pathname === "/api" || pathname.startsWith("/api/")) {
+    return NextResponse.next();
+  }
 
   const sessionCookie = getSessionCookie(request);
 

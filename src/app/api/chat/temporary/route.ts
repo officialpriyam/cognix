@@ -21,9 +21,6 @@ export async function POST(request: Request) {
     const json = await request.json();
 
     const session = await getSession();
-    if (!session) {
-      return new Response("Unauthorized", { status: 401 });
-    }
 
     const { messages, chatModel, instructions } = json as {
       messages: UIMessage[];
@@ -35,12 +32,13 @@ export async function POST(request: Request) {
     };
     logger.info(`model: ${chatModel?.provider}/${chatModel?.model}`);
     const model = customModelProvider.getModel(chatModel);
-    const userPreferences =
-      (await getUserPreferences(session.user.id)) || undefined;
+    const userPreferences = session?.user?.id
+      ? (await getUserPreferences(session.user.id)) || undefined
+      : undefined;
 
     return streamText({
       model,
-      system: `${buildUserSystemPrompt(session.user, userPreferences)} ${
+      system: `${buildUserSystemPrompt(session?.user, userPreferences)} ${
         instructions ? `\n\n${instructions}` : ""
       }`.trim(),
       messages: convertToModelMessages(messages),
