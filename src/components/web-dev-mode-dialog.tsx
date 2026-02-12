@@ -122,8 +122,52 @@ function getMessageText(message: UIMessage) {
     .trim();
 }
 
-function stripCodeBlocks(text: string) {
-  return text.replace(/```[\s\S]*?```/g, "[code updated in StackBlitz]").trim();
+function hasCodeBlock(text: string) {
+  return /```[\s\S]*?```/.test(text);
+}
+
+function inferWorkingFileName(text: string) {
+  const fileHint = /(?:^|\n)\s*(?:file|filename)\s*[:=-]\s*([^\n`]+)/i.exec(
+    text,
+  );
+  if (fileHint?.[1]?.trim()) {
+    return fileHint[1].trim();
+  }
+
+  if (/```css/i.test(text)) {
+    return "styles.css";
+  }
+
+  if (/```(?:js|javascript|ts|typescript)/i.test(text)) {
+    return "script.js";
+  }
+
+  return "index.html";
+}
+
+function getAssistantProgressLabel(
+  messages: UIMessage[],
+  messageIndex: number,
+  text: string,
+) {
+  const fileName = inferWorkingFileName(text);
+  if (!hasCodeBlock(text)) {
+    return `Writing ${fileName}...`;
+  }
+
+  let codeMessageCount = 0;
+  for (let i = 0; i <= messageIndex; i += 1) {
+    const message = messages[i];
+    if (message.role !== "assistant") continue;
+
+    const assistantText = getMessageText(message);
+    if (assistantText && hasCodeBlock(assistantText)) {
+      codeMessageCount += 1;
+    }
+  }
+
+  const action = codeMessageCount <= 1 ? "Creating" : "Editing";
+  return `${action} ${fileName}...`;
 }
 
 function extractLatestHtml(messages: UIMessage[]) {
@@ -164,10 +208,14 @@ export function WebDevModeDialog({
 }) {
   const [input, setInput] = useState("");
   const [currentHtml, setCurrentHtml] = useState(DEFAULT_HTML_FILE);
+  const [showFilesPanel, setShowFilesPanel] = useState(false);
+  const [activeFile, setActiveFile] = useState("index.html");
   const [isBootingContainer, setIsBootingContainer] = useState(false);
   const [containerError, setContainerError] = useState<string | null>(null);
   const stackblitzRef = useRef<HTMLDivElement | null>(null);
   const vmRef = useRef<StackBlitzVM | null>(null);
+  const currentHtmlRef = useRef(DEFAULT_HTML_FILE);
+  const lastSyncedHtmlRef = useRef(DEFAULT_HTML_FILE);
   const isBootingContainerRef = useRef(false);
 
   const { messages, sendMessage, status, stop } = useChat({
@@ -191,12 +239,13 @@ export function WebDevModeDialog({
 
   const generatedHtml = useMemo(() => extractLatestHtml(messages), [messages]);
 
+  useEffect(() => {
+    currentHtmlRef.current = currentHtml;
+  }, [currentHtml]);
+
   const bootStackBlitz = useCallback(async () => {
-    if (
-      vmRef.current ||
-      !stackblitzRef.current ||
-      isBootingContainerRef.current
-    ) {
+    const mountElement = stackblitzRef.current;
+    if (vmRef.current || !mountElement || isBootingContainerRef.current) {
       return;
     }
 
@@ -206,31 +255,53 @@ export function WebDevModeDialog({
 
     try {
       const sdk = (await import("@stackblitz/sdk")) as unknown as StackBlitzSDK;
-      const vm = await sdk.embedProject(
-        stackblitzRef.current,
-        createStackBlitzProject(currentHtml || DEFAULT_HTML_FILE),
-        {
-          openFile: "index.html",
-          view: "both",
-          clickToLoad: true,
-          hideNavigation: true,
-          forceEmbedLayout: true,
-        },
-      );
+      let vm: StackBlitzVM | null = null;
+      let lastError: unknown = null;
+
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+          mountElement.replaceChildren();
+          vm = await sdk.embedProject(
+            mountElement,
+            createStackBlitzProject(
+              currentHtmlRef.current || DEFAULT_HTML_FILE,
+            ),
+            {
+              openFile: "index.html",
+              view: "both",
+              clickToLoad: false,
+              hideNavigation: false,
+              forceEmbedLayout: true,
+            },
+          );
+          break;
+        } catch (error) {
+          lastError = error;
+          if (attempt === 0) {
+            await new Promise<void>((resolve) => {
+              setTimeout(resolve, 350);
+            });
+          }
+        }
+      }
+
+      if (!vm) {
+        throw lastError ?? new Error("Could not start StackBlitz");
+      }
+
       vmRef.current = vm;
+      lastSyncedHtmlRef.current = currentHtmlRef.current;
     } catch (error) {
       console.error(error);
-      setContainerError(
-        "Could not start embedded StackBlitz. Retry or open StackBlitz in a new tab.",
-      );
+      setContainerError("Could not start embedded StackBlitz. Please retry.");
     } finally {
       isBootingContainerRef.current = false;
       setIsBootingContainer(false);
     }
-  }, [currentHtml]);
+  }, []);
 
   const syncHtmlToContainer = useCallback(async (html: string) => {
-    if (!vmRef.current) return;
+    if (!vmRef.current || lastSyncedHtmlRef.current === html) return;
 
     try {
       await vmRef.current.applyFsDiff({
@@ -238,6 +309,7 @@ export function WebDevModeDialog({
           "index.html": html,
         },
       });
+      lastSyncedHtmlRef.current = html;
     } catch (error) {
       console.error(error);
       toast.error("Failed to sync code to StackBlitz container");
@@ -257,19 +329,28 @@ export function WebDevModeDialog({
     if (open) return;
 
     vmRef.current = null;
+    lastSyncedHtmlRef.current = "";
+    isBootingContainerRef.current = false;
+    stackblitzRef.current?.replaceChildren();
   }, [open]);
 
   useEffect(() => {
-    if (!generatedHtml) return;
+    if (
+      !generatedHtml ||
+      isLoading ||
+      generatedHtml === currentHtmlRef.current
+    ) {
+      return;
+    }
 
     setCurrentHtml(generatedHtml);
     void syncHtmlToContainer(generatedHtml);
-  }, [generatedHtml, syncHtmlToContainer]);
+  }, [generatedHtml, isLoading, syncHtmlToContainer]);
 
   useEffect(() => {
-    if (!open || !vmRef.current) return;
-    void syncHtmlToContainer(currentHtml);
-  }, [open, currentHtml, syncHtmlToContainer]);
+    if (!open || isBootingContainer || !vmRef.current) return;
+    void syncHtmlToContainer(currentHtmlRef.current);
+  }, [open, isBootingContainer, syncHtmlToContainer]);
 
   const submit = () => {
     const prompt = input.trim();
@@ -313,12 +394,14 @@ export function WebDevModeDialog({
                 </div>
               )}
 
-              {messages.map((message) => {
+              {messages.map((message, messageIndex) => {
                 const text = getMessageText(message);
                 if (!text) return null;
 
                 const content =
-                  message.role === "assistant" ? stripCodeBlocks(text) : text;
+                  message.role === "assistant"
+                    ? getAssistantProgressLabel(messages, messageIndex, text)
+                    : text;
 
                 return (
                   <div
@@ -338,7 +421,7 @@ export function WebDevModeDialog({
               {isLoading && (
                 <div className="rounded-xl px-3 py-2 text-sm bg-muted mr-8 flex items-center gap-2">
                   <Loader2Icon className="size-4 animate-spin" />
-                  Generating website...
+                  Coding index.html...
                 </div>
               )}
             </div>
@@ -383,6 +466,13 @@ export function WebDevModeDialog({
                 <Button
                   variant="secondary"
                   size="sm"
+                  onClick={() => setShowFilesPanel((prev) => !prev)}
+                >
+                  {showFilesPanel ? "Hide Files" : "Show Files"}
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={() => {
                     const code = generatedHtml || DEFAULT_HTML_FILE;
                     setCurrentHtml(code);
@@ -412,6 +502,8 @@ export function WebDevModeDialog({
                   size="sm"
                   onClick={() => {
                     vmRef.current = null;
+                    lastSyncedHtmlRef.current = "";
+                    stackblitzRef.current?.replaceChildren();
                     void bootStackBlitz();
                   }}
                 >
@@ -421,27 +513,29 @@ export function WebDevModeDialog({
               </div>
             </div>
 
-            <div className="flex-1 min-h-0 relative">
-              <div
-                ref={stackblitzRef}
-                className={cn(
-                  "h-full w-full",
-                  (isBootingContainer || containerError) && "invisible",
-                )}
-              />
-              {(isBootingContainer || containerError) && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background">
-                  {isBootingContainer ? (
-                    <>
-                      <Loader2Icon className="size-5 animate-spin text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">
-                        Starting real StackBlitz container...
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-sm text-destructive">{containerError}</p>
-                      <div className="flex items-center gap-2">
+            <div className="flex-1 min-h-0 flex flex-col">
+              <div className="flex-1 min-h-0 relative">
+                <div
+                  ref={stackblitzRef}
+                  className={cn(
+                    "h-full w-full",
+                    (isBootingContainer || containerError) && "invisible",
+                  )}
+                />
+                {(isBootingContainer || containerError) && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background">
+                    {isBootingContainer ? (
+                      <>
+                        <Loader2Icon className="size-5 animate-spin text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                          Starting StackBlitz container...
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm text-destructive">
+                          {containerError}
+                        </p>
                         <Button
                           variant="secondary"
                           size="sm"
@@ -449,22 +543,39 @@ export function WebDevModeDialog({
                         >
                           Retry
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            window.open(
-                              "https://stackblitz.com/edit/js?file=index.html",
-                              "_blank",
-                              "noopener,noreferrer",
-                            );
-                          }}
-                        >
-                          Open StackBlitz
-                        </Button>
-                      </div>
-                    </>
-                  )}
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {showFilesPanel && (
+                <div className="h-64 min-h-0 border-t grid grid-cols-[180px,1fr]">
+                  <div className="border-r bg-muted/30 p-2 space-y-2">
+                    <p className="px-2 py-1 text-xs font-medium text-muted-foreground">
+                      Files
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setActiveFile("index.html")}
+                      className={cn(
+                        "w-full rounded-md px-2 py-1.5 text-left text-xs transition",
+                        activeFile === "index.html"
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-muted",
+                      )}
+                    >
+                      index.html
+                    </button>
+                  </div>
+                  <div className="min-h-0 overflow-auto">
+                    <div className="border-b px-3 py-2 text-xs font-medium">
+                      {activeFile}
+                    </div>
+                    <pre className="p-3 text-xs leading-5 whitespace-pre-wrap font-mono">
+                      {currentHtml}
+                    </pre>
+                  </div>
                 </div>
               )}
             </div>
