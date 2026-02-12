@@ -1,7 +1,7 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, UIMessage } from "ai";
+import { DefaultChatTransport } from "ai";
 import { ChatModel } from "app-types/chat";
 import { cn } from "lib/utils";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -16,179 +16,25 @@ import {
   Loader2Icon,
   RefreshCcwIcon,
 } from "lucide-react";
-
-const DEFAULT_TASK =
-  "Build a responsive SaaS landing page with hero, features, pricing, and FAQ sections.";
-
-const DEFAULT_HTML_FILE = `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Cognix Web Dev Mode</title>
-    <style>
-      :root {
-        color-scheme: light;
-      }
-      * {
-        box-sizing: border-box;
-      }
-      body {
-        margin: 0;
-        min-height: 100vh;
-        display: grid;
-        place-items: center;
-        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto;
-        background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
-      }
-      .card {
-        max-width: 640px;
-        background: white;
-        border-radius: 16px;
-        padding: 28px;
-        box-shadow: 0 20px 40px rgba(15, 23, 42, 0.12);
-      }
-      h1 {
-        margin: 0 0 10px;
-        font-size: 28px;
-      }
-      p {
-        margin: 0;
-        color: #475569;
-        line-height: 1.55;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="card">
-      <h1>Web Dev Mode</h1>
-      <p>Ask for a website in the left panel. The generated code appears here live.</p>
-    </div>
-  </body>
-</html>`;
-
-const WEB_DEV_INSTRUCTIONS = `You are in Cognix Web Dev Mode.
-
-Rules:
-1) Build websites or web app UI based on the user's request.
-2) Always return a complete runnable "index.html" in one \`\`\`html\`\`\` code block.
-3) Keep external dependencies minimal and avoid package installs unless explicitly asked.
-4) If user asks edits, update the full HTML and return the complete file again.
-5) After the code block, add a short summary (max 4 lines).`;
+import {
+  buildVirtualFiles,
+  createStackBlitzProject,
+  DEFAULT_HTML_FILE,
+  DEFAULT_TASK,
+  extractLatestHtml,
+  getAssistantProgressLabel,
+  getFileMapFingerprint,
+  getMessageText,
+  StackBlitzSDK,
+  StackBlitzVM,
+  toStackBlitzFileMap,
+  waitForContainerLayout,
+  WEB_DEV_INSTRUCTIONS,
+} from "./web-dev-utils";
 
 const WEB_DEV_THREAD_ID = "web-dev-workspace";
 
-type StackBlitzVM = {
-  applyFsDiff: (diff: {
-    create?: Record<string, string>;
-    destroy?: string[];
-  }) => Promise<void>;
-};
-
-type StackBlitzSDK = {
-  embedProject: (
-    element: HTMLElement,
-    project: {
-      title: string;
-      description?: string;
-      template: string;
-      files: Record<string, string>;
-    },
-    options?: Record<string, unknown>,
-  ) => Promise<StackBlitzVM>;
-};
-
-const createStackBlitzProject = (indexHtml: string) => ({
-  title: "Cognix Web Dev Mode",
-  description: "AI powered web app builder in Cognix",
-  template: "javascript",
-  files: {
-    "index.html": indexHtml,
-  },
-});
-
-function getMessageText(message: UIMessage) {
-  return message.parts
-    .filter((part): part is Extract<typeof part, { type: "text" }> => {
-      return part.type === "text";
-    })
-    .map((part) => part.text)
-    .join("\n")
-    .trim();
-}
-
-function hasCodeBlock(text: string) {
-  return /```[\s\S]*?```/.test(text);
-}
-
-function inferWorkingFileName(text: string) {
-  const fileHint = /(?:^|\n)\s*(?:file|filename)\s*[:=-]\s*([^\n`]+)/i.exec(
-    text,
-  );
-  if (fileHint?.[1]?.trim()) {
-    return fileHint[1].trim();
-  }
-
-  if (/```css/i.test(text)) {
-    return "styles.css";
-  }
-
-  if (/```(?:js|javascript|ts|typescript)/i.test(text)) {
-    return "script.js";
-  }
-
-  return "index.html";
-}
-
-function getAssistantProgressLabel(
-  messages: UIMessage[],
-  messageIndex: number,
-  text: string,
-) {
-  const fileName = inferWorkingFileName(text);
-  if (!hasCodeBlock(text)) {
-    return `Writing ${fileName}...`;
-  }
-
-  let codeMessageCount = 0;
-  for (let i = 0; i <= messageIndex; i += 1) {
-    const message = messages[i];
-    if (message.role !== "assistant") continue;
-
-    const assistantText = getMessageText(message);
-    if (assistantText && hasCodeBlock(assistantText)) {
-      codeMessageCount += 1;
-    }
-  }
-
-  const action = codeMessageCount <= 1 ? "Creating" : "Editing";
-  return `${action} ${fileName}...`;
-}
-
-function extractLatestHtml(messages: UIMessage[]) {
-  for (let i = messages.length - 1; i >= 0; i -= 1) {
-    const message = messages[i];
-    if (message.role !== "assistant") continue;
-
-    const text = getMessageText(message);
-    if (!text) continue;
-
-    const htmlMatch = /```html\s*([\s\S]*?)```/i.exec(text);
-    if (htmlMatch?.[1]?.trim()) {
-      return htmlMatch[1].trim();
-    }
-
-    const anyCodeMatch = /```(?:[\w-]+)?\s*([\s\S]*?)```/i.exec(text);
-    if (anyCodeMatch?.[1]?.trim()) {
-      const code = anyCodeMatch[1].trim();
-      if (/<html|<!doctype html|<body|<head/i.test(code)) {
-        return code;
-      }
-    }
-  }
-
-  return "";
-}
+type ViewMode = "files" | "web";
 
 export function WebDevWorkspace({
   initialPrompt,
@@ -199,14 +45,14 @@ export function WebDevWorkspace({
 }) {
   const [input, setInput] = useState(initialPrompt ?? "");
   const [currentHtml, setCurrentHtml] = useState(DEFAULT_HTML_FILE);
-  const [showFilesPanel, setShowFilesPanel] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("web");
   const [activeFile, setActiveFile] = useState("index.html");
   const [isBootingContainer, setIsBootingContainer] = useState(false);
   const [containerError, setContainerError] = useState<string | null>(null);
   const stackblitzRef = useRef<HTMLDivElement | null>(null);
   const vmRef = useRef<StackBlitzVM | null>(null);
   const currentHtmlRef = useRef(DEFAULT_HTML_FILE);
-  const lastSyncedHtmlRef = useRef(DEFAULT_HTML_FILE);
+  const lastSyncedFingerprintRef = useRef("");
   const isBootingContainerRef = useRef(false);
 
   const [chatModel, toolChoice, threadMentions, appStoreMutate] = appStore(
@@ -249,16 +95,31 @@ export function WebDevWorkspace({
 
   const generatedHtml = useMemo(() => extractLatestHtml(messages), [messages]);
   const activeMentionsCount = threadMentions[WEB_DEV_THREAD_ID]?.length ?? 0;
+  const virtualFiles = useMemo(
+    () => buildVirtualFiles(currentHtml),
+    [currentHtml],
+  );
+  const activeFileContent = useMemo(() => {
+    return (
+      virtualFiles.find((file) => file.path === activeFile)?.content ??
+      virtualFiles[0]?.content ??
+      ""
+    );
+  }, [virtualFiles, activeFile]);
 
   useEffect(() => {
     if (!initialModel?.provider || !initialModel?.model) return;
-
     appStoreMutate({ chatModel: initialModel });
   }, [initialModel?.provider, initialModel?.model, appStoreMutate]);
 
   useEffect(() => {
     currentHtmlRef.current = currentHtml;
   }, [currentHtml]);
+
+  useEffect(() => {
+    if (virtualFiles.some((file) => file.path === activeFile)) return;
+    setActiveFile(virtualFiles[0]?.path ?? "index.html");
+  }, [virtualFiles, activeFile]);
 
   const bootStackBlitz = useCallback(async () => {
     const mountElement = stackblitzRef.current;
@@ -271,71 +132,93 @@ export function WebDevWorkspace({
     setContainerError(null);
 
     try {
+      const hasLayout = await waitForContainerLayout(mountElement);
+      if (!hasLayout) {
+        throw new Error("Container size is not ready yet.");
+      }
+
       const sdk = (await import("@stackblitz/sdk")) as unknown as StackBlitzSDK;
+      const files = toStackBlitzFileMap(
+        buildVirtualFiles(currentHtmlRef.current || DEFAULT_HTML_FILE),
+      );
+      const fingerprint = getFileMapFingerprint(files);
+      const project = createStackBlitzProject(files);
+      const options: Record<string, unknown>[] = [
+        {
+          openFile: "index.html",
+          view: "both",
+          clickToLoad: false,
+          hideNavigation: false,
+          forceEmbedLayout: true,
+        },
+        {
+          openFile: "index.html",
+          view: "both",
+          clickToLoad: true,
+          hideNavigation: false,
+          forceEmbedLayout: true,
+        },
+      ];
+
       let vm: StackBlitzVM | null = null;
       let lastError: unknown = null;
 
-      for (let attempt = 0; attempt < 2; attempt += 1) {
-        try {
-          mountElement.replaceChildren();
-          vm = await sdk.embedProject(
-            mountElement,
-            createStackBlitzProject(
-              currentHtmlRef.current || DEFAULT_HTML_FILE,
-            ),
-            {
-              openFile: "index.html",
-              view: "both",
-              clickToLoad: false,
-              hideNavigation: false,
-              forceEmbedLayout: true,
-            },
-          );
-          break;
-        } catch (error) {
-          lastError = error;
-          if (attempt === 0) {
+      for (const option of options) {
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+          try {
+            mountElement.replaceChildren();
+            vm = await sdk.embedProject(mountElement, project, option);
+            break;
+          } catch (error) {
+            lastError = error;
             await new Promise<void>((resolve) => {
-              setTimeout(resolve, 350);
+              setTimeout(resolve, 250 + attempt * 200);
             });
           }
         }
+
+        if (vm) break;
       }
 
       if (!vm) {
-        throw lastError ?? new Error("Could not start StackBlitz");
+        throw lastError ?? new Error("StackBlitz boot failed.");
       }
 
       vmRef.current = vm;
-      lastSyncedHtmlRef.current = currentHtmlRef.current;
+      lastSyncedFingerprintRef.current = fingerprint;
     } catch (error) {
       console.error(error);
-      setContainerError("Could not start embedded StackBlitz. Please retry.");
+      setContainerError(
+        "StackBlitz failed to load here. Showing local preview until retry.",
+      );
     } finally {
       isBootingContainerRef.current = false;
       setIsBootingContainer(false);
     }
   }, []);
 
-  const syncHtmlToContainer = useCallback(async (html: string) => {
-    if (!vmRef.current || lastSyncedHtmlRef.current === html) return;
+  const syncProjectToContainer = useCallback(async (html: string) => {
+    if (!vmRef.current) return;
+
+    const files = toStackBlitzFileMap(buildVirtualFiles(html));
+    const fingerprint = getFileMapFingerprint(files);
+    if (lastSyncedFingerprintRef.current === fingerprint) return;
 
     try {
       await vmRef.current.applyFsDiff({
-        create: {
-          "index.html": html,
-        },
+        create: files,
       });
-      lastSyncedHtmlRef.current = html;
+      lastSyncedFingerprintRef.current = fingerprint;
     } catch (error) {
       console.error(error);
-      toast.error("Failed to sync code to StackBlitz container");
+      toast.error("Failed to sync project to StackBlitz");
     }
   }, []);
 
   useEffect(() => {
+    if (viewMode !== "web") return;
     void bootStackBlitz();
-  }, [bootStackBlitz]);
+  }, [viewMode, bootStackBlitz]);
 
   useEffect(() => {
     if (
@@ -347,13 +230,20 @@ export function WebDevWorkspace({
     }
 
     setCurrentHtml(generatedHtml);
-    void syncHtmlToContainer(generatedHtml);
-  }, [generatedHtml, isLoading, syncHtmlToContainer]);
+  }, [generatedHtml, isLoading]);
 
   useEffect(() => {
-    if (isBootingContainer || !vmRef.current) return;
-    void syncHtmlToContainer(currentHtmlRef.current);
-  }, [isBootingContainer, syncHtmlToContainer]);
+    if (viewMode !== "web" || isBootingContainer || !vmRef.current) return;
+    void syncProjectToContainer(currentHtmlRef.current);
+  }, [viewMode, isBootingContainer, currentHtml, syncProjectToContainer]);
+
+  useEffect(() => {
+    return () => {
+      vmRef.current = null;
+      isBootingContainerRef.current = false;
+      stackblitzRef.current?.replaceChildren();
+    };
+  }, []);
 
   return (
     <div className="h-full min-h-0 grid grid-cols-1 lg:grid-cols-2">
@@ -363,7 +253,7 @@ export function WebDevWorkspace({
           <span className="ml-2 text-xs text-muted-foreground font-normal">
             {(chatModel && `${chatModel.provider}/${chatModel.model}`) ||
               "default model"}{" "}
-            · {toolChoice} · mentions {activeMentionsCount}
+            | {toolChoice} | mentions {activeMentionsCount}
           </span>
         </div>
 
@@ -424,22 +314,31 @@ export function WebDevWorkspace({
 
       <section className="min-h-0 flex flex-col">
         <div className="px-4 py-3 border-b text-sm font-medium flex items-center gap-2">
-          <span>StackBlitz Container</span>
+          <span>Preview + Files</span>
           <div className="ml-auto flex items-center gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setShowFilesPanel((prev) => !prev)}
-            >
-              {showFilesPanel ? "Hide Files" : "Show Files"}
-            </Button>
+            <div className="flex items-center gap-1 rounded-md border p-1">
+              <Button
+                variant={viewMode === "web" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("web")}
+              >
+                Web View
+              </Button>
+              <Button
+                variant={viewMode === "files" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("files")}
+              >
+                File Tree
+              </Button>
+            </div>
             <Button
               variant="secondary"
               size="sm"
               onClick={() => {
                 const code = generatedHtml || DEFAULT_HTML_FILE;
                 setCurrentHtml(code);
-                void syncHtmlToContainer(code);
+                void syncProjectToContainer(code);
               }}
             >
               <RefreshCcwIcon className="size-4" />
@@ -465,7 +364,7 @@ export function WebDevWorkspace({
               size="sm"
               onClick={() => {
                 vmRef.current = null;
-                lastSyncedHtmlRef.current = "";
+                lastSyncedFingerprintRef.current = "";
                 stackblitzRef.current?.replaceChildren();
                 void bootStackBlitz();
               }}
@@ -476,70 +375,82 @@ export function WebDevWorkspace({
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 flex flex-col">
+        {viewMode === "web" ? (
           <div className="flex-1 min-h-0 relative">
-            <div
-              ref={stackblitzRef}
-              className={cn(
-                "h-full w-full",
-                (isBootingContainer || containerError) && "invisible",
-              )}
-            />
-            {(isBootingContainer || containerError) && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background">
-                {isBootingContainer ? (
-                  <>
+            {containerError ? (
+              <div className="h-full w-full relative">
+                <iframe
+                  title="Web fallback preview"
+                  srcDoc={currentHtml}
+                  className="h-full w-full border-0 bg-white"
+                  sandbox="allow-scripts allow-forms allow-modals allow-popups allow-same-origin"
+                />
+                <div className="absolute inset-x-3 top-3 flex items-center gap-2 rounded-md border bg-background/95 p-2">
+                  <p className="text-xs text-destructive">{containerError}</p>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => void bootStackBlitz()}
+                  >
+                    Retry
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div
+                  ref={stackblitzRef}
+                  className={cn(
+                    "h-full w-full",
+                    isBootingContainer && "invisible",
+                  )}
+                />
+                {isBootingContainer && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background">
                     <Loader2Icon className="size-5 animate-spin text-muted-foreground" />
                     <p className="text-sm text-muted-foreground">
                       Starting StackBlitz container...
                     </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-sm text-destructive">{containerError}</p>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => void bootStackBlitz()}
-                    >
-                      Retry
-                    </Button>
-                  </>
+                  </div>
                 )}
-              </div>
+              </>
             )}
           </div>
-
-          {showFilesPanel && (
-            <div className="h-64 min-h-0 border-t grid grid-cols-[180px,1fr]">
-              <div className="border-r bg-muted/30 p-2 space-y-2">
-                <p className="px-2 py-1 text-xs font-medium text-muted-foreground">
-                  Files
-                </p>
+        ) : (
+          <div className="flex-1 min-h-0 grid grid-cols-[260px,1fr] bg-[#1e1e1e] text-[#d4d4d4]">
+            <aside className="min-h-0 overflow-auto border-r border-white/10">
+              <div className="px-3 py-2 text-[11px] uppercase tracking-[0.08em] text-[#a0a0a0]">
+                Explorer
+              </div>
+              <div className="px-3 py-1 text-xs font-semibold text-[#d0d0d0]">
+                PROJECT
+              </div>
+              {virtualFiles.map((file) => (
                 <button
+                  key={file.path}
                   type="button"
-                  onClick={() => setActiveFile("index.html")}
+                  onClick={() => setActiveFile(file.path)}
                   className={cn(
-                    "w-full rounded-md px-2 py-1.5 text-left text-xs transition",
-                    activeFile === "index.html"
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted",
+                    "w-full px-5 py-1.5 text-left text-xs transition",
+                    activeFile === file.path
+                      ? "bg-[#094771] text-[#ffffff]"
+                      : "text-[#d4d4d4] hover:bg-[#2a2d2e]",
                   )}
                 >
-                  index.html
+                  {file.path}
                 </button>
+              ))}
+            </aside>
+            <section className="min-h-0 flex flex-col">
+              <div className="border-b border-white/10 bg-[#252526] px-3 py-2 text-xs">
+                {activeFile}
               </div>
-              <div className="min-h-0 overflow-auto">
-                <div className="border-b px-3 py-2 text-xs font-medium">
-                  {activeFile}
-                </div>
-                <pre className="p-3 text-xs leading-5 whitespace-pre-wrap font-mono">
-                  {currentHtml}
-                </pre>
-              </div>
-            </div>
-          )}
-        </div>
+              <pre className="flex-1 min-h-0 overflow-auto p-4 text-xs leading-5 font-mono whitespace-pre-wrap">
+                {activeFileContent}
+              </pre>
+            </section>
+          </div>
+        )}
       </section>
     </div>
   );
