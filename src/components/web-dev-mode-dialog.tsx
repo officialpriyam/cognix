@@ -168,6 +168,7 @@ export function WebDevModeDialog({
   const [containerError, setContainerError] = useState<string | null>(null);
   const stackblitzRef = useRef<HTMLDivElement | null>(null);
   const vmRef = useRef<StackBlitzVM | null>(null);
+  const isBootingContainerRef = useRef(false);
 
   const { messages, sendMessage, status, stop } = useChat({
     transport: new DefaultChatTransport({
@@ -191,8 +192,15 @@ export function WebDevModeDialog({
   const generatedHtml = useMemo(() => extractLatestHtml(messages), [messages]);
 
   const bootStackBlitz = useCallback(async () => {
-    if (vmRef.current || !stackblitzRef.current || isBootingContainer) return;
+    if (
+      vmRef.current ||
+      !stackblitzRef.current ||
+      isBootingContainerRef.current
+    ) {
+      return;
+    }
 
+    isBootingContainerRef.current = true;
     setIsBootingContainer(true);
     setContainerError(null);
 
@@ -216,9 +224,10 @@ export function WebDevModeDialog({
         "Could not start embedded StackBlitz. Retry or open StackBlitz in a new tab.",
       );
     } finally {
+      isBootingContainerRef.current = false;
       setIsBootingContainer(false);
     }
-  }, [currentHtml, isBootingContainer]);
+  }, [currentHtml]);
 
   const syncHtmlToContainer = useCallback(async (html: string) => {
     if (!vmRef.current) return;

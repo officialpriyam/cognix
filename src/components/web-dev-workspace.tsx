@@ -159,6 +159,7 @@ export function WebDevWorkspace({
   const [containerError, setContainerError] = useState<string | null>(null);
   const stackblitzRef = useRef<HTMLDivElement | null>(null);
   const vmRef = useRef<StackBlitzVM | null>(null);
+  const isBootingContainerRef = useRef(false);
 
   const [chatModel, toolChoice, threadMentions, appStoreMutate] = appStore(
     useShallow((state) => [
@@ -208,8 +209,15 @@ export function WebDevWorkspace({
   }, [initialModel?.provider, initialModel?.model, appStoreMutate]);
 
   const bootStackBlitz = useCallback(async () => {
-    if (vmRef.current || !stackblitzRef.current || isBootingContainer) return;
+    if (
+      vmRef.current ||
+      !stackblitzRef.current ||
+      isBootingContainerRef.current
+    ) {
+      return;
+    }
 
+    isBootingContainerRef.current = true;
     setIsBootingContainer(true);
     setContainerError(null);
 
@@ -233,9 +241,10 @@ export function WebDevWorkspace({
         "Could not start embedded StackBlitz. Retry or open StackBlitz in a new tab.",
       );
     } finally {
+      isBootingContainerRef.current = false;
       setIsBootingContainer(false);
     }
-  }, [currentHtml, isBootingContainer]);
+  }, [currentHtml]);
 
   const syncHtmlToContainer = useCallback(async (html: string) => {
     if (!vmRef.current) return;
