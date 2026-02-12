@@ -221,7 +221,7 @@ export function WebDevWorkspace({
         {
           openFile: "index.html",
           view: "both",
-          clickToLoad: false,
+          clickToLoad: true,
           hideNavigation: true,
           forceEmbedLayout: true,
         },
@@ -229,8 +229,9 @@ export function WebDevWorkspace({
       vmRef.current = vm;
     } catch (error) {
       console.error(error);
-      setContainerError("Failed to start StackBlitz container");
-      toast.error("Failed to start StackBlitz container");
+      setContainerError(
+        "Could not start embedded StackBlitz. Retry or open StackBlitz in a new tab.",
+      );
     } finally {
       setIsBootingContainer(false);
     }

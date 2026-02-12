@@ -204,7 +204,7 @@ export function WebDevModeDialog({
         {
           openFile: "index.html",
           view: "both",
-          clickToLoad: false,
+          clickToLoad: true,
           hideNavigation: true,
           forceEmbedLayout: true,
         },
@@ -212,8 +212,9 @@ export function WebDevModeDialog({
       vmRef.current = vm;
     } catch (error) {
       console.error(error);
-      setContainerError("Failed to start StackBlitz container");
-      toast.error("Failed to start StackBlitz container");
+      setContainerError(
+        "Could not start embedded StackBlitz. Retry or open StackBlitz in a new tab.",
+      );
     } finally {
       setIsBootingContainer(false);
     }
@@ -431,13 +432,28 @@ export function WebDevModeDialog({
                   ) : (
                     <>
                       <p className="text-sm text-destructive">{containerError}</p>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => void bootStackBlitz()}
-                      >
-                        Retry
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => void bootStackBlitz()}
+                        >
+                          Retry
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            window.open(
+                              "https://stackblitz.com/edit/js?file=index.html",
+                              "_blank",
+                              "noopener,noreferrer",
+                            );
+                          }}
+                        >
+                          Open StackBlitz
+                        </Button>
+                      </div>
                     </>
                   )}
                 </div>
