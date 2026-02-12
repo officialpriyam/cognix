@@ -827,6 +827,7 @@ export default function PromptInput({
         open={isWebDevModeOpen}
         onOpenChange={setIsWebDevModeOpen}
         initialPrompt={input}
+        chatModel={chatModel}
       />
     </>
   );
