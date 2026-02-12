@@ -13,6 +13,7 @@ import PromptInput from "./prompt-input";
 import {
   BugIcon,
   ClipboardCopyIcon,
+  ExternalLinkIcon,
   Loader2Icon,
   RefreshCcwIcon,
 } from "lucide-react";
@@ -22,9 +23,10 @@ import {
   DEFAULT_HTML_FILE,
   DEFAULT_TASK,
   extractLatestHtml,
-  getAssistantProgressLabel,
+  getAssistantDisplayText,
   getFileMapFingerprint,
   getMessageText,
+  getStackBlitzEmbedOptions,
   StackBlitzSDK,
   StackBlitzVM,
   toStackBlitzFileMap,
@@ -143,22 +145,7 @@ export function WebDevWorkspace({
       );
       const fingerprint = getFileMapFingerprint(files);
       const project = createStackBlitzProject(files);
-      const options: Record<string, unknown>[] = [
-        {
-          openFile: "index.html",
-          view: "both",
-          clickToLoad: false,
-          hideNavigation: false,
-          forceEmbedLayout: true,
-        },
-        {
-          openFile: "index.html",
-          view: "both",
-          clickToLoad: true,
-          hideNavigation: false,
-          forceEmbedLayout: true,
-        },
-      ];
+      const options = getStackBlitzEmbedOptions();
 
       let vm: StackBlitzVM | null = null;
       let lastError: unknown = null;
@@ -189,11 +176,32 @@ export function WebDevWorkspace({
     } catch (error) {
       console.error(error);
       setContainerError(
-        "StackBlitz failed to load here. Showing local preview until retry.",
+        "StackBlitz container did not start. Local preview is active and still working.",
       );
     } finally {
       isBootingContainerRef.current = false;
       setIsBootingContainer(false);
+    }
+  }, []);
+
+  const openStackBlitzInNewTab = useCallback(async () => {
+    try {
+      const sdk = (await import("@stackblitz/sdk")) as unknown as StackBlitzSDK;
+      const files = toStackBlitzFileMap(
+        buildVirtualFiles(currentHtmlRef.current || DEFAULT_HTML_FILE),
+      );
+      const project = createStackBlitzProject(files);
+      sdk.openProject(project, {
+        openFile: "index.html",
+        showSidebar: true,
+        sidebarView: "project",
+        startScript: "dev",
+        terminalHeight: 32,
+        view: "default",
+      });
+    } catch (error) {
+      console.error(error);
+      toast.error("Unable to open StackBlitz in a new tab");
     }
   }, []);
 
@@ -271,7 +279,7 @@ export function WebDevWorkspace({
 
             const content =
               message.role === "assistant"
-                ? getAssistantProgressLabel(messages, messageIndex, text)
+                ? getAssistantDisplayText(messages, messageIndex, text)
                 : text;
 
             return (
@@ -315,6 +323,16 @@ export function WebDevWorkspace({
       <section className="min-h-0 flex flex-col">
         <div className="px-4 py-3 border-b text-sm font-medium flex items-center gap-2">
           <span>Preview + Files</span>
+          <span
+            className={cn(
+              "rounded-full px-2 py-0.5 text-[11px] font-normal",
+              containerError
+                ? "bg-amber-500/15 text-amber-600"
+                : "bg-emerald-500/15 text-emerald-600",
+            )}
+          >
+            {containerError ? "Local preview active" : "StackBlitz active"}
+          </span>
           <div className="ml-auto flex items-center gap-2">
             <div className="flex items-center gap-1 rounded-md border p-1">
               <Button
@@ -372,6 +390,14 @@ export function WebDevWorkspace({
               <BugIcon className="size-4" />
               Restart Container
             </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => void openStackBlitzInNewTab()}
+            >
+              <ExternalLinkIcon className="size-4" />
+              Open StackBlitz
+            </Button>
           </div>
         </div>
 
@@ -386,13 +412,25 @@ export function WebDevWorkspace({
                   sandbox="allow-scripts allow-forms allow-modals allow-popups allow-same-origin"
                 />
                 <div className="absolute inset-x-3 top-3 flex items-center gap-2 rounded-md border bg-background/95 p-2">
-                  <p className="text-xs text-destructive">{containerError}</p>
+                  <p className="text-xs text-destructive">
+                    {containerError}
+                    <span className="ml-2 text-foreground">
+                      Retry to restore StackBlitz file tree and terminal.
+                    </span>
+                  </p>
                   <Button
                     size="sm"
                     variant="secondary"
                     onClick={() => void bootStackBlitz()}
                   >
                     Retry
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => void openStackBlitzInNewTab()}
+                  >
+                    Open in Tab
                   </Button>
                 </div>
               </div>
@@ -448,6 +486,22 @@ export function WebDevWorkspace({
               <pre className="flex-1 min-h-0 overflow-auto p-4 text-xs leading-5 font-mono whitespace-pre-wrap">
                 {activeFileContent}
               </pre>
+              <div className="border-t border-white/10 bg-[#181818]">
+                <div className="px-3 py-2 text-[11px] uppercase tracking-[0.08em] text-[#a0a0a0]">
+                  Terminal
+                </div>
+                <pre className="px-3 pb-3 text-xs leading-5 font-mono whitespace-pre-wrap text-[#d4d4d4]">
+                  {containerError
+                    ? [
+                        "> StackBlitz container is offline in this pane.",
+                        "> Local preview is still working.",
+                        "> Use Web View > Retry to restore container terminal.",
+                      ].join("\n")
+                    : ["> npm run dev", "> vite --host 0.0.0.0 --port 5173"].join(
+                        "\n",
+                      )}
+                </pre>
+              </div>
             </section>
           </div>
         )}

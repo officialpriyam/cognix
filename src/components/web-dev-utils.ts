@@ -59,6 +59,64 @@ Rules:
 4) If user asks edits, update the full HTML and return the complete file again.
 5) After the code block, add a short summary (max 4 lines).`;
 
+const STACKBLITZ_BASE_FILES: Record<string, string> = {
+  ".gitignore": "node_modules\ndist\n",
+  "package.json": JSON.stringify(
+    {
+      name: "cognix-web-dev-mode",
+      private: true,
+      type: "module",
+      scripts: {
+        dev: "vite --host 0.0.0.0 --port 5173",
+        start: "vite --host 0.0.0.0 --port 5173",
+      },
+      devDependencies: {
+        vite: "^5.4.19",
+      },
+    },
+    null,
+    2,
+  ),
+  "src/main.js": "console.log(\"Cognix Web Dev Mode running in StackBlitz\");\n",
+};
+
+export function getStackBlitzEmbedOptions() {
+  const shared = {
+    openFile: "index.html",
+    showSidebar: true,
+    sidebarView: "project",
+    hideNavigation: false,
+    terminalHeight: 32,
+    startScript: "dev",
+    view: "default",
+    theme: "dark",
+    forceEmbedLayout: true,
+  };
+
+  return [
+    {
+      ...shared,
+      clickToLoad: false,
+      crossOriginIsolated: true,
+    },
+    {
+      ...shared,
+      clickToLoad: false,
+      crossOriginIsolated: false,
+    },
+    {
+      ...shared,
+      clickToLoad: true,
+      crossOriginIsolated: true,
+    },
+    {
+      ...shared,
+      clickToLoad: true,
+      crossOriginIsolated: false,
+    },
+  ] satisfies Record<string, unknown>[];
+}
+
 export type StackBlitzVM = {
   applyFsDiff: (diff: {
     create?: Record<string, string>;
@@ -67,6 +125,15 @@ export type StackBlitzVM = {
 };
 
 export type StackBlitzSDK = {
+  openProject: (
+    project: {
+      title: string;
+      description?: string;
+      template: string;
+      files: Record<string, string>;
+    },
+    options?: Record<string, unknown>,
+  ) => void;
   embedProject: (
     element: HTMLElement,
     project: {
@@ -88,8 +155,11 @@ export function createStackBlitzProject(files: Record<string, string>) {
   return {
     title: "Cognix Web Dev Mode",
     description: "AI powered web app builder in Cognix",
-    template: "javascript",
-    files,
+    template: "node",
+    files: {
+      ...STACKBLITZ_BASE_FILES,
+      ...files,
+    },
   };
 }
 
@@ -109,6 +179,19 @@ export function getMessageText(message: UIMessage) {
 
 function hasCodeBlock(text: string) {
   return /```[\s\S]*?```/.test(text);
+}
+
+export function getAssistantDisplayText(
+  messages: UIMessage[],
+  messageIndex: number,
+  text: string,
+) {
+  const summary = text.replace(/```[\s\S]*?```/g, "").trim();
+  if (summary) {
+    return summary;
+  }
+
+  return getAssistantProgressLabel(messages, messageIndex, text);
 }
 
 function inferWorkingFileName(text: string) {
