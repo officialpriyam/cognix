@@ -4,6 +4,15 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { ChatModel } from "app-types/chat";
 import { cn } from "lib/utils";
+import {
+  BugIcon,
+  ClipboardCopyIcon,
+  ExternalLinkIcon,
+  Loader2Icon,
+  RefreshCcwIcon,
+  SendIcon,
+  SquareIcon,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "ui/button";
@@ -16,29 +25,21 @@ import {
 } from "ui/dialog";
 import { Textarea } from "ui/textarea";
 import {
-  BugIcon,
-  ClipboardCopyIcon,
-  ExternalLinkIcon,
-  Loader2Icon,
-  RefreshCcwIcon,
-  SendIcon,
-  SquareIcon,
-} from "lucide-react";
-import {
-  buildVirtualFiles,
-  createStackBlitzProject,
   DEFAULT_HTML_FILE,
   DEFAULT_TASK,
+  StackBlitzSDK,
+  StackBlitzVM,
+  WEB_DEV_INSTRUCTIONS,
+  buildVirtualFiles,
+  createStackBlitzProject,
   extractLatestHtml,
   getAssistantDisplayText,
   getFileMapFingerprint,
   getMessageText,
   getStackBlitzEmbedOptions,
-  StackBlitzSDK,
-  StackBlitzVM,
+  getStackBlitzErrorMessage,
   toStackBlitzFileMap,
   waitForContainerLayout,
-  WEB_DEV_INSTRUCTIONS,
 } from "./web-dev-utils";
 
 type ViewMode = "files" | "web";
@@ -118,11 +119,6 @@ export function WebDevModeDialog({
     setContainerError(null);
 
     try {
-      const hasLayout = await waitForContainerLayout(mountElement);
-      if (!hasLayout) {
-        throw new Error("Container size is not ready yet.");
-      }
-
       const sdk = (await import("@stackblitz/sdk")) as unknown as StackBlitzSDK;
       const files = toStackBlitzFileMap(
         buildVirtualFiles(currentHtmlRef.current || DEFAULT_HTML_FILE),
@@ -130,25 +126,46 @@ export function WebDevModeDialog({
       const fingerprint = getFileMapFingerprint(files);
       const project = createStackBlitzProject(files);
       const options = getStackBlitzEmbedOptions();
+      const sleep = (delayMs: number) =>
+        new Promise<void>((resolve) => {
+          setTimeout(resolve, delayMs);
+        });
 
       let vm: StackBlitzVM | null = null;
       let lastError: unknown = null;
 
-      for (const option of options) {
-        for (let attempt = 0; attempt < 2; attempt += 1) {
-          try {
-            mountElement.replaceChildren();
-            vm = await sdk.embedProject(mountElement, project, option);
-            break;
-          } catch (error) {
-            lastError = error;
-            await new Promise<void>((resolve) => {
-              setTimeout(resolve, 250 + attempt * 200);
-            });
-          }
+      for (let cycle = 0; cycle < 3 && !vm; cycle += 1) {
+        const hasLayout = await waitForContainerLayout(
+          mountElement,
+          4000 + cycle * 3000,
+        );
+        if (!hasLayout) {
+          lastError = new Error("Container size is not ready yet.");
+          continue;
         }
 
-        if (vm) break;
+        for (const option of options) {
+          for (let attempt = 0; attempt < 2; attempt += 1) {
+            try {
+              if (!mountElement.isConnected) {
+                throw new Error("Container is no longer mounted.");
+              }
+
+              mountElement.replaceChildren();
+              vm = await sdk.embedProject(mountElement, project, option);
+              break;
+            } catch (error) {
+              lastError = error;
+              await sleep(250 + attempt * 200);
+            }
+          }
+
+          if (vm) break;
+        }
+
+        if (!vm) {
+          await sleep(220 + cycle * 160);
+        }
       }
 
       if (!vm) {
@@ -159,9 +176,7 @@ export function WebDevModeDialog({
       lastSyncedFingerprintRef.current = fingerprint;
     } catch (error) {
       console.error(error);
-      setContainerError(
-        "StackBlitz container did not start. Local preview is active and still working.",
-      );
+      setContainerError(getStackBlitzErrorMessage(error));
     } finally {
       isBootingContainerRef.current = false;
       setIsBootingContainer(false);

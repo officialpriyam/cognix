@@ -77,7 +77,7 @@ const STACKBLITZ_BASE_FILES: Record<string, string> = {
     null,
     2,
   ),
-  "src/main.js": "console.log(\"Cognix Web Dev Mode running in StackBlitz\");\n",
+  "src/main.js": 'console.log("Cognix Web Dev Mode running in StackBlitz");\n',
 };
 
 export function getStackBlitzEmbedOptions() {
@@ -115,6 +115,47 @@ export function getStackBlitzEmbedOptions() {
       crossOriginIsolated: false,
     },
   ] satisfies Record<string, unknown>[];
+}
+
+function normalizeUnknownError(error: unknown) {
+  if (typeof error === "string") {
+    return error;
+  }
+
+  if (error && typeof error === "object" && "message" in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === "string") {
+      return message;
+    }
+  }
+
+  return "";
+}
+
+export function getStackBlitzErrorMessage(error: unknown) {
+  const raw = normalizeUnknownError(error);
+  const lower = raw.toLowerCase();
+
+  if (
+    lower.includes("unable to establish a connection with the stackblitz vm") ||
+    lower.includes("err_blocked_by_client")
+  ) {
+    return "Embedded StackBlitz was blocked by browser or extension. Local preview is active.";
+  }
+
+  if (
+    lower.includes("failed to fetch") ||
+    lower.includes("networkerror") ||
+    lower.includes("network error")
+  ) {
+    return "Network blocked StackBlitz resources. Local preview is active.";
+  }
+
+  if (lower.includes("container size is not ready")) {
+    return "Preview pane was not ready in time. Retry to start StackBlitz.";
+  }
+
+  return "StackBlitz container did not start. Local preview is active and still working.";
 }
 
 export type StackBlitzVM = {
@@ -318,7 +359,7 @@ export function getFileMapFingerprint(fileMap: Record<string, string>) {
 
 export async function waitForContainerLayout(
   container: HTMLElement,
-  timeoutMs = 4500,
+  timeoutMs = 9000,
 ) {
   const start = Date.now();
   while (Date.now() - start <= timeoutMs) {
