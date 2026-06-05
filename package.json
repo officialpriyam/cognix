@@ -96,7 +96,7 @@
     "date-fns": "^4.1.0",
     "deepmerge": "^4.3.1",
     "dotenv": "^16.6.1",
-    "drizzle-orm": "^0.41.0",
+    "drizzle-orm": "^0.45.2",
     "emoji-picker-react": "^4.16.1",
     "framer-motion": "^12.23.26",
     "hast-util-to-jsx-runtime": "^2.3.6",
@@ -144,7 +144,7 @@
     "@types/react-dom": "^19.2.3",
     "cross-env": "^7.0.3",
     "dotenv-cli": "^10.0.0",
-    "drizzle-kit": "^0.31.9",
+    "drizzle-kit": "^0.32.0",
     "eslint": "^9.39.2",
     "eslint-config-next": "15.3.0",
     "husky": "^9.1.7",
@@ -164,7 +164,7 @@
   },
   "packageManager": "pnpm@10.2.1",
   "engines": {
-    "node": ">=18"
+    "node": "20.x"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
