@@ -2,7 +2,6 @@
 
 import {
   AudioWaveformIcon,
-  Code2,
   ChevronDown,
   CornerRightUp,
   FileIcon,
@@ -73,7 +72,6 @@ interface PromptInputProps {
   threadId?: string;
   disabledMention?: boolean;
   onFocus?: () => void;
-  webDevDisabled?: boolean;
 }
 
 const ChatMentionInput = dynamic(() => import("./chat-mention-input"), {
@@ -97,7 +95,6 @@ export default function PromptInput({
   voiceDisabled,
   threadId,
   disabledMention,
-  webDevDisabled,
 }: PromptInputProps) {
   const t = useTranslations("Chat");
   const [isUploadDropdownOpen, setIsUploadDropdownOpen] = useState(false);
@@ -166,25 +163,6 @@ export default function PromptInput({
     },
     [setModel, appStoreMutate],
   );
-
-  const openWebDevMode = useCallback(() => {
-    const params = new URLSearchParams();
-    const prompt = input.trim();
-
-    if (prompt) {
-      params.set("prompt", prompt);
-    }
-    if (chatModel?.provider) {
-      params.set("provider", chatModel.provider);
-    }
-    if (chatModel?.model) {
-      params.set("model", chatModel.model);
-    }
-
-    const query = params.toString();
-    const href = query ? `/web-dev?${query}` : "/web-dev";
-    window.open(href, "_blank", "noopener,noreferrer");
-  }, [input, chatModel?.provider, chatModel?.model]);
 
   const deleteMention = useCallback(
     (mention: ChatMention) => {
@@ -613,18 +591,6 @@ export default function PromptInput({
                       />
                     </>
                   ))}
-
-                {!webDevDisabled && (
-                  <Button
-                    variant={"ghost"}
-                    size={"sm"}
-                    className="rounded-full hover:bg-input! px-3 data-[state=open]:bg-input!"
-                    onClick={openWebDevMode}
-                  >
-                    <Code2 className="size-3.5" />
-                    <span className="hidden sm:inline">Web Dev</span>
-                  </Button>
-                )}
 
                 <div className="flex-1" />
 
