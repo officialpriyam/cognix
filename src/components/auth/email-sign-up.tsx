@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,7 +14,15 @@ import {
 } from "@/components/ui/card";
 import { useObjectState } from "@/hooks/use-object-state";
 import { cn } from "lib/utils";
-import { ChevronLeft, Loader, Check, X } from "lucide-react";
+import {
+  AtSign,
+  Check,
+  ChevronLeft,
+  Loader,
+  LockKeyhole,
+  User,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { safe } from "ts-safe";
 import { UserZodSchema } from "app-types/user";
@@ -41,6 +50,7 @@ export default function EmailSignUp({
     t("Auth.SignUp.step2"),
     t("Auth.SignUp.step3"),
   ];
+  const StepIcon = step === 1 ? AtSign : step === 2 ? User : LockKeyhole;
 
   // Password validation checklist
   const passwordValidation = useMemo(() => {
@@ -113,22 +123,25 @@ export default function EmailSignUp({
   };
 
   return (
-    <Card className="w-full md:max-w-md bg-background border-none mx-auto gap-0 shadow-none animate-in fade-in duration-1000">
-      <CardHeader>
-        <CardTitle className="text-2xl text-center ">
+    <Card className="w-full md:max-w-md bg-card/95 border mx-auto gap-0 rounded-lg shadow-xl shadow-black/5 animate-in fade-in duration-700">
+      <CardHeader className="text-center">
+        <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <StepIcon className="size-5" />
+        </div>
+        <CardTitle className="text-2xl">
           {isFirstUser ? t("Auth.SignUp.titleAdmin") : t("Auth.SignUp.title")}
         </CardTitle>
-        <CardDescription className="py-12">
+        <CardDescription className="pt-8 pb-10">
           <div className="flex flex-col gap-2">
             <p className="text-xs text-muted-foreground text-right">
               Step {step} of {steps.length}
             </p>
-            <div className="h-2 w-full relative bg-input">
+            <div className="h-2 w-full relative rounded-full bg-input overflow-hidden">
               <div
                 style={{
                   width: `${(step / 3) * 100}%`,
                 }}
-                className="h-full bg-primary transition-all duration-300"
+                className="h-full rounded-full bg-primary transition-all duration-300"
               ></div>
             </div>
           </div>
@@ -259,7 +272,7 @@ export default function EmailSignUp({
               )}
             </div>
           )}
-          <p className="text-muted-foreground text-xs mb-6">
+          <p className="text-muted-foreground text-xs mb-6 leading-5">
             {steps[step - 1]}
           </p>
           <div className="flex flex-row-reverse gap-2">
@@ -286,6 +299,15 @@ export default function EmailSignUp({
               <ChevronLeft className="size-4" />
               {t("Common.back")}
             </Button>
+          </div>
+          <div className="mt-5 text-center text-sm text-muted-foreground">
+            Already have an account?{" "}
+            <Link
+              href="/sign-in"
+              className="font-medium text-primary underline-offset-4 hover:underline"
+            >
+              {t("Auth.SignUp.signIn")}
+            </Link>
           </div>
         </div>
       </CardContent>

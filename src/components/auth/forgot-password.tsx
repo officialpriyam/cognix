@@ -19,7 +19,11 @@ import { useObjectState } from "@/hooks/use-object-state";
 import { Check, ChevronLeft, KeyRound, Loader, Mail, X } from "lucide-react";
 import { toast } from "sonner";
 
-export default function ForgotPassword() {
+export default function ForgotPassword({
+  emailAndPasswordEnabled = true,
+}: {
+  emailAndPasswordEnabled?: boolean;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
@@ -43,6 +47,11 @@ export default function ForgotPassword() {
   }, [formData.confirmPassword, formData.password]);
 
   const requestReset = async () => {
+    if (!emailAndPasswordEnabled) {
+      toast.error("Email password reset is disabled for this deployment.");
+      return;
+    }
+
     const { success } = UserZodSchema.shape.email.safeParse(formData.email);
     if (!success) {
       toast.error("Enter a valid email address");
@@ -117,7 +126,7 @@ export default function ForgotPassword() {
   if (token || tokenError) {
     return (
       <div className="w-full h-full flex flex-col p-4 md:p-8 justify-center">
-        <Card className="w-full md:max-w-md bg-background border-none mx-auto shadow-none animate-in fade-in duration-1000">
+        <Card className="w-full md:max-w-md bg-card/95 border mx-auto rounded-lg shadow-xl shadow-black/5 animate-in fade-in duration-700">
           <CardHeader className="my-4">
             <CardTitle className="text-2xl text-center my-1">
               Reset password
@@ -210,7 +219,7 @@ export default function ForgotPassword() {
 
   return (
     <div className="w-full h-full flex flex-col p-4 md:p-8 justify-center">
-      <Card className="w-full md:max-w-md bg-background border-none mx-auto shadow-none animate-in fade-in duration-1000">
+      <Card className="w-full md:max-w-md bg-card/95 border mx-auto rounded-lg shadow-xl shadow-black/5 animate-in fade-in duration-700">
         <CardHeader className="my-4">
           <CardTitle className="text-2xl text-center my-1">
             Forgot password
@@ -220,7 +229,12 @@ export default function ForgotPassword() {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-6">
-          {requestSent ? (
+          {!emailAndPasswordEnabled ? (
+            <div className="rounded-md border bg-muted/50 p-3 text-sm text-muted-foreground">
+              Password reset is unavailable because email/password sign-in is
+              disabled.
+            </div>
+          ) : requestSent ? (
             <div className="rounded-md border bg-muted/50 p-3 text-sm text-muted-foreground">
               If an account exists for that email, a reset link has been sent.
             </div>
@@ -244,7 +258,7 @@ export default function ForgotPassword() {
               />
             </div>
           )}
-          {!requestSent && (
+          {emailAndPasswordEnabled && !requestSent && (
             <Button
               className="w-full"
               onClick={requestReset}

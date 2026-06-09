@@ -13,7 +13,7 @@ import { cn } from "lib/utils";
 import { useTranslations } from "next-intl";
 import { SocialAuthenticationProvider } from "app-types/authentication";
 import SocialProviders from "./social-providers";
-import { Mail } from "lucide-react";
+import { Mail, UserPlus } from "lucide-react";
 import { authClient } from "auth/client";
 import { toast } from "sonner";
 import { startTransition } from "react";
@@ -38,23 +38,29 @@ export default function SignUpPage({
     });
   };
   return (
-    <Card className="w-full md:max-w-md bg-background border-none mx-auto shadow-none">
-      <CardHeader>
-        <CardTitle className="text-2xl text-center ">
+    <Card className="w-full md:max-w-md bg-card/95 border mx-auto rounded-lg shadow-xl shadow-black/5 animate-in fade-in duration-700">
+      <CardHeader className="text-center">
+        <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <UserPlus className="size-5" />
+        </div>
+        <CardTitle className="text-2xl">
           {isFirstUser ? t("Auth.SignUp.titleAdmin") : t("Auth.SignUp.title")}
         </CardTitle>
-        <CardDescription className="text-center">
+        <CardDescription>
           {isFirstUser
             ? t("Auth.SignUp.signUpDescriptionAdmin")
             : t("Auth.SignUp.signUpDescription")}
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-2">
+      <CardContent className="flex flex-col gap-3 pb-2">
         {emailAndPasswordEnabled && (
           <Link
             href="/sign-up/email"
             data-testid="email-signup-button"
-            className={cn(buttonVariants({ variant: "default" }), "w-full")}
+            className={cn(
+              buttonVariants({ variant: "default" }),
+              "w-full justify-center",
+            )}
           >
             <Mail className="size-4" />
             {t("Auth.SignUp.email")}
@@ -77,6 +83,15 @@ export default function SignUpPage({
             />
           </>
         )}
+        <div className="my-5 text-center text-sm text-muted-foreground">
+          Already have an account?{" "}
+          <Link
+            href="/sign-in"
+            className="font-medium text-primary underline-offset-4 hover:underline"
+          >
+            {t("Auth.SignUp.signIn")}
+          </Link>
+        </div>
       </CardContent>
     </Card>
   );

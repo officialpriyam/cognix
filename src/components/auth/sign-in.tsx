@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/card";
 import { useObjectState } from "@/hooks/use-object-state";
 
-import { Loader } from "lucide-react";
+import { Loader, LogIn, ShieldCheck } from "lucide-react";
 import { safe } from "ts-safe";
 import { authClient } from "auth/client";
 import { toast } from "sonner";
@@ -69,16 +69,17 @@ export default function SignIn({
   };
   return (
     <div className="w-full h-full flex flex-col p-4 md:p-8 justify-center">
-      <Card className="w-full md:max-w-md bg-background border-none mx-auto shadow-none animate-in fade-in duration-1000">
-        <CardHeader className="my-4">
-          <CardTitle className="text-2xl text-center my-1">
-            {t("title")}
-          </CardTitle>
-          <CardDescription className="text-center text-muted-foreground">
+      <Card className="w-full md:max-w-md bg-card/95 border mx-auto rounded-lg shadow-xl shadow-black/5 animate-in fade-in duration-700">
+        <CardHeader className="my-4 text-center">
+          <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <ShieldCheck className="size-5" />
+          </div>
+          <CardTitle className="text-2xl my-1">{t("title")}</CardTitle>
+          <CardDescription className="text-muted-foreground">
             {t("description")}
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col">
+        <CardContent className="flex flex-col pb-2">
           {emailAndPasswordEnabled && !isFirstUser && (
             <div className="flex flex-col gap-6">
               <div className="grid gap-2">
@@ -128,7 +129,10 @@ export default function SignIn({
                 {loading ? (
                   <Loader className="size-4 animate-spin ml-1" />
                 ) : (
-                  t("signIn")
+                  <>
+                    <LogIn className="size-4" />
+                    {t("signIn")}
+                  </>
                 )}
               </Button>
             </div>
@@ -151,9 +155,12 @@ export default function SignIn({
             </>
           )}
           {signUpEnabled && (
-            <div className="my-8 text-center text-sm text-muted-foreground">
+            <div className="my-7 text-center text-sm text-muted-foreground">
               {t("noAccount")}
-              <Link href="/sign-up" className="underline-offset-4 text-primary">
+              <Link
+                href="/sign-up"
+                className="font-medium underline-offset-4 text-primary hover:underline"
+              >
                 {t("signUp")}
               </Link>
             </div>
