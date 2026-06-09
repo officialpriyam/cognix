@@ -1442,6 +1442,79 @@
     @apply bg-background text-foreground;
   }
 
+  .shooting-stars-layer {
+    pointer-events: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    overflow: hidden;
+    opacity: 0.42;
+    mix-blend-mode: multiply;
+  }
+
+  .dark .shooting-stars-layer {
+    opacity: 0.62;
+    mix-blend-mode: screen;
+  }
+
+  .shooting-stars-layer::before {
+    position: absolute;
+    inset: 0;
+    content: "";
+    background-image: radial-gradient(
+        circle at 18% 16%,
+        color-mix(in oklab, var(--foreground) 22%, transparent) 0 1px,
+        transparent 1px
+      ),
+      radial-gradient(
+        circle at 74% 24%,
+        color-mix(in oklab, var(--primary) 26%, transparent) 0 1px,
+        transparent 1px
+      ),
+      radial-gradient(
+        circle at 38% 68%,
+        color-mix(in oklab, var(--foreground) 18%, transparent) 0 1px,
+        transparent 1px
+      ),
+      radial-gradient(
+        circle at 88% 78%,
+        color-mix(in oklab, var(--accent) 20%, transparent) 0 1px,
+        transparent 1px
+      );
+  }
+
+  .shooting-star {
+    position: absolute;
+    top: var(--star-top);
+    left: var(--star-left);
+    width: var(--star-length);
+    height: 1px;
+    border-radius: 9999px;
+    opacity: 0;
+    transform: rotate(23deg);
+    transform-origin: right center;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in oklab, var(--primary) 42%, transparent),
+      color-mix(in oklab, var(--foreground) 86%, transparent)
+    );
+    box-shadow: 0 0 12px color-mix(in oklab, var(--primary) 48%, transparent);
+  }
+
+  .shooting-star::after {
+    position: absolute;
+    top: 50%;
+    right: 0;
+    width: 0.38rem;
+    height: 0.38rem;
+    content: "";
+    border-radius: 9999px;
+    background: color-mix(in oklab, var(--foreground) 86%, transparent);
+    box-shadow: 0 0 16px color-mix(in oklab, var(--primary) 62%, transparent);
+    transform: translate(45%, -50%);
+  }
+
   button {
     @apply cursor-pointer;
   }
@@ -1547,6 +1620,17 @@
 
     .auth-preview-cursor {
       animation: auth-preview-cursor 1.4s steps(2, end) infinite;
+    }
+
+    .shooting-star {
+      animation: shooting-star var(--star-duration) linear infinite;
+      animation-delay: var(--star-delay);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .shooting-stars-layer {
+      display: none;
     }
   }
 
@@ -1697,6 +1781,22 @@
     }
     70% {
       transform: translate(-1px, 1px) rotate(-4deg);
+    }
+  }
+
+  @keyframes shooting-star {
+    0%,
+    66% {
+      opacity: 0;
+      transform: translate3d(0, 0, 0) rotate(23deg);
+    }
+    70% {
+      opacity: 0.92;
+    }
+    100% {
+      opacity: 0;
+      transform: translate3d(var(--star-travel-x), var(--star-travel-y), 0)
+        rotate(23deg);
     }
   }
 
