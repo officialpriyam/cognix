@@ -1,16 +1,17 @@
-import { SidebarProvider } from "ui/sidebar";
-import { AppSidebar } from "@/components/layouts/app-sidebar";
 import { AppHeader } from "@/components/layouts/app-header";
+import { AppSidebar } from "@/components/layouts/app-sidebar";
+import { BrandLogo } from "@/components/layouts/brand-logo";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { Button } from "ui/button";
+import { SidebarProvider } from "ui/sidebar";
 
-import { getSession } from "lib/auth/server";
-import { COOKIE_KEY_SIDEBAR_STATE } from "lib/const";
 import { AppPopupProvider } from "@/components/layouts/app-popup-provider";
-import { SWRConfigProvider } from "./swr-config";
 import { UserDetailContent } from "@/components/user/user-detail/user-detail-content";
 import { UserDetailContentSkeleton } from "@/components/user/user-detail/user-detail-content-skeleton";
+import { getSession } from "lib/auth/server";
+import { COOKIE_KEY_SIDEBAR_STATE } from "lib/const";
+import { SWRConfigProvider } from "./swr-config";
 
 import { Suspense } from "react";
 export const experimental_ppr = true;
@@ -27,9 +28,10 @@ export default async function ChatLayout({
           <header className="border-b border-border/60 px-3 py-2 flex items-center gap-2">
             <Link
               href="/"
-              className="font-semibold tracking-tight text-base md:text-lg"
+              className="flex items-center gap-2 font-semibold tracking-tight text-base md:text-lg"
             >
-              Cognix
+              <BrandLogo className="size-6" />
+              <span>Cognix</span>
             </Link>
             <div className="ml-auto flex items-center gap-2">
               <Button variant="ghost" asChild>

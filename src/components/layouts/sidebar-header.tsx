@@ -1,5 +1,8 @@
 "use client";
 
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Shortcuts, isShortcutEvent } from "lib/keyboard-shortcuts";
+import { PanelLeft } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
@@ -10,9 +13,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "ui/sidebar";
-import { PanelLeft } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { isShortcutEvent, Shortcuts } from "lib/keyboard-shortcuts";
+import { BrandLogo } from "./brand-logo";
 
 interface SidebarHeaderSharedProps {
   title: string | React.ReactNode;
@@ -69,6 +70,7 @@ export function SidebarHeaderShared({
         <SidebarMenuItem className="flex items-center gap-0.5 mb-1">
           <SidebarMenuButton asChild className="hover:bg-transparent">
             <Link href={href} onClick={handleLinkClick}>
+              <BrandLogo className="size-5" />
               <h4 className="font-bold">{title}</h4>
               {showMobileToggle && (
                 <div
