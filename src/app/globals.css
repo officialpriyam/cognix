@@ -1483,6 +1483,34 @@
     .vibrate-on-hover:hover {
       animation: soft-vibrate 360ms linear;
     }
+
+    .auth-grid-motion {
+      animation: auth-grid-pan 18s linear infinite;
+    }
+
+    .auth-scan::before {
+      animation: auth-scan-line 4.8s ease-in-out infinite;
+    }
+
+    .auth-ring {
+      animation: auth-ring-turn 18s linear infinite;
+    }
+
+    .auth-ring-reverse {
+      animation: auth-ring-turn 24s linear infinite reverse;
+    }
+
+    .auth-panel-float {
+      animation: auth-panel-float 7s ease-in-out infinite;
+    }
+
+    .auth-node {
+      animation: auth-node-pulse 2.8s ease-in-out infinite;
+    }
+
+    .auth-line {
+      animation: auth-line-flow 3.6s ease-in-out infinite;
+    }
   }
 
   .no-scrollbar {
@@ -1581,6 +1609,101 @@
     50% {
       box-shadow: 0 0 0 8px color-mix(in oklab, var(--primary) 0%, transparent);
       transform: scale(1.18);
+    }
+  }
+
+  .auth-grid-motion {
+    background-image: linear-gradient(
+        rgba(255, 255, 255, 0.08) 1px,
+        transparent 1px
+      ), linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  .auth-scan::before {
+    position: absolute;
+    inset: 0;
+    content: "";
+    border-radius: inherit;
+    background: linear-gradient(
+      180deg,
+      transparent,
+      rgba(16, 185, 129, 0.16),
+      transparent
+    );
+    transform: translateY(-100%);
+  }
+
+  @keyframes auth-grid-pan {
+    from {
+      background-position: 0 0;
+    }
+    to {
+      background-position: 96px 48px;
+    }
+  }
+
+  @keyframes auth-scan-line {
+    0% {
+      transform: translateY(-100%);
+      opacity: 0;
+    }
+    35%,
+    65% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+  }
+
+  @keyframes auth-ring-turn {
+    from {
+      transform: rotate(0deg) scale(1);
+      border-style: solid;
+    }
+    50% {
+      transform: rotate(180deg) scale(1.03);
+      border-style: dashed;
+    }
+    to {
+      transform: rotate(360deg) scale(1);
+      border-style: solid;
+    }
+  }
+
+  @keyframes auth-panel-float {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0);
+    }
+    50% {
+      transform: translate3d(0, -12px, 0);
+    }
+  }
+
+  @keyframes auth-node-pulse {
+    0%,
+    100% {
+      opacity: 0.5;
+      transform: scale(0.9);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.25);
+    }
+  }
+
+  @keyframes auth-line-flow {
+    0%,
+    100% {
+      opacity: 0.28;
+      filter: brightness(0.8);
+    }
+    50% {
+      opacity: 0.9;
+      filter: brightness(1.3);
     }
   }
 

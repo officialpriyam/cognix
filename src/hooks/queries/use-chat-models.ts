@@ -30,14 +30,20 @@ export const useChatModels = (options?: SWRConfiguration) => {
         );
 
         if (hasDefaultModel) {
-          appStore.setState({ chatModel: DEFAULT_CHAT_MODEL });
+          appStore.setState({
+            chatModel: DEFAULT_CHAT_MODEL,
+            chatModelPinned: false,
+          });
           return;
         }
 
         const firstProvider = data[0]?.provider;
         const model = data[0]?.models[0]?.name;
         if (firstProvider && model) {
-          appStore.setState({ chatModel: { provider: firstProvider, model } });
+          appStore.setState({
+            chatModel: { provider: firstProvider, model },
+            chatModelPinned: false,
+          });
         }
       }
     },

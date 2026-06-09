@@ -48,6 +48,7 @@ export interface AppState {
     name: string;
   }[];
   chatModel?: ChatModel;
+  chatModelPinned: boolean;
   openShortcutsPopup: boolean;
   openChatPreferences: boolean;
   openUserSettings: boolean;
@@ -92,6 +93,7 @@ const initialState: AppState = {
   ],
   toolPresets: [],
   chatModel: DEFAULT_CHAT_MODEL,
+  chatModelPinned: false,
   openShortcutsPopup: false,
   openChatPreferences: false,
   mcpCustomizationPopup: undefined,
@@ -121,6 +123,7 @@ export const appStore = create<AppState & AppDispatch>()(
       name: "mc-app-store-v2.0.1",
       partialize: (state) => ({
         chatModel: state.chatModel || initialState.chatModel,
+        chatModelPinned: state.chatModelPinned || initialState.chatModelPinned,
         toolChoice: state.toolChoice || initialState.toolChoice,
         allowedMcpServers:
           state.allowedMcpServers || initialState.allowedMcpServers,

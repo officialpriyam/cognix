@@ -83,16 +83,27 @@ export async function POST(request: Request) {
       imageTool,
       mentions = [],
       attachments = [],
+      chatModelPinned = false,
     } = chatApiSchemaRequestBodySchema.parse(json);
 
     const promptText = extractTextFromMessage(message);
     const routingPromptText = imageTool?.model
       ? `${promptText}\n\nGenerate image`
       : promptText;
+    const resolvedImageToolModel =
+      imageTool?.model ||
+      selectImageToolModelForPrompt(routingPromptText, {
+        nvidia: isUsableSecret(process.env.NVIDIA_API_KEY),
+        google: isUsableSecret(process.env.GOOGLE_GENERATIVE_AI_API_KEY),
+        openai: isUsableSecret(process.env.OPENAI_API_KEY),
+      });
+    const useImageTool = Boolean(resolvedImageToolModel);
     const resolvedChatModel = selectRecommendedModelForPrompt({
       prompt: routingPromptText,
       providers: customModelProvider.modelsInfo,
       requestedModel: chatModel,
+      requireToolCall: useImageTool,
+      respectRequestedModel: chatModelPinned,
     });
     const model = customModelProvider.getModel(resolvedChatModel);
 
@@ -204,15 +215,6 @@ export async function POST(request: Request) {
     if (agent?.instructions?.mentions) {
       mentions.push(...agent.instructions.mentions);
     }
-
-    const resolvedImageToolModel =
-      imageTool?.model ||
-      selectImageToolModelForPrompt(routingPromptText, {
-        nvidia: isUsableSecret(process.env.NVIDIA_API_KEY),
-        google: isUsableSecret(process.env.GOOGLE_GENERATIVE_AI_API_KEY),
-        openai: isUsableSecret(process.env.OPENAI_API_KEY),
-      });
-    const useImageTool = Boolean(resolvedImageToolModel);
 
     const isToolCallAllowed =
       supportToolCall &&

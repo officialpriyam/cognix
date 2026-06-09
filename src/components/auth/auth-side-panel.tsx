@@ -1,90 +1,47 @@
-import { Bot, CheckCircle2, MessageSquareText, Sparkles } from "lucide-react";
-import { Think } from "ui/think";
-
-export function AuthSidePanel({ description }: { description: string }) {
+export function AuthSidePanel() {
   return (
-    <aside className="hidden lg:flex lg:w-1/2 min-h-screen border-r bg-zinc-950 text-zinc-100 relative overflow-hidden">
-      <div className="absolute inset-0 opacity-30 bg-[linear-gradient(to_right,rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:48px_48px]" />
+    <aside
+      aria-hidden="true"
+      className="hidden lg:flex lg:w-1/2 min-h-screen border-r bg-zinc-950 relative overflow-hidden"
+    >
+      <div className="absolute inset-0 auth-grid-motion opacity-40" />
+      <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(16,185,129,0.14),transparent_34%,rgba(34,211,238,0.1)_68%,transparent)]" />
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-300/70 to-transparent" />
-      <div className="relative z-10 flex w-full flex-col p-12 xl:p-16">
-        <div className="flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-lg border border-white/10 bg-white/10">
-            <Think />
-          </div>
-          <div>
-            <p className="text-lg font-semibold">Cognix</p>
-            <p className="text-xs text-zinc-400">AI workspace</p>
-          </div>
-        </div>
+      <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-cyan-200/40 to-transparent" />
 
-        <div className="my-auto max-w-xl">
-          <div className="mb-8 inline-flex items-center gap-2 rounded-md border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-sm text-emerald-100">
-            <Sparkles className="size-4" />
-            Secure access for every workflow
-          </div>
-          <h1 className="text-4xl font-semibold leading-tight tracking-normal xl:text-5xl">
-            Start focused. Stay in flow.
-          </h1>
-          <p className="mt-5 max-w-md text-sm leading-6 text-zinc-300">
-            {description}
-          </p>
+      <div className="relative z-10 flex w-full items-center justify-center p-12 xl:p-16">
+        <div className="relative aspect-square w-full max-w-[560px]">
+          <div className="auth-scan absolute inset-0 rounded-lg border border-white/10 bg-white/[0.025] shadow-2xl shadow-black/30" />
+          <div className="auth-ring absolute inset-10 rounded-full border border-emerald-300/25" />
+          <div className="auth-ring-reverse absolute inset-24 rounded-full border border-cyan-200/20" />
 
-          <div className="mt-10 grid max-w-lg gap-3">
-            <div className="rounded-lg border border-white/10 bg-white/[0.06] p-4 shadow-2xl shadow-black/20">
-              <div className="flex items-center gap-3">
-                <div className="flex size-9 items-center justify-center rounded-md bg-emerald-300/15 text-emerald-200">
-                  <MessageSquareText className="size-4" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium">Chat model ready</p>
-                  <p className="truncate text-xs text-zinc-400">
-                    Context, tools, and agents connected
-                  </p>
-                </div>
-                <CheckCircle2 className="ml-auto size-4 text-emerald-300" />
-              </div>
-            </div>
+          <div className="auth-panel-float absolute left-8 top-14 h-28 w-48 rounded-lg border border-white/10 bg-white/[0.055] backdrop-blur-sm" />
+          <div
+            className="auth-panel-float absolute right-10 top-28 h-36 w-56 rounded-lg border border-white/10 bg-white/[0.045] backdrop-blur-sm"
+            style={{ animationDelay: "-1.8s" }}
+          />
+          <div
+            className="auth-panel-float absolute bottom-14 left-20 h-32 w-60 rounded-lg border border-white/10 bg-white/[0.04] backdrop-blur-sm"
+            style={{ animationDelay: "-3.2s" }}
+          />
 
-            <div className="ml-8 rounded-lg border border-white/10 bg-white/[0.04] p-4">
-              <div className="mb-4 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm">
-                  <Bot className="size-4 text-cyan-200" />
-                  Agent pipeline
-                </div>
-                <span className="rounded-md bg-cyan-300/10 px-2 py-1 text-xs text-cyan-100">
-                  live
-                </span>
-              </div>
-              <div className="grid grid-cols-4 gap-2">
-                {[0, 1, 2, 3].map((item) => (
-                  <div
-                    key={item}
-                    className="h-12 rounded-md border border-white/10 bg-white/[0.05]"
-                  >
-                    <div
-                      className="h-full rounded-md bg-white/10 animate-pulse"
-                      style={{ animationDelay: `${item * 160}ms` }}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
+          <div className="absolute inset-0">
+            {[0, 1, 2, 3, 4, 5].map((item) => (
+              <div
+                key={item}
+                className="auth-node absolute size-3 rounded-full border border-emerald-200/50 bg-emerald-300/30 shadow-[0_0_24px_rgba(16,185,129,0.45)]"
+                style={{
+                  left: `${18 + ((item * 17) % 64)}%`,
+                  top: `${16 + ((item * 23) % 66)}%`,
+                  animationDelay: `${item * 220}ms`,
+                }}
+              />
+            ))}
           </div>
-        </div>
 
-        <div className="grid grid-cols-3 gap-3 text-xs text-zinc-400">
-          <div className="rounded-md border border-white/10 bg-white/[0.04] p-3">
-            <p className="text-zinc-100">OAuth</p>
-            <p>Ready</p>
-          </div>
-          <div className="rounded-md border border-white/10 bg-white/[0.04] p-3">
-            <p className="text-zinc-100">Teams</p>
-            <p>Managed</p>
-          </div>
-          <div className="rounded-md border border-white/10 bg-white/[0.04] p-3">
-            <p className="text-zinc-100">Reset</p>
-            <p>Protected</p>
-          </div>
+          <div className="auth-line absolute left-[18%] top-[26%] h-px w-[58%] rotate-12 bg-gradient-to-r from-transparent via-emerald-200/50 to-transparent" />
+          <div className="auth-line absolute left-[24%] top-[58%] h-px w-[52%] -rotate-12 bg-gradient-to-r from-transparent via-cyan-200/45 to-transparent" />
+          <div className="auth-line absolute left-[34%] top-[18%] h-[64%] w-px bg-gradient-to-b from-transparent via-white/25 to-transparent" />
         </div>
       </div>
     </aside>

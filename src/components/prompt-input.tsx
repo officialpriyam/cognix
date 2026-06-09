@@ -161,7 +161,7 @@ export default function PromptInput({
       if (setModel) {
         setModel(model);
       } else {
-        appStoreMutate({ chatModel: model });
+        appStoreMutate({ chatModel: model, chatModelPinned: true });
       }
     },
     [setModel, appStoreMutate],

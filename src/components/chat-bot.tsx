@@ -95,6 +95,7 @@ export default function ChatBot({ threadId, initialMessages }: Props) {
     threadMentions,
     pendingThreadMention,
     threadImageToolModel,
+    chatModelPinned,
   ] = appStore(
     useShallow((state) => [
       state.mutate,
@@ -106,6 +107,7 @@ export default function ChatBot({ threadId, initialMessages }: Props) {
       state.threadMentions,
       state.pendingThreadMention,
       state.threadImageToolModel,
+      state.chatModelPinned,
     ]),
   );
 
@@ -199,6 +201,7 @@ export default function ChatBot({ threadId, initialMessages }: Props) {
           id,
           chatModel:
             (body as { model: ChatModel })?.model ?? latestRef.current.model,
+          chatModelPinned: latestRef.current.chatModelPinned,
           toolChoice: latestRef.current.toolChoice,
           allowedAppDefaultToolkit:
             latestRef.current.mentions?.length || hasFilePart
@@ -240,6 +243,7 @@ export default function ChatBot({ threadId, initialMessages }: Props) {
     allowedAppDefaultToolkit,
     allowedMcpServers,
     messages,
+    chatModelPinned,
     threadList,
     threadId,
     mentions: threadMentions[threadId],

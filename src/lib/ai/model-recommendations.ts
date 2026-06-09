@@ -8,6 +8,7 @@ type ProviderModelInfo = {
   hasAPIKey: boolean;
   models: {
     name: string;
+    isToolCallUnsupported?: boolean;
   }[];
 };
 
@@ -85,27 +86,30 @@ export function selectRecommendedModelForPrompt({
   prompt,
   providers,
   requestedModel,
+  requireToolCall = false,
+  respectRequestedModel = false,
 }: {
   prompt: string;
   providers: ProviderModelInfo[];
   requestedModel?: ChatModel;
+  requireToolCall?: boolean;
+  respectRequestedModel?: boolean;
 }) {
   const category = inferPromptCategory(prompt);
   const requestedModelAvailable =
-    !!requestedModel && isModelAvailable(requestedModel, providers);
+    !!requestedModel &&
+    isModelAvailable(requestedModel, providers, { requireToolCall });
 
-  if (category === "general") {
-    return (
-      (requestedModelAvailable ? requestedModel : undefined) ??
-      pickAvailableModel("general", providers) ??
-      DEFAULT_CHAT_MODEL
-    );
+  if (
+    requestedModelAvailable &&
+    (respectRequestedModel || category === "general")
+  ) {
+    return requestedModel;
   }
 
   return (
-    pickAvailableModel(category, providers) ??
-    (requestedModelAvailable ? requestedModel : undefined) ??
-    pickAvailableModel("general", providers) ??
+    pickAvailableModel(category, providers, { requireToolCall }) ??
+    pickAvailableModel("general", providers, { requireToolCall }) ??
     DEFAULT_CHAT_MODEL
   );
 }
@@ -130,16 +134,28 @@ export function selectImageToolModelForPrompt(
 function pickAvailableModel(
   category: PromptCategory,
   providers: ProviderModelInfo[],
+  options?: { requireToolCall?: boolean },
 ) {
   return MODEL_RECOMMENDATIONS[category].find((model) =>
-    isModelAvailable(model, providers),
+    isModelAvailable(model, providers, options),
   );
 }
 
-function isModelAvailable(model: ChatModel, providers: ProviderModelInfo[]) {
+function isModelAvailable(
+  model: ChatModel,
+  providers: ProviderModelInfo[],
+  options?: { requireToolCall?: boolean },
+) {
   const provider = providers.find((item) => item.provider === model.provider);
   if (!provider?.hasAPIKey) {
     return false;
   }
-  return provider.models.some((item) => item.name === model.model);
+  const modelInfo = provider.models.find((item) => item.name === model.model);
+  if (!modelInfo) {
+    return false;
+  }
+  if (options?.requireToolCall && modelInfo.isToolCallUnsupported) {
+    return false;
+  }
+  return true;
 }
