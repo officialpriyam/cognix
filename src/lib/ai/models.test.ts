@@ -45,4 +45,15 @@ describe("customModelProvider file support metadata", () => {
       Array.from(ANTHROPIC_FILE_MIME_TYPES),
     );
   });
+
+  it("includes NVIDIA NIM chat models", () => {
+    const { customModelProvider } = modelsModule;
+    const nvidiaProvider = customModelProvider.modelsInfo.find(
+      (item) => item.provider === "nvidia",
+    );
+
+    expect(nvidiaProvider?.models.map((model) => model.name)).toContain(
+      "llama-3.3-nemotron-super-49b-v1.5",
+    );
+  });
 });

@@ -16,6 +16,7 @@ import logger from "logger";
 import { userRepository } from "lib/db/repository";
 import { DEFAULT_USER_ROLE, USER_ROLES } from "app-types/roles";
 import { admin, editor, user, ac } from "./roles";
+import { sendPasswordResetEmail } from "./password-reset-email";
 
 const {
   emailAndPasswordEnabled,
@@ -84,6 +85,15 @@ const options = {
   emailAndPassword: {
     enabled: emailAndPasswordEnabled,
     disableSignUp: !signUpEnabled,
+    revokeSessionsOnPasswordReset: true,
+    sendResetPassword: async ({ user, url }) => {
+      void sendPasswordResetEmail({
+        to: user.email,
+        url,
+      }).catch((error) => {
+        logger.error("Password reset email failed", error);
+      });
+    },
   },
   session: {
     cookieCache: {

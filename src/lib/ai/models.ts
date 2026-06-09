@@ -7,6 +7,7 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { xai } from "@ai-sdk/xai";
 import { LanguageModelV2, openrouter } from "@openrouter/ai-sdk-provider";
 import { createGroq } from "@ai-sdk/groq";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { LanguageModel } from "ai";
 import {
   createOpenAICompatibleModels,
@@ -28,6 +29,11 @@ const ollama = createOllama({
 const groq = createGroq({
   baseURL: process.env.GROQ_BASE_URL || "https://api.groq.com/openai/v1",
   apiKey: process.env.GROQ_API_KEY,
+});
+const nvidia = createOpenAICompatible({
+  name: "nvidia",
+  baseURL: process.env.NVIDIA_BASE_URL || "https://integrate.api.nvidia.com/v1",
+  apiKey: process.env.NVIDIA_API_KEY,
 });
 
 const staticModels = {
@@ -67,6 +73,18 @@ const staticModels = {
     "gpt-oss-120b": groq("openai/gpt-oss-120b"),
     "qwen3-32b": groq("qwen/qwen3-32b"),
   },
+  nvidia: {
+    "llama-3.3-nemotron-super-49b-v1.5": nvidia(
+      "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+    ),
+    "llama-3.1-nemotron-ultra-253b-v1": nvidia(
+      "nvidia/llama-3.1-nemotron-ultra-253b-v1",
+    ),
+    "nemotron-3-nano-30b-a3b": nvidia("nvidia/nemotron-3-nano-30b-a3b"),
+    "nvidia-nemotron-nano-9b-v2": nvidia("nvidia/nvidia-nemotron-nano-9b-v2"),
+    "gpt-oss-120b": nvidia("openai/gpt-oss-120b"),
+    "qwen3-coder-480b-a35b": nvidia("qwen/qwen3-coder-480b-a35b-instruct"),
+  },
   openRouter: {
     "gpt-oss-20b:free": openrouter("openai/gpt-oss-20b:free"),
     "qwen3-8b:free": openrouter("qwen/qwen3-8b:free"),
@@ -80,9 +98,6 @@ const staticModels = {
 
 const staticUnsupportedModels = new Set([
   staticModels.openai["o4-mini"],
-  staticModels.ollama["gemma3:1b"],
-  staticModels.ollama["gemma3:4b"],
-  staticModels.ollama["gemma3:12b"],
   staticModels.openRouter["gpt-oss-20b:free"],
   staticModels.openRouter["qwen3-8b:free"],
   staticModels.openRouter["qwen3-14b:free"],
@@ -115,9 +130,19 @@ registerFileSupport(
   staticModels.openai["gpt-4.1-mini"],
   OPENAI_FILE_MIME_TYPES,
 );
-registerFileSupport(staticModels.openai["gpt-5"], OPENAI_FILE_MIME_TYPES);
-registerFileSupport(staticModels.openai["gpt-5-mini"], OPENAI_FILE_MIME_TYPES);
-registerFileSupport(staticModels.openai["gpt-5-nano"], OPENAI_FILE_MIME_TYPES);
+registerFileSupport(staticModels.openai["gpt-5.1"], OPENAI_FILE_MIME_TYPES);
+registerFileSupport(
+  staticModels.openai["gpt-5.1-chat"],
+  OPENAI_FILE_MIME_TYPES,
+);
+registerFileSupport(
+  staticModels.openai["gpt-5.1-codex"],
+  OPENAI_FILE_MIME_TYPES,
+);
+registerFileSupport(
+  staticModels.openai["gpt-5.1-codex-mini"],
+  OPENAI_FILE_MIME_TYPES,
+);
 
 registerFileSupport(
   staticModels.google["gemini-2.5-flash-lite"],
@@ -137,13 +162,12 @@ registerFileSupport(
   ANTHROPIC_FILE_MIME_TYPES,
 );
 registerFileSupport(
-  staticModels.anthropic["opus-4.1"],
+  staticModels.anthropic["opus-4.5"],
   ANTHROPIC_FILE_MIME_TYPES,
 );
 
-registerFileSupport(staticModels.xai["grok-4-fast"], XAI_FILE_MIME_TYPES);
-registerFileSupport(staticModels.xai["grok-4"], XAI_FILE_MIME_TYPES);
-registerFileSupport(staticModels.xai["grok-3"], XAI_FILE_MIME_TYPES);
+registerFileSupport(staticModels.xai["grok-4-1-fast"], XAI_FILE_MIME_TYPES);
+registerFileSupport(staticModels.xai["grok-4-1"], XAI_FILE_MIME_TYPES);
 registerFileSupport(staticModels.xai["grok-3-mini"], XAI_FILE_MIME_TYPES);
 registerFileSupport(
   staticModels.openRouter["gemini-2.0-flash-exp:free"],
@@ -208,6 +232,9 @@ export const customModelProvider = {
     if (provider === "google") {
       return google(modelName);
     }
+    if (provider === "nvidia") {
+      return nvidia(modelName);
+    }
 
     return allModels[provider]?.[modelName] || fallbackModel;
   },
@@ -252,7 +279,9 @@ export const fetchGoogleModels = cache(async () => {
     if (!data.models) return [];
 
     return data.models
-      .filter((m: any) => m.supportedGenerationMethods.includes("generateContent"))
+      .filter((m: any) =>
+        m.supportedGenerationMethods.includes("generateContent"),
+      )
       .map((m: any) => ({
         name: m.name.replace("models/", ""),
         isToolCallUnsupported: false,
@@ -282,6 +311,9 @@ function checkProviderAPIKey(provider: keyof typeof staticModels) {
       break;
     case "groq":
       key = process.env.GROQ_API_KEY;
+      break;
+    case "nvidia":
+      key = process.env.NVIDIA_API_KEY;
       break;
     case "openRouter":
       key = process.env.OPENROUTER_API_KEY;
