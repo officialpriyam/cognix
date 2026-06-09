@@ -1471,9 +1471,54 @@
     button:hover svg:not(.animate-spin):not(.no-icon-motion),
     [data-slot="button"]:hover svg:not(.animate-spin):not(.no-icon-motion),
     [role="button"]:hover svg:not(.animate-spin):not(.no-icon-motion) {
-      animation: icon-flip 520ms ease;
+      animation: icon-lift 420ms cubic-bezier(0.22, 1, 0.36, 1);
       transform-box: fill-box;
       transform-origin: center;
+    }
+
+    .icon-motion-orbit:hover svg:not(.animate-spin):not(.no-icon-motion),
+    button.icon-motion-orbit:hover svg:not(.animate-spin):not(.no-icon-motion),
+    [data-slot="button"].icon-motion-orbit:hover
+      svg:not(.animate-spin):not(.no-icon-motion),
+    [role="button"].icon-motion-orbit:hover
+      svg:not(.animate-spin):not(.no-icon-motion) {
+      animation: icon-orbit 640ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .icon-motion-slide:hover svg:not(.animate-spin):not(.no-icon-motion),
+    button.icon-motion-slide:hover svg:not(.animate-spin):not(.no-icon-motion),
+    [data-slot="button"].icon-motion-slide:hover
+      svg:not(.animate-spin):not(.no-icon-motion),
+    [role="button"].icon-motion-slide:hover
+      svg:not(.animate-spin):not(.no-icon-motion) {
+      animation: icon-slide 460ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .icon-motion-tilt:hover svg:not(.animate-spin):not(.no-icon-motion),
+    button.icon-motion-tilt:hover svg:not(.animate-spin):not(.no-icon-motion),
+    [data-slot="button"].icon-motion-tilt:hover
+      svg:not(.animate-spin):not(.no-icon-motion),
+    [role="button"].icon-motion-tilt:hover
+      svg:not(.animate-spin):not(.no-icon-motion) {
+      animation: icon-tilt 520ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .icon-motion-pop:hover svg:not(.animate-spin):not(.no-icon-motion),
+    button.icon-motion-pop:hover svg:not(.animate-spin):not(.no-icon-motion),
+    [data-slot="button"].icon-motion-pop:hover
+      svg:not(.animate-spin):not(.no-icon-motion),
+    [role="button"].icon-motion-pop:hover
+      svg:not(.animate-spin):not(.no-icon-motion) {
+      animation: icon-pop 420ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .icon-motion-send:hover svg:not(.animate-spin):not(.no-icon-motion),
+    button.icon-motion-send:hover svg:not(.animate-spin):not(.no-icon-motion),
+    [data-slot="button"].icon-motion-send:hover
+      svg:not(.animate-spin):not(.no-icon-motion),
+    [role="button"].icon-motion-send:hover
+      svg:not(.animate-spin):not(.no-icon-motion) {
+      animation: icon-send-flight 520ms cubic-bezier(0.22, 1, 0.36, 1);
     }
 
     .thinking-pulse {
@@ -1484,32 +1529,24 @@
       animation: soft-vibrate 360ms linear;
     }
 
-    .auth-grid-motion {
-      animation: auth-grid-pan 18s linear infinite;
+    .auth-preview-grid {
+      animation: auth-preview-pan 22s linear infinite;
     }
 
-    .auth-scan::before {
-      animation: auth-scan-line 4.8s ease-in-out infinite;
+    .auth-preview-shell {
+      animation: auth-preview-rise 7s ease-in-out infinite;
     }
 
-    .auth-ring {
-      animation: auth-ring-turn 18s linear infinite;
+    .auth-preview-sweep::after {
+      animation: auth-preview-sweep 5.5s ease-in-out infinite;
     }
 
-    .auth-ring-reverse {
-      animation: auth-ring-turn 24s linear infinite reverse;
+    .auth-preview-row::after {
+      animation: auth-preview-row 4.2s ease-in-out infinite;
     }
 
-    .auth-panel-float {
-      animation: auth-panel-float 7s ease-in-out infinite;
-    }
-
-    .auth-node {
-      animation: auth-node-pulse 2.8s ease-in-out infinite;
-    }
-
-    .auth-line {
-      animation: auth-line-flow 3.6s ease-in-out infinite;
+    .auth-preview-cursor {
+      animation: auth-preview-cursor 1.4s steps(2, end) infinite;
     }
   }
 
@@ -1569,18 +1606,6 @@
     animation: wiggle 2.5s ease-in-out infinite;
   }
 
-  @keyframes icon-flip {
-    0% {
-      transform: rotateY(0deg) scale(1);
-    }
-    45% {
-      transform: rotateY(180deg) scale(1.08);
-    }
-    100% {
-      transform: rotateY(360deg) scale(1);
-    }
-  }
-
   @keyframes soft-vibrate {
     0%,
     100% {
@@ -1600,6 +1625,81 @@
     }
   }
 
+  @keyframes icon-lift {
+    0%,
+    100% {
+      transform: translateY(0) scale(1);
+    }
+    45% {
+      transform: translateY(-2px) scale(1.08);
+    }
+  }
+
+  @keyframes icon-orbit {
+    0%,
+    100% {
+      transform: rotate(0deg) translateY(0) scale(1);
+    }
+    35% {
+      transform: rotate(14deg) translateY(-2px) scale(1.08);
+    }
+    68% {
+      transform: rotate(-10deg) translateY(1px) scale(1.03);
+    }
+  }
+
+  @keyframes icon-slide {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    45% {
+      transform: translateX(4px);
+    }
+    70% {
+      transform: translateX(-1px);
+    }
+  }
+
+  @keyframes icon-tilt {
+    0%,
+    100% {
+      transform: rotate(0deg) scale(1);
+    }
+    42% {
+      transform: rotate(-10deg) scale(1.07);
+    }
+    72% {
+      transform: rotate(7deg) scale(1.03);
+    }
+  }
+
+  @keyframes icon-pop {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    45% {
+      transform: scale(1.18);
+    }
+    72% {
+      transform: scale(0.96);
+    }
+  }
+
+  @keyframes icon-send-flight {
+    0%,
+    100% {
+      transform: translate(0, 0) rotate(0deg);
+    }
+    42% {
+      transform: translate(4px, -4px) rotate(12deg);
+    }
+    70% {
+      transform: translate(-1px, 1px) rotate(-4deg);
+    }
+  }
+
   @keyframes thinking-pulse {
     0%,
     100% {
@@ -1612,98 +1712,103 @@
     }
   }
 
-  .auth-grid-motion {
+  .auth-preview-grid {
     background-image: linear-gradient(
         rgba(255, 255, 255, 0.08) 1px,
         transparent 1px
       ), linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
-    background-size: 48px 48px;
+    background-size: 44px 44px;
   }
 
-  .auth-scan::before {
+  .auth-preview-sweep::after {
     position: absolute;
-    inset: 0;
+    inset: 0 auto 0 -45%;
+    width: 42%;
     content: "";
     border-radius: inherit;
     background: linear-gradient(
-      180deg,
+      90deg,
       transparent,
-      rgba(16, 185, 129, 0.16),
+      rgba(255, 255, 255, 0.14),
       transparent
     );
-    transform: translateY(-100%);
+    transform: skewX(-12deg) translateX(0);
   }
 
-  @keyframes auth-grid-pan {
+  .auth-preview-row {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .auth-preview-row::after {
+    position: absolute;
+    inset: 0;
+    content: "";
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.12),
+      transparent
+    );
+    transform: translateX(-100%);
+  }
+
+  @keyframes auth-preview-pan {
     from {
       background-position: 0 0;
     }
     to {
-      background-position: 96px 48px;
+      background-position: 88px 44px;
     }
   }
 
-  @keyframes auth-scan-line {
+  @keyframes auth-preview-rise {
     0% {
-      transform: translateY(-100%);
-      opacity: 0;
-    }
-    35%,
-    65% {
-      opacity: 1;
-    }
-    100% {
-      transform: translateY(100%);
-      opacity: 0;
-    }
-  }
-
-  @keyframes auth-ring-turn {
-    from {
-      transform: rotate(0deg) scale(1);
-      border-style: solid;
-    }
-    50% {
-      transform: rotate(180deg) scale(1.03);
-      border-style: dashed;
-    }
-    to {
-      transform: rotate(360deg) scale(1);
-      border-style: solid;
-    }
-  }
-
-  @keyframes auth-panel-float {
-    0%,
-    100% {
       transform: translate3d(0, 0, 0);
     }
     50% {
-      transform: translate3d(0, -12px, 0);
+      transform: translate3d(0, -10px, 0);
+    }
+    100% {
+      transform: translate3d(0, 0, 0);
     }
   }
 
-  @keyframes auth-node-pulse {
+  @keyframes auth-preview-sweep {
     0%,
-    100% {
-      opacity: 0.5;
-      transform: scale(0.9);
+    12% {
+      transform: skewX(-12deg) translateX(0);
+      opacity: 0;
     }
-    50% {
+    35%,
+    70% {
       opacity: 1;
-      transform: scale(1.25);
+    }
+    100% {
+      transform: skewX(-12deg) translateX(360%);
+      opacity: 0;
     }
   }
 
-  @keyframes auth-line-flow {
+  @keyframes auth-preview-row {
     0%,
     100% {
-      opacity: 0.28;
-      filter: brightness(0.8);
+      transform: translateX(-100%);
+      opacity: 0;
     }
     50% {
-      opacity: 0.9;
-      filter: brightness(1.3);
+      transform: translateX(100%);
+      opacity: 1;
+    }
+  }
+
+  @keyframes auth-preview-cursor {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0;
     }
   }
 

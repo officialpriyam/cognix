@@ -1,5 +1,8 @@
 "use client";
 
+import { UploadedFile, appStore } from "@/app/store";
+import { UIMessage, UseChatHelpers } from "@ai-sdk/react";
+import { ChatMention, ChatModel } from "app-types/chat";
 import {
   AudioWaveformIcon,
   ChevronDown,
@@ -13,31 +16,22 @@ import {
   Square,
   XIcon,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "ui/button";
-import { UIMessage, UseChatHelpers } from "@ai-sdk/react";
-import { SelectModel } from "./select-model";
-import { appStore, UploadedFile } from "@/app/store";
 import { useShallow } from "zustand/shallow";
-import { ChatMention, ChatModel } from "app-types/chat";
-import dynamic from "next/dynamic";
+import { SelectModel } from "./select-model";
 import { ToolModeDropdown } from "./tool-mode-dropdown";
 
-import { ToolSelectDropdown } from "./tool-select-dropdown";
-import { Tooltip, TooltipContent, TooltipTrigger } from "ui/tooltip";
-import { useTranslations } from "next-intl";
+import { useThreadFileUploader } from "@/hooks/use-thread-file-uploader";
+import { cn } from "@/lib/utils";
 import { Editor } from "@tiptap/react";
 import { WorkflowSummary } from "app-types/workflow";
-import { Avatar, AvatarFallback, AvatarImage } from "ui/avatar";
-import equal from "lib/equal";
-import { MCPIcon } from "ui/mcp-icon";
 import { DefaultToolName } from "lib/ai/tools";
-import { DefaultToolIcon } from "./default-tool-icon";
-import { OpenAIIcon } from "ui/openai-icon";
-import { GrokIcon } from "ui/grok-icon";
+import equal from "lib/equal";
+import { useTranslations } from "next-intl";
+import { Avatar, AvatarFallback, AvatarImage } from "ui/avatar";
 import { ClaudeIcon } from "ui/claude-icon";
-import { GeminiIcon } from "ui/gemini-icon";
-import { NvidiaIcon } from "ui/nvidia-icon";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,15 +42,21 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "ui/dropdown-menu";
-import { cn } from "@/lib/utils";
-import { useThreadFileUploader } from "@/hooks/use-thread-file-uploader";
+import { GeminiIcon } from "ui/gemini-icon";
+import { GrokIcon } from "ui/grok-icon";
+import { MCPIcon } from "ui/mcp-icon";
+import { NvidiaIcon } from "ui/nvidia-icon";
+import { OpenAIIcon } from "ui/openai-icon";
+import { Tooltip, TooltipContent, TooltipTrigger } from "ui/tooltip";
+import { DefaultToolIcon } from "./default-tool-icon";
+import { ToolSelectDropdown } from "./tool-select-dropdown";
 
-import { EMOJI_DATA } from "lib/const";
-import { AgentSummary } from "app-types/agent";
-import { FileUIPart, TextUIPart } from "ai";
-import { toast } from "sonner";
-import { isFilePartSupported, isIngestSupported } from "@/lib/ai/file-support";
 import { useChatModels } from "@/hooks/queries/use-chat-models";
+import { isFilePartSupported, isIngestSupported } from "@/lib/ai/file-support";
+import { FileUIPart, TextUIPart } from "ai";
+import { AgentSummary } from "app-types/agent";
+import { EMOJI_DATA } from "lib/const";
+import { toast } from "sonner";
 
 interface PromptInputProps {
   placeholder?: string;
@@ -510,7 +510,7 @@ export default function PromptInput({
                     <Button
                       variant={"ghost"}
                       size={"sm"}
-                      className="rounded-full hover:bg-input! p-2! data-[state=open]:bg-input!"
+                      className="icon-motion-orbit rounded-full hover:bg-input! p-2! data-[state=open]:bg-input!"
                       disabled={!threadId}
                     >
                       <PlusIcon />
@@ -570,7 +570,7 @@ export default function PromptInput({
                     <Button
                       variant={"ghost"}
                       size={"sm"}
-                      className="rounded-full hover:bg-input! p-2! group/image-generator text-primary"
+                      className="icon-motion-pop rounded-full hover:bg-input! p-2! group/image-generator text-primary"
                       onClick={() => handleGenerateImage()}
                     >
                       <ImagesIcon className="size-3.5" />
@@ -598,7 +598,7 @@ export default function PromptInput({
                   <Button
                     variant={"ghost"}
                     size={"sm"}
-                    className="rounded-full group data-[state=open]:bg-input! hover:bg-input! mr-1"
+                    className="icon-motion-tilt rounded-full group data-[state=open]:bg-input! hover:bg-input! mr-1"
                     data-testid="model-selector-button"
                   >
                     {chatModel?.model ? (
@@ -642,7 +642,7 @@ export default function PromptInput({
                             },
                           }));
                         }}
-                        className="rounded-full p-2!"
+                        className="icon-motion-pop rounded-full p-2!"
                       >
                         <AudioWaveformIcon size={16} />
                       </Button>
@@ -671,7 +671,7 @@ export default function PromptInput({
                     }}
                     role="button"
                     tabIndex={0}
-                    className="fade-in animate-in cursor-pointer text-muted-foreground rounded-full p-2 bg-secondary hover:bg-accent-foreground hover:text-accent transition-all duration-200"
+                    className="icon-motion-send fade-in animate-in cursor-pointer text-muted-foreground rounded-full p-2 bg-secondary hover:bg-accent-foreground hover:text-accent transition-all duration-200"
                   >
                     {isLoading ? (
                       <Square

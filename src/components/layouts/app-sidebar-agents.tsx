@@ -1,10 +1,5 @@
 "use client";
 
-import { SidebarMenuAction } from "ui/sidebar";
-import Link from "next/link";
-import { SidebarMenuButton, SidebarMenuSkeleton } from "ui/sidebar";
-import { SidebarGroupContent, SidebarMenu, SidebarMenuItem } from "ui/sidebar";
-import { SidebarGroup } from "ui/sidebar";
 import {
   ArrowUpRightIcon,
   ChevronDown,
@@ -12,23 +7,28 @@ import {
   MoreHorizontal,
   PlusIcon,
 } from "lucide-react";
+import Link from "next/link";
+import { SidebarMenuAction } from "ui/sidebar";
+import { SidebarMenuButton, SidebarMenuSkeleton } from "ui/sidebar";
+import { SidebarGroupContent, SidebarMenu, SidebarMenuItem } from "ui/sidebar";
+import { SidebarGroup } from "ui/sidebar";
 
 import { useMounted } from "@/hooks/use-mounted";
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "ui/tooltip";
 
+import { useAgents } from "@/hooks/queries/use-agents";
 import { useTranslations } from "next-intl";
 import { useCallback, useMemo, useState } from "react";
-import { useAgents } from "@/hooks/queries/use-agents";
 import { Avatar, AvatarFallback, AvatarImage } from "ui/avatar";
 import { AgentDropdown } from "../agent/agent-dropdown";
 
 import { appStore } from "@/app/store";
-import { useRouter } from "next/navigation";
 import { ChatMention } from "app-types/chat";
+import { canCreateAgent } from "lib/auth/client-permissions";
 import { BACKGROUND_COLORS, EMOJI_DATA } from "lib/const";
 import { cn } from "lib/utils";
-import { canCreateAgent } from "lib/auth/client-permissions";
+import { useRouter } from "next/navigation";
 
 const DISPLAY_LIMIT = 5; // Number of agents to show when collapsed
 
@@ -99,7 +99,10 @@ export function AppSidebarAgents({ userRole }: { userRole?: string | null }) {
       <SidebarGroupContent className="group-data-[collapsible=icon]:hidden group/agents">
         <SidebarMenu className="group/agents" data-testid="agents-sidebar-menu">
           <SidebarMenuItem>
-            <SidebarMenuButton asChild className="font-semibold">
+            <SidebarMenuButton
+              asChild
+              className="icon-motion-slide font-semibold"
+            >
               <Link href="/agents" data-testid="agents-link">
                 {t("Layout.agents")}
               </Link>
@@ -133,7 +136,7 @@ export function AppSidebarAgents({ userRole }: { userRole?: string | null }) {
               {canCreateAgent(userRole) ? (
                 <Link
                   href={"/agent/new"}
-                  className="bg-input/40 py-8 px-4 hover:bg-input/100 rounded-lg cursor-pointer flex justify-between items-center text-xs overflow-hidden"
+                  className="icon-motion-slide bg-input/40 py-8 px-4 hover:bg-input/100 rounded-lg cursor-pointer flex justify-between items-center text-xs overflow-hidden"
                   data-testid="sidebar-create-agent-link"
                 >
                   <div className="gap-1 z-10">
