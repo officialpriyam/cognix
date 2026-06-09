@@ -22,6 +22,7 @@ import {
   XAI_FILE_MIME_TYPES,
 } from "./file-support";
 import { cache } from "react";
+import { DEFAULT_CHAT_MODEL } from "./model-recommendations";
 
 const ollama = createOllama({
   baseURL: process.env.OLLAMA_BASE_URL || "http://localhost:11434/api",
@@ -74,16 +75,26 @@ const staticModels = {
     "qwen3-32b": groq("qwen/qwen3-32b"),
   },
   nvidia: {
+    "minimax-m2.7": nvidia("minimaxai/minimax-m2.7"),
+    "mistral-large-3-675b": nvidia(
+      "mistralai/mistral-large-3-675b-instruct-2512",
+    ),
+    "llama-4-maverick-17b": nvidia("meta/llama-4-maverick-17b-128e-instruct"),
     "llama-3.3-nemotron-super-49b-v1.5": nvidia(
       "nvidia/llama-3.3-nemotron-super-49b-v1.5",
     ),
     "llama-3.1-nemotron-ultra-253b-v1": nvidia(
       "nvidia/llama-3.1-nemotron-ultra-253b-v1",
     ),
+    "nemotron-3-ultra-550b-a55b": nvidia("nvidia/nemotron-3-ultra-550b-a55b"),
+    "nemotron-3-super-120b-a12b": nvidia("nvidia/nemotron-3-super-120b-a12b"),
     "nemotron-3-nano-30b-a3b": nvidia("nvidia/nemotron-3-nano-30b-a3b"),
     "nvidia-nemotron-nano-9b-v2": nvidia("nvidia/nvidia-nemotron-nano-9b-v2"),
     "gpt-oss-120b": nvidia("openai/gpt-oss-120b"),
     "qwen3-coder-480b-a35b": nvidia("qwen/qwen3-coder-480b-a35b-instruct"),
+    "qwen3-next-80b-a3b-thinking": nvidia("qwen/qwen3-next-80b-a3b-thinking"),
+    "deepseek-v4-pro": nvidia("deepseek-ai/deepseek-v4-pro"),
+    "kimi-k2-thinking": nvidia("moonshotai/kimi-k2-thinking"),
   },
   openRouter: {
     "gpt-oss-20b:free": openrouter("openai/gpt-oss-20b:free"),
@@ -105,11 +116,17 @@ const staticUnsupportedModels = new Set([
   staticModels.openRouter["gemini-2.0-flash-exp:free"],
 ]);
 
+const nvidiaImageInputModels = {
+  "mistral-large-3-675b": staticModels.nvidia["mistral-large-3-675b"],
+  "llama-4-maverick-17b": staticModels.nvidia["llama-4-maverick-17b"],
+};
+
 const staticSupportImageInputModels = {
   ...staticModels.google,
   ...staticModels.xai,
   ...staticModels.openai,
   ...staticModels.anthropic,
+  ...nvidiaImageInputModels,
 };
 
 const staticFilePartSupportByModel = new Map<
@@ -124,6 +141,10 @@ const registerFileSupport = (
   if (!model) return;
   staticFilePartSupportByModel.set(model, Array.from(mimeTypes));
 };
+
+const NVIDIA_IMAGE_FILE_MIME_TYPES = DEFAULT_FILE_PART_MIME_TYPES.filter(
+  (mimeType) => mimeType.startsWith("image/"),
+);
 
 registerFileSupport(staticModels.openai["gpt-4.1"], OPENAI_FILE_MIME_TYPES);
 registerFileSupport(
@@ -170,6 +191,14 @@ registerFileSupport(staticModels.xai["grok-4-1-fast"], XAI_FILE_MIME_TYPES);
 registerFileSupport(staticModels.xai["grok-4-1"], XAI_FILE_MIME_TYPES);
 registerFileSupport(staticModels.xai["grok-3-mini"], XAI_FILE_MIME_TYPES);
 registerFileSupport(
+  staticModels.nvidia["mistral-large-3-675b"],
+  NVIDIA_IMAGE_FILE_MIME_TYPES,
+);
+registerFileSupport(
+  staticModels.nvidia["llama-4-maverick-17b"],
+  NVIDIA_IMAGE_FILE_MIME_TYPES,
+);
+registerFileSupport(
   staticModels.openRouter["gemini-2.0-flash-exp:free"],
   GEMINI_FILE_MIME_TYPES,
 );
@@ -202,7 +231,10 @@ export const getFilePartSupportedMimeTypes = (model: LanguageModel) => {
   return staticFilePartSupportByModel.get(model) ?? [];
 };
 
-const fallbackModel = staticModels.openai["gpt-4.1"];
+const fallbackModel =
+  staticModels.nvidia[
+    DEFAULT_CHAT_MODEL.model as keyof typeof staticModels.nvidia
+  ] ?? staticModels.nvidia["minimax-m2.7"];
 
 export const customModelProvider = {
   modelsInfo: Object.entries(allModels).map(([provider, models]) => ({

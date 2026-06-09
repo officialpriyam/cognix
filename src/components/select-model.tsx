@@ -3,6 +3,7 @@
 import { appStore } from "@/app/store";
 import { useChatModels } from "@/hooks/queries/use-chat-models";
 import { ChatModel } from "app-types/chat";
+import { DEFAULT_CHAT_MODEL } from "lib/ai/model-recommendations";
 import { cn } from "lib/utils";
 import { CheckIcon, ChevronDown } from "lucide-react";
 import { Fragment, memo, PropsWithChildren, useEffect, useState } from "react";
@@ -30,14 +31,13 @@ interface SelectModelProps {
 export const SelectModel = (props: PropsWithChildren<SelectModelProps>) => {
   const [open, setOpen] = useState(false);
   const { data: providers } = useChatModels();
-  const [model, setModel] = useState(props.currentModel);
+  const [model, setModel] = useState(props.currentModel ?? DEFAULT_CHAT_MODEL);
 
   useEffect(() => {
-    const modelToUse = props.currentModel ?? appStore.getState().chatModel;
+    const modelToUse =
+      props.currentModel ?? appStore.getState().chatModel ?? DEFAULT_CHAT_MODEL;
 
-    if (modelToUse) {
-      setModel(modelToUse);
-    }
+    setModel(modelToUse);
   }, [props.currentModel]);
 
   return (

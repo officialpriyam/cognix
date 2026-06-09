@@ -53,7 +53,13 @@ describe("customModelProvider file support metadata", () => {
     );
 
     expect(nvidiaProvider?.models.map((model) => model.name)).toContain(
-      "llama-3.3-nemotron-super-49b-v1.5",
+      "minimax-m2.7",
+    );
+    expect(nvidiaProvider?.models.map((model) => model.name)).toContain(
+      "qwen3-coder-480b-a35b",
+    );
+    expect(nvidiaProvider?.models.map((model) => model.name)).toContain(
+      "mistral-large-3-675b",
     );
   });
 });

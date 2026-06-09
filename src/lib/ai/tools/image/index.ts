@@ -2,11 +2,15 @@ import {
   FilePart,
   ImagePart,
   ModelMessage,
+  TextPart,
   ToolResultPart,
   tool as createTool,
   generateText,
 } from "ai";
-import { generateImageWithNanoBanana } from "lib/ai/image/generate-image";
+import {
+  generateImageWithNanoBanana,
+  generateImageWithNvidiaFlux,
+} from "lib/ai/image/generate-image";
 import { serverFileStorage } from "lib/file-storage";
 import { safe, watchError } from "ts-safe";
 import z from "zod";
@@ -113,6 +117,71 @@ export const nanoBananaTool = createTool({
   },
 });
 
+export const nvidiaImageTool = createTool({
+  name: ImageToolName,
+  description: `Generate images with NVIDIA FLUX based on the recent conversation context. Use this when the user requests image creation or visual content generation and NVIDIA image generation is selected or available as the default fallback.`,
+  inputSchema: z.object({
+    mode: z
+      .enum(["create", "edit", "composite"])
+      .optional()
+      .default("create")
+      .describe(
+        "Image generation mode. NVIDIA FLUX currently uses the latest text prompt to generate a new image.",
+      ),
+  }),
+  execute: async ({ mode }, { messages, abortSignal }) => {
+    const prompt = extractImagePrompt(messages, mode);
+    if (!prompt) {
+      throw new Error("No image prompt was found in the conversation.");
+    }
+
+    const images = await generateImageWithNvidiaFlux({
+      prompt,
+      abortSignal,
+    });
+
+    const resultImages = await safe(images.images)
+      .map((images) => {
+        return Promise.all(
+          images.map(async (image) => {
+            const uploadedImage = await serverFileStorage.upload(
+              Buffer.from(image.base64, "base64"),
+              {
+                contentType: image.mimeType,
+              },
+            );
+            return {
+              url: uploadedImage.sourceUrl,
+              mimeType: image.mimeType,
+            };
+          }),
+        );
+      })
+      .watch(
+        watchError((e) => {
+          logger.error(e);
+          logger.info("upload NVIDIA image failed");
+        }),
+      )
+      .ifFail(() => {
+        throw new Error(
+          "Image generation was successful, but file upload failed. Please check your file upload configuration and try again.",
+        );
+      })
+      .unwrap();
+
+    return {
+      images: resultImages,
+      mode,
+      model: process.env.NVIDIA_IMAGE_MODEL || "black-forest-labs/flux.1-dev",
+      guide:
+        mode === "create"
+          ? "The image has been successfully generated and is now displayed above. If you need any edits, modifications, or adjustments to the image, please let me know."
+          : "NVIDIA FLUX generated a new image from the latest text prompt. For precise edit or composite work, choose Gemini image generation.",
+    };
+  },
+});
+
 export const openaiImageTool = createTool({
   name: ImageToolName,
   description: `Generate, edit, or composite images based on the conversation context. This tool automatically analyzes recent messages to create images without requiring explicit input parameters. It includes all user-uploaded images from the recent conversation and only the most recent AI-generated image to avoid confusion. Use the 'mode' parameter to specify the operation type: 'create' for new images, 'edit' for modifying existing images, or 'composite' for combining multiple images. Use this when the user requests image creation, modification, or visual content generation.`,
@@ -203,6 +272,27 @@ function convertToImageToolPartToImagePart(part: ToolResultPart): ImagePart[] {
     image: image.url,
     mediaType: image.mimeType,
   }));
+}
+
+function extractImagePrompt(messages: ModelMessage[], mode: string) {
+  const prompt = messages
+    .slice(-6)
+    .flatMap((message) => {
+      if (typeof message.content === "string") {
+        return [message.content];
+      }
+      return message.content
+        .filter((part): part is TextPart => part.type === "text")
+        .map((part) => part.text);
+    })
+    .join("\n\n")
+    .trim();
+
+  if (!prompt || mode === "create") {
+    return prompt;
+  }
+
+  return `${prompt}\n\nApply this as a ${mode} request and generate a polished final image.`;
 }
 
 function convertToImageToolPartToFilePart(part: ToolResultPart): FilePart[] {

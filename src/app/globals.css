@@ -1446,6 +1446,45 @@
     @apply cursor-pointer;
   }
 
+  @media (prefers-reduced-motion: no-preference) {
+    button:not(:disabled),
+    [data-slot="button"]:not(:disabled),
+    [role="button"]:not([aria-disabled="true"]) {
+      transition-property: transform, box-shadow, background-color, color,
+        border-color, opacity;
+      transition-duration: 180ms;
+      transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    button:hover:not(:disabled),
+    [data-slot="button"]:hover:not(:disabled),
+    [role="button"]:hover:not([aria-disabled="true"]) {
+      transform: translateY(-1px);
+    }
+
+    button:active:not(:disabled),
+    [data-slot="button"]:active:not(:disabled),
+    [role="button"]:active:not([aria-disabled="true"]) {
+      transform: translateY(0) scale(0.98);
+    }
+
+    button:hover svg:not(.animate-spin):not(.no-icon-motion),
+    [data-slot="button"]:hover svg:not(.animate-spin):not(.no-icon-motion),
+    [role="button"]:hover svg:not(.animate-spin):not(.no-icon-motion) {
+      animation: icon-flip 520ms ease;
+      transform-box: fill-box;
+      transform-origin: center;
+    }
+
+    .thinking-pulse {
+      animation: thinking-pulse 1.35s ease-in-out infinite;
+    }
+
+    .vibrate-on-hover:hover {
+      animation: soft-vibrate 360ms linear;
+    }
+  }
+
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -1500,6 +1539,49 @@
 
   .wiggle {
     animation: wiggle 2.5s ease-in-out infinite;
+  }
+
+  @keyframes icon-flip {
+    0% {
+      transform: rotateY(0deg) scale(1);
+    }
+    45% {
+      transform: rotateY(180deg) scale(1.08);
+    }
+    100% {
+      transform: rotateY(360deg) scale(1);
+    }
+  }
+
+  @keyframes soft-vibrate {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    20% {
+      transform: translateX(-1px);
+    }
+    40% {
+      transform: translateX(1px);
+    }
+    60% {
+      transform: translateX(-0.5px);
+    }
+    80% {
+      transform: translateX(0.5px);
+    }
+  }
+
+  @keyframes thinking-pulse {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 28%, transparent);
+      transform: scale(1);
+    }
+    50% {
+      box-shadow: 0 0 0 8px color-mix(in oklab, var(--primary) 0%, transparent);
+      transform: scale(1.18);
+    }
   }
 
   .react-flow__node-default {

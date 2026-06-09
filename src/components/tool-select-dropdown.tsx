@@ -81,6 +81,7 @@ import { redriectMcpOauth } from "lib/ai/mcp/oauth-redirect";
 import { GeminiIcon } from "ui/gemini-icon";
 import { useChatModels } from "@/hooks/queries/use-chat-models";
 import { OpenAIIcon } from "ui/openai-icon";
+import { NvidiaIcon } from "ui/nvidia-icon";
 
 interface ToolSelectDropdownProps {
   align?: "start" | "end" | "center";
@@ -89,7 +90,7 @@ interface ToolSelectDropdownProps {
   mentions?: ChatMention[];
   onSelectWorkflow?: (workflow: WorkflowSummary) => void;
   onSelectAgent?: (agent: AgentSummary) => void;
-  onGenerateImage?: (provider?: "google" | "openai") => void;
+  onGenerateImage?: (provider?: "google" | "openai" | "nvidia") => void;
   className?: string;
 }
 
@@ -1051,7 +1052,7 @@ function ImageGeneratorSelector({
   onGenerateImage,
   modelInfo,
 }: {
-  onGenerateImage?: (provider?: "google" | "openai") => void;
+  onGenerateImage?: (provider?: "google" | "openai" | "nvidia") => void;
   modelInfo?: { isToolCallUnsupported?: boolean };
 }) {
   const t = useTranslations("Chat");
@@ -1065,6 +1066,14 @@ function ImageGeneratorSelector({
         </DropdownMenuSubTrigger>
         <DropdownMenuPortal>
           <DropdownMenuSubContent>
+            <DropdownMenuItem
+              disabled={modelInfo?.isToolCallUnsupported}
+              onClick={() => onGenerateImage?.("nvidia")}
+              className="cursor-pointer"
+            >
+              <NvidiaIcon className="mr-2 size-4" />
+              NVIDIA FLUX
+            </DropdownMenuItem>
             <DropdownMenuItem
               disabled={modelInfo?.isToolCallUnsupported}
               onClick={() => onGenerateImage?.("google")}

@@ -7,6 +7,7 @@ import { WorkflowSummary } from "app-types/workflow";
 import { AppDefaultToolkit } from "lib/ai/tools";
 import { AgentSummary } from "app-types/agent";
 import { ArchiveWithItemCount } from "app-types/archive";
+import { DEFAULT_CHAT_MODEL } from "lib/ai/model-recommendations";
 
 export interface UploadedFile {
   id: string;
@@ -90,7 +91,7 @@ const initialState: AppState = {
     AppDefaultToolkit.Visualization,
   ],
   toolPresets: [],
-  chatModel: undefined,
+  chatModel: DEFAULT_CHAT_MODEL,
   openShortcutsPopup: false,
   openChatPreferences: false,
   mcpCustomizationPopup: undefined,

@@ -38,6 +38,7 @@ import { OpenAIIcon } from "ui/openai-icon";
 import { GrokIcon } from "ui/grok-icon";
 import { ClaudeIcon } from "ui/claude-icon";
 import { GeminiIcon } from "ui/gemini-icon";
+import { NvidiaIcon } from "ui/nvidia-icon";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -244,7 +245,7 @@ export default function PromptInput({
   );
 
   const handleGenerateImage = useCallback(
-    (provider?: "google" | "openai") => {
+    (provider?: "google" | "openai" | "nvidia") => {
       if (!provider) {
         appStoreMutate({
           threadImageToolModel: {},
@@ -558,6 +559,14 @@ export default function PromptInput({
                         <DropdownMenuSubContent>
                           <DropdownMenuItem
                             disabled={modelInfo?.isToolCallUnsupported}
+                            onClick={() => handleGenerateImage("nvidia")}
+                            className="cursor-pointer"
+                          >
+                            <NvidiaIcon className="mr-2 size-4" />
+                            NVIDIA FLUX
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            disabled={modelInfo?.isToolCallUnsupported}
                             onClick={() => handleGenerateImage("google")}
                             className="cursor-pointer"
                           >
@@ -636,6 +645,8 @@ export default function PromptInput({
                           <ClaudeIcon className="size-3 opacity-0 group-data-[state=open]:opacity-100 group-hover:opacity-100" />
                         ) : chatModel.provider === "google" ? (
                           <GeminiIcon className="size-3 opacity-0 group-data-[state=open]:opacity-100 group-hover:opacity-100" />
+                        ) : chatModel.provider === "nvidia" ? (
+                          <NvidiaIcon className="size-3 opacity-0 group-data-[state=open]:opacity-100 group-hover:opacity-100" />
                         ) : null}
                         <span
                           className="text-foreground group-data-[state=open]:text-foreground  "
@@ -681,6 +692,19 @@ export default function PromptInput({
                         submit();
                       }
                     }}
+                    onKeyDown={(event) => {
+                      if (event.key !== "Enter" && event.key !== " ") {
+                        return;
+                      }
+                      event.preventDefault();
+                      if (isLoading) {
+                        onStop();
+                      } else {
+                        submit();
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
                     className="fade-in animate-in cursor-pointer text-muted-foreground rounded-full p-2 bg-secondary hover:bg-accent-foreground hover:text-accent transition-all duration-200"
                   >
                     {isLoading ? (

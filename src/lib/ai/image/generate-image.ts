@@ -72,6 +72,54 @@ export async function generateImageWithXAI(
   });
 }
 
+export async function generateImageWithNvidiaFlux(
+  options: GenerateImageOptions,
+): Promise<GeneratedImageResult> {
+  const apiKey = process.env.NVIDIA_API_KEY;
+  if (!apiKey) {
+    throw new Error("NVIDIA_API_KEY is not set");
+  }
+
+  const baseURL =
+    process.env.NVIDIA_IMAGE_BASE_URL || "https://ai.api.nvidia.com/v1/genai";
+  const model =
+    process.env.NVIDIA_IMAGE_MODEL || "black-forest-labs/flux.1-dev";
+  const endpoint = `${baseURL.replace(/\/$/, "")}/${model.replace(/^\//, "")}`;
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      prompt: options.prompt,
+      height: 1024,
+      width: 1024,
+      cfg_scale: 5,
+      mode: "base",
+      samples: 1,
+      seed: 0,
+      steps: 50,
+    }),
+    signal: options.abortSignal,
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(
+      `NVIDIA image generation failed: ${JSON.stringify(data).slice(0, 500)}`,
+    );
+  }
+
+  const images = extractNvidiaImages(data);
+  if (!images.length) {
+    throw new Error("NVIDIA image generation returned no image data");
+  }
+
+  return { images };
+}
+
 export const generateImageWithNanoBanana = async (
   options: GenerateImageOptions,
 ): Promise<GeneratedImageResult> => {
@@ -124,6 +172,75 @@ export const generateImageWithNanoBanana = async (
     ) || { images: [] as GeneratedImage[] }
   );
 };
+
+function extractNvidiaImages(payload: any): GeneratedImage[] {
+  const candidates = [
+    payload,
+    ...(Array.isArray(payload) ? payload : []),
+    payload?.image,
+    payload?.b64_json,
+    payload?.base64,
+    payload?.output,
+    ...(Array.isArray(payload?.output) ? payload.output : []),
+    ...(Array.isArray(payload?.images) ? payload.images : []),
+    ...(Array.isArray(payload?.data) ? payload.data : []),
+    ...(Array.isArray(payload?.artifacts) ? payload.artifacts : []),
+    ...(Array.isArray(payload?.outputs) ? payload.outputs : []),
+  ];
+
+  const seen = new Set<string>();
+  return candidates.reduce<GeneratedImage[]>((acc, candidate) => {
+    const image = normalizeNvidiaImage(candidate);
+    if (!image || seen.has(image.base64)) {
+      return acc;
+    }
+    seen.add(image.base64);
+    acc.push(image);
+    return acc;
+  }, []);
+}
+
+function normalizeNvidiaImage(value: any): GeneratedImage | null {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value === "string") {
+    if (value.startsWith("http://") || value.startsWith("https://")) {
+      return null;
+    }
+    const match = value.match(/^data:([^;]+);base64,(.+)$/);
+    return {
+      base64: match?.[2] ?? value,
+      mimeType: match?.[1] ?? "image/png",
+    };
+  }
+
+  if (typeof value !== "object") {
+    return null;
+  }
+
+  const image = normalizeNvidiaImage(
+    value.b64_json ??
+      value.base64 ??
+      value.image ??
+      value.data ??
+      value.content,
+  );
+  if (!image) {
+    return null;
+  }
+
+  return {
+    ...image,
+    mimeType:
+      value.mimeType ??
+      value.mime_type ??
+      value.contentType ??
+      value.content_type ??
+      image.mimeType,
+  };
+}
 
 async function convertToGeminiMessage(
   message: ModelMessage,

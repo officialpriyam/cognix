@@ -10,6 +10,10 @@ import {
 } from "ai";
 
 import { customModelProvider, isToolCallUnsupportedModel } from "lib/ai/models";
+import {
+  selectImageToolModelForPrompt,
+  selectRecommendedModelForPrompt,
+} from "lib/ai/model-recommendations";
 
 import { mcpClientsManager } from "lib/ai/mcp/mcp-manager";
 
@@ -47,7 +51,11 @@ import {
 import { getSession } from "auth/server";
 import { colorize } from "consola/utils";
 import { generateUUID } from "lib/utils";
-import { nanoBananaTool, openaiImageTool } from "lib/ai/tools/image";
+import {
+  nanoBananaTool,
+  nvidiaImageTool,
+  openaiImageTool,
+} from "lib/ai/tools/image";
 import { ImageToolName } from "lib/ai/tools";
 import { buildCsvIngestionPreviewParts } from "@/lib/ai/ingest/csv-ingest";
 import { serverFileStorage } from "lib/file-storage";
@@ -77,7 +85,16 @@ export async function POST(request: Request) {
       attachments = [],
     } = chatApiSchemaRequestBodySchema.parse(json);
 
-    const model = customModelProvider.getModel(chatModel);
+    const promptText = extractTextFromMessage(message);
+    const routingPromptText = imageTool?.model
+      ? `${promptText}\n\nGenerate image`
+      : promptText;
+    const resolvedChatModel = selectRecommendedModelForPrompt({
+      prompt: routingPromptText,
+      providers: customModelProvider.modelsInfo,
+      requestedModel: chatModel,
+    });
+    const model = customModelProvider.getModel(resolvedChatModel);
 
     let thread = await chatRepository.selectThreadDetails(id);
 
@@ -188,7 +205,14 @@ export async function POST(request: Request) {
       mentions.push(...agent.instructions.mentions);
     }
 
-    const useImageTool = Boolean(imageTool?.model);
+    const resolvedImageToolModel =
+      imageTool?.model ||
+      selectImageToolModelForPrompt(routingPromptText, {
+        nvidia: isUsableSecret(process.env.NVIDIA_API_KEY),
+        google: isUsableSecret(process.env.GOOGLE_GENERATIVE_AI_API_KEY),
+        openai: isUsableSecret(process.env.OPENAI_API_KEY),
+      });
+    const useImageTool = Boolean(resolvedImageToolModel);
 
     const isToolCallAllowed =
       supportToolCall &&
@@ -199,7 +223,7 @@ export async function POST(request: Request) {
       agentId: agent?.id,
       toolChoice: toolChoice,
       toolCount: 0,
-      chatModel: chatModel,
+      chatModel: resolvedChatModel,
     };
 
     const stream = createUIMessageStream({
@@ -278,9 +302,11 @@ export async function POST(request: Request) {
         const IMAGE_TOOL: Record<string, Tool> = useImageTool
           ? {
               [ImageToolName]:
-                imageTool?.model === "google"
+                resolvedImageToolModel === "google"
                   ? nanoBananaTool
-                  : openaiImageTool,
+                  : resolvedImageToolModel === "nvidia"
+                    ? nvidiaImageTool
+                    : openaiImageTool,
             }
           : {};
         const vercelAITooles = safe({
@@ -314,13 +340,15 @@ export async function POST(request: Request) {
           `allowedMcpTools: ${allowedMcpTools.length ?? 0}, allowedAppDefaultToolkit: ${allowedAppDefaultToolkit?.length ?? 0}`,
         );
         if (useImageTool) {
-          logger.info(`binding tool count Image: ${imageTool?.model}`);
+          logger.info(`binding tool count Image: ${resolvedImageToolModel}`);
         } else {
           logger.info(
             `binding tool count APP_DEFAULT: ${Object.keys(APP_DEFAULT_TOOLS ?? {}).length}, MCP: ${Object.keys(MCP_TOOLS ?? {}).length}, Workflow: ${Object.keys(WORKFLOW_TOOLS ?? {}).length}`,
           );
         }
-        logger.info(`model: ${chatModel?.provider}/${chatModel?.model}`);
+        logger.info(
+          `model: ${resolvedChatModel.provider}/${resolvedChatModel.model}`,
+        );
 
         const result = streamText({
           model,
@@ -330,7 +358,7 @@ export async function POST(request: Request) {
           maxRetries: 2,
           tools: vercelAITooles,
           stopWhen: stepCountIs(10),
-          toolChoice: "auto",
+          toolChoice: useImageTool ? "required" : "auto",
           abortSignal: request.signal,
         });
         result.consumeStream();
@@ -388,4 +416,14 @@ export async function POST(request: Request) {
     logger.error(error);
     return Response.json({ message: error.message }, { status: 500 });
   }
+}
+
+function extractTextFromMessage(message: UIMessage) {
+  return message.parts
+    .flatMap((part: any) => (part?.type === "text" ? [part.text] : []))
+    .join("\n\n");
+}
+
+function isUsableSecret(value?: string) {
+  return !!value && value !== "****";
 }
