@@ -52,7 +52,7 @@ const magicx = createOpenAICompatible({
 const staticModels = {
   "Magical AI": {
     magicxcoder: magicxCoder("qwen2.5-coder-1.5b-instruct"),
-    magicxdaily: magicx("qwen2.5-1.5b-instruct"),
+    magicxdaily: magicx("llama-3.2-1b-instruct"),
   },
   openai: {
     "gpt-4.1": openai("gpt-4.1"),
