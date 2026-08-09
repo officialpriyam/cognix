@@ -51,7 +51,7 @@ const magicx = createOpenAICompatible({
 
 const staticModels = {
   "Magical AI": {
-    magicxcoder: magicxCoder("qwen2.5-coder-1.5b-instruct"),
+    magicxcoder: magicxCoder("llama-3.2-1b-instruct"),
     magicxdaily: magicx("llama-3.2-1b-instruct"),
   },
   openai: {
