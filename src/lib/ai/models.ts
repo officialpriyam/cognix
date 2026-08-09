@@ -38,23 +38,21 @@ const nvidia = createOpenAICompatible({
 });
 
 const magicxCoder = createOpenAICompatible({
-  name: "MagicX Coder",
+  name: "Magical AI",
   baseURL: process.env.MAGICX_CODER_BASE_URL || "http://185.172.175.223:1234/v1",
   apiKey: process.env.MAGICX_CODER_API_KEY,
 });
 
 const magicx = createOpenAICompatible({
-  name: "MagicX",
+  name: "Magical AI",
   baseURL: process.env.MAGICX_BASE_URL || "http://185.172.175.223:1234/api/v1",
   apiKey: process.env.MAGICX_API_KEY,
 });
 
 const staticModels = {
-  "MagicX Coder": {
-    "qwen2.5-coder-1.5b-instruct": magicxCoder("qwen2.5-coder-1.5b-instruct"),
-  },
-  MagicX: {
-    "google/gemma-3-1b": magicx("google/gemma-3-1b"),
+  "Magical AI": {
+    magicxcoder: magicxCoder("qwen2.5-coder-1.5b-instruct"),
+    magicx: magicx("google/gemma-3-1b"),
   },
   openai: {
     "gpt-4.1": openai("gpt-4.1"),
@@ -285,11 +283,16 @@ export const customModelProvider = {
     if (provider === "nvidia") {
       return nvidia(modelName);
     }
-    if (provider === "MagicX Coder") {
-      return magicxCoder(modelName);
-    }
-    if (provider === "MagicX") {
-      return magicx(modelName);
+    if (provider === "Magical AI") {
+      // Try magicxcoder first, then magicx
+      if (modelName === "magicxcoder") {
+        return magicxCoder("qwen2.5-coder-1.5b-instruct");
+      }
+      if (modelName === "magicx") {
+        return magicx("google/gemma-3-1b");
+      }
+      // Fallback to magicxcoder
+      return magicxCoder("qwen2.5-coder-1.5b-instruct");
     }
 
     return allModels[provider]?.[modelName] || fallbackModel;
@@ -374,11 +377,8 @@ function checkProviderAPIKey(provider: keyof typeof staticModels) {
     case "openRouter":
       key = process.env.OPENROUTER_API_KEY;
       break;
-    case "MagicX Coder":
-      key = process.env.MAGICX_CODER_API_KEY;
-      break;
-    case "MagicX":
-      key = process.env.MAGICX_API_KEY;
+    case "Magical AI":
+      key = process.env.MAGICX_CODER_API_KEY || process.env.MAGICX_API_KEY;
       break;
     default:
       return true; // assume the provider has an API key
