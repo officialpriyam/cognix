@@ -79,6 +79,34 @@ export const SelectModel = (props: PropsWithChildren<SelectModelProps>) => {
           />
           <CommandList className="p-2">
             <CommandEmpty>No results found.</CommandEmpty>
+            {/* Auto model option - always at the top */}
+            <CommandGroup heading="Auto">
+              <CommandItem
+                key="auto"
+                className="cursor-pointer font-medium"
+                onSelect={() => {
+                  const autoModel = { provider: "auto", model: "auto" };
+                  setModel(autoModel);
+                  props.onSelect(autoModel);
+                  setOpen(false);
+                }}
+                value="auto"
+                data-testid="model-option-auto"
+              >
+                {model?.provider === "auto" && model?.model === "auto" ? (
+                  <CheckIcon className="size-3" data-testid="selected-model-check" />
+                ) : (
+                  <div className="ml-3" />
+                )}
+                <span className="pr-2 flex items-center gap-2">
+                  <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
+                    Auto
+                  </span>
+                  <span>Automatically select best model</span>
+                </span>
+              </CommandItem>
+            </CommandGroup>
+            <CommandSeparator />
             {providers?.map((provider, i) => (
               <Fragment key={provider.provider}>
                 <CommandGroup

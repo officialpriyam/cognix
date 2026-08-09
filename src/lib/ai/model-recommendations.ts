@@ -95,6 +95,11 @@ export function selectRecommendedModelForPrompt({
   requireToolCall?: boolean;
   respectRequestedModel?: boolean;
 }) {
+  // Handle "auto" model selection
+  if (requestedModel?.model === "auto") {
+    return selectAutoModel(providers, { requireToolCall });
+  }
+
   const category = inferPromptCategory(prompt);
   const requestedModelAvailable =
     !!requestedModel &&
@@ -112,6 +117,52 @@ export function selectRecommendedModelForPrompt({
     pickAvailableModel("general", providers, { requireToolCall }) ??
     DEFAULT_CHAT_MODEL
   );
+}
+
+/**
+ * Automatically selects the best available model based on provider priority and capabilities
+ */
+export function selectAutoModel(
+  providers: ProviderModelInfo[],
+  options?: { requireToolCall?: boolean },
+): ChatModel {
+  // Priority order for auto-selection (best models first)
+  const autoModelPriority: ChatModel[] = [
+    // Top-tier models with tool support
+    { provider: "openai", model: "gpt-5.1-codex" },
+    { provider: "anthropic", model: "sonnet-4.5" },
+    { provider: "google", model: "gemini-3-pro" },
+    { provider: "nvidia", model: "minimax-m2.7" },
+    { provider: "nvidia", model: "mistral-large-3-675b" },
+    { provider: "nvidia", model: "llama-4-maverick-17b" },
+    { provider: "groq", model: "qwen3-32b" },
+    { provider: "ollama", model: "qwen2.5-coder:14b" },
+    // Magical AI models (if available)
+    { provider: "Magical AI", model: "magicxcoder" },
+    { provider: "Magical AI", model: "magicx" },
+    // Fallback to default
+    DEFAULT_CHAT_MODEL,
+  ];
+
+  for (const model of autoModelPriority) {
+    if (isModelAvailable(model, providers, options)) {
+      return model;
+    }
+  }
+
+  // Ultimate fallback - first available model with API key
+  for (const provider of providers) {
+    if (provider.hasAPIKey && provider.models.length > 0) {
+      const model = provider.models.find(
+        (m) => !options?.requireToolCall || !m.isToolCallUnsupported,
+      );
+      if (model) {
+        return { provider: provider.provider, model: model.name };
+      }
+    }
+  }
+
+  return DEFAULT_CHAT_MODEL;
 }
 
 export function selectImageToolModelForPrompt(

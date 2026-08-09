@@ -6,6 +6,7 @@ import {
   streamText,
 } from "ai";
 import { customModelProvider } from "lib/ai/models";
+import { selectRecommendedModelForPrompt } from "lib/ai/model-recommendations";
 import globalLogger from "logger";
 import { buildUserSystemPrompt } from "lib/ai/prompts";
 import { getUserPreferences } from "lib/user/server";
@@ -31,7 +32,17 @@ export async function POST(request: Request) {
       instructions?: string;
     };
     logger.info(`model: ${chatModel?.provider}/${chatModel?.model}`);
-    const model = customModelProvider.getModel(chatModel);
+    
+    // Use auto-selection logic for temporary chat as well
+    const resolvedChatModel = selectRecommendedModelForPrompt({
+      prompt: messages[messages.length - 1]?.parts?.find((p) => p.type === "text")?.text || "",
+      providers: customModelProvider.modelsInfo,
+      requestedModel: chatModel,
+      requireToolCall: false,
+      respectRequestedModel: false,
+    });
+    
+    const model = customModelProvider.getModel(resolvedChatModel);
     const userPreferences = session?.user?.id
       ? (await getUserPreferences(session.user.id)) || undefined
       : undefined;
