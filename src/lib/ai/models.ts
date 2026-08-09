@@ -51,8 +51,8 @@ const magicx = createOpenAICompatible({
 
 const staticModels = {
   "Magical AI": {
-    MagicXDaily-B: magicxdaily("qwen2.5-1.5b-instruct"),
-    MagicX-B: magicx("google/gemma-3-1b"),
+    magicxcoder: magicxCoder("qwen2.5-coder-1.5b-instruct"),
+    magicxdaily: magicx("qwen2.5-1.5b-instruct"),
   },
   openai: {
     "gpt-4.1": openai("gpt-4.1"),
