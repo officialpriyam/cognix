@@ -6,7 +6,7 @@ import { ChatModel } from "app-types/chat";
 import { DEFAULT_CHAT_MODEL } from "lib/ai/model-recommendations";
 import { cn } from "lib/utils";
 import { CheckIcon, ChevronDown } from "lucide-react";
-import { Fragment, memo, PropsWithChildren, useEffect, useState } from "react";
+import { Fragment, PropsWithChildren, memo, useEffect, useState } from "react";
 import { Button } from "ui/button";
 
 import {
@@ -94,7 +94,10 @@ export const SelectModel = (props: PropsWithChildren<SelectModelProps>) => {
                 data-testid="model-option-auto"
               >
                 {model?.provider === "auto" && model?.model === "auto" ? (
-                  <CheckIcon className="size-3" data-testid="selected-model-check" />
+                  <CheckIcon
+                    className="size-3"
+                    data-testid="selected-model-check"
+                  />
                 ) : (
                   <div className="ml-3" />
                 )}
@@ -102,7 +105,7 @@ export const SelectModel = (props: PropsWithChildren<SelectModelProps>) => {
                   <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
                     Auto
                   </span>
-                  <span>Automatically select best model</span>
+                  <span>Automatically select the best free model</span>
                 </span>
               </CommandItem>
             </CommandGroup>

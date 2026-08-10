@@ -1,27 +1,27 @@
 import "server-only";
 
-import { createOllama } from "ollama-ai-provider-v2";
-import { openai } from "@ai-sdk/openai";
-import { google } from "@ai-sdk/google";
 import { anthropic } from "@ai-sdk/anthropic";
+import { google } from "@ai-sdk/google";
+import { createGroq } from "@ai-sdk/groq";
+import { openai } from "@ai-sdk/openai";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { xai } from "@ai-sdk/xai";
 import { LanguageModelV2, openrouter } from "@openrouter/ai-sdk-provider";
-import { createGroq } from "@ai-sdk/groq";
-import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { LanguageModel } from "ai";
+import { ChatModel } from "app-types/chat";
+import { createOllama } from "ollama-ai-provider-v2";
+import { cache } from "react";
 import {
   createOpenAICompatibleModels,
   openaiCompatibleModelsSafeParse,
 } from "./create-openai-compatiable";
-import { ChatModel } from "app-types/chat";
 import {
-  DEFAULT_FILE_PART_MIME_TYPES,
-  OPENAI_FILE_MIME_TYPES,
-  GEMINI_FILE_MIME_TYPES,
   ANTHROPIC_FILE_MIME_TYPES,
+  DEFAULT_FILE_PART_MIME_TYPES,
+  GEMINI_FILE_MIME_TYPES,
+  OPENAI_FILE_MIME_TYPES,
   XAI_FILE_MIME_TYPES,
 } from "./file-support";
-import { cache } from "react";
 import { DEFAULT_CHAT_MODEL } from "./model-recommendations";
 
 const ollama = createOllama({
@@ -36,10 +36,26 @@ const nvidia = createOpenAICompatible({
   baseURL: process.env.NVIDIA_BASE_URL || "https://integrate.api.nvidia.com/v1",
   apiKey: process.env.NVIDIA_API_KEY,
 });
+const requesty = createOpenAICompatible({
+  name: "requesty",
+  baseURL: "https://router.requesty.ai/v1",
+  apiKey: process.env.REQUESTY_API_KEY,
+});
+const llmGateway = createOpenAICompatible({
+  name: "llmGateway",
+  baseURL: "https://api.llmgateway.io/v1",
+  apiKey: process.env.LLM_GATEWAY_API_KEY,
+});
+const orcaRouter = createOpenAICompatible({
+  name: "orcarouter",
+  baseURL: "https://api.orcarouter.ai/v1",
+  apiKey: process.env.ORCAROUTER_API_KEY,
+});
 
 const magicxCoder = createOpenAICompatible({
   name: "Magical AI",
-  baseURL: process.env.MAGICX_CODER_BASE_URL || "http://185.172.175.223:1234/v1",
+  baseURL:
+    process.env.MAGICX_CODER_BASE_URL || "http://185.172.175.223:1234/v1",
   apiKey: process.env.MAGICX_CODER_API_KEY,
 });
 
@@ -257,6 +273,9 @@ export const customModelProvider = {
     provider,
     models: Object.entries(models).map(([name, model]) => ({
       name,
+      // OpenRouter marks no-cost models with the :free suffix. Ollama models
+      // run locally, so they do not incur a provider charge.
+      isFree: provider === "ollama" || name.endsWith(":free"),
       isToolCallUnsupported: isToolCallUnsupportedModel(model),
       isImageInputUnsupported: isImageInputUnsupportedModel(model),
       supportedFileMimeTypes: [...getFilePartSupportedMimeTypes(model)],
@@ -283,6 +302,18 @@ export const customModelProvider = {
     if (provider === "nvidia") {
       return nvidia(modelName);
     }
+    if (provider === "requesty") {
+      return requesty(modelName);
+    }
+    if (provider === "llmGateway") {
+      return llmGateway(modelName);
+    }
+    if (provider === "orcarouter") {
+      return orcaRouter(modelName);
+    }
+    if (provider === "ollama") {
+      return ollama(modelName);
+    }
     if (provider === "Magical AI") {
       // Try magicxcoder first, then magicx
       if (modelName === "magicxcoder") {
@@ -298,6 +329,9 @@ export const customModelProvider = {
     return allModels[provider]?.[modelName] || fallbackModel;
   },
 };
+
+export type ProviderModelInfo = (typeof customModelProvider.modelsInfo)[number];
+export type ModelInfo = ProviderModelInfo["models"][number];
 
 export const fetchOpenRouterModels = cache(async () => {
   const apiKey = process.env.OPENROUTER_API_KEY;
@@ -316,6 +350,9 @@ export const fetchOpenRouterModels = cache(async () => {
 
     return data.data.map((m: any) => ({
       name: m.id,
+      isFree:
+        m.id.endsWith(":free") ||
+        (m.pricing?.prompt === "0" && m.pricing?.completion === "0"),
       isToolCallUnsupported: false, // Default to supported, search handles filtering if needed
       isImageInputUnsupported: false, // Difficult to know exactly without more metadata
       supportedFileMimeTypes: [],
@@ -325,6 +362,78 @@ export const fetchOpenRouterModels = cache(async () => {
     return [];
   }
 });
+
+export const fetchOllamaModels = cache(async () => {
+  const baseURL = process.env.OLLAMA_BASE_URL || "http://localhost:11434/api";
+  const rootURL = baseURL.replace(/\/api\/?$/, "");
+
+  try {
+    const response = await fetch(`${rootURL}/api/tags`, {
+      signal: AbortSignal.timeout(2_000),
+    });
+    const data = await response.json();
+    if (!Array.isArray(data.models)) return [];
+
+    return data.models.map((m: any) => {
+      const staticModel =
+        staticModels.ollama[m.name as keyof typeof staticModels.ollama];
+
+      return {
+        name: m.name,
+        isFree: true,
+        isToolCallUnsupported: staticModel
+          ? isToolCallUnsupportedModel(staticModel)
+          : false,
+        isImageInputUnsupported: staticModel
+          ? isImageInputUnsupportedModel(staticModel)
+          : true,
+        supportedFileMimeTypes: staticModel
+          ? [...getFilePartSupportedMimeTypes(staticModel)]
+          : [],
+      };
+    });
+  } catch (e) {
+    console.error("Failed to fetch Ollama models", e);
+    return [];
+  }
+});
+
+const fetchOpenAICompatibleModels = cache(
+  async (provider: string, url: string, apiKey?: string) => {
+    if (!apiKey || apiKey === "****") return [];
+
+    try {
+      const response = await fetch(`${url}/models`, {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+        },
+      });
+      const data = await response.json();
+      if (!Array.isArray(data.data)) return [];
+
+      return data.data
+        .map((m: any) => ({
+          name: m.id ?? m.name,
+          isFree:
+            m.id?.endsWith(":free") ||
+            m.name?.endsWith(":free") ||
+            m.pricing?.prompt === "0" ||
+            m.pricing?.completion === "0" ||
+            m.pricing?.input === "0" ||
+            m.pricing?.output === "0" ||
+            m.cost?.prompt === 0 ||
+            m.cost?.completion === 0,
+          isToolCallUnsupported: false,
+          isImageInputUnsupported: true,
+          supportedFileMimeTypes: [],
+        }))
+        .filter((m: ModelInfo) => m.name);
+    } catch (e) {
+      console.error(`Failed to fetch ${provider} models`, e);
+      return [];
+    }
+  },
+);
 
 export const fetchGoogleModels = cache(async () => {
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
@@ -352,6 +461,95 @@ export const fetchGoogleModels = cache(async () => {
     return [];
   }
 });
+
+export async function getAvailableModelProviders() {
+  const [
+    openRouterModels,
+    googleModels,
+    ollamaModels,
+    requestyModels,
+    llmGatewayModels,
+    orcaRouterModels,
+  ] = await Promise.all([
+    fetchOpenRouterModels(),
+    fetchGoogleModels(),
+    fetchOllamaModels(),
+    fetchOpenAICompatibleModels(
+      "Requesty",
+      "https://router.requesty.ai/v1",
+      process.env.REQUESTY_API_KEY,
+    ),
+    fetchOpenAICompatibleModels(
+      "LLM Gateway",
+      "https://api.llmgateway.io/v1",
+      process.env.LLM_GATEWAY_API_KEY,
+    ),
+    fetchOpenAICompatibleModels(
+      "OrcaRouter",
+      "https://api.orcarouter.ai/v1",
+      process.env.ORCAROUTER_API_KEY,
+    ),
+  ]);
+
+  const providers = customModelProvider.modelsInfo.map((providerInfo) => {
+    if (providerInfo.provider === "openRouter") {
+      return mergeProviderModels(providerInfo, openRouterModels);
+    }
+    if (providerInfo.provider === "google") {
+      return mergeProviderModels(providerInfo, googleModels);
+    }
+    if (providerInfo.provider === "ollama") {
+      return {
+        ...providerInfo,
+        models: ollamaModels,
+        hasAPIKey: ollamaModels.length > 0,
+      };
+    }
+    return providerInfo;
+  });
+
+  return [
+    ...providers,
+    createDynamicProvider("requesty", requestyModels, "REQUESTY_API_KEY"),
+    createDynamicProvider(
+      "llmGateway",
+      llmGatewayModels,
+      "LLM_GATEWAY_API_KEY",
+    ),
+    createDynamicProvider("orcarouter", orcaRouterModels, "ORCAROUTER_API_KEY"),
+  ];
+}
+
+function mergeProviderModels(
+  providerInfo: ProviderModelInfo,
+  dynamicModels: ModelInfo[],
+) {
+  const staticNames = new Set(providerInfo.models.map((m) => m.name));
+
+  return {
+    ...providerInfo,
+    models: [
+      ...providerInfo.models,
+      ...dynamicModels.filter((m) => !staticNames.has(m.name)),
+    ],
+  };
+}
+
+function createDynamicProvider(
+  provider: string,
+  models: ModelInfo[],
+  apiKeyName: string,
+): ProviderModelInfo {
+  return {
+    provider,
+    models,
+    hasAPIKey: isUsableSecret(process.env[apiKeyName]),
+  };
+}
+
+function isUsableSecret(value?: string) {
+  return !!value && value !== "****";
+}
 
 function checkProviderAPIKey(provider: keyof typeof staticModels) {
   let key: string | undefined;

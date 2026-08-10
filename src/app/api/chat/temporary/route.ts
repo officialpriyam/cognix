@@ -1,15 +1,15 @@
-import { getSession } from "auth/server";
 import {
   UIMessage,
   convertToModelMessages,
   smoothStream,
   streamText,
 } from "ai";
-import { customModelProvider } from "lib/ai/models";
+import { getSession } from "auth/server";
 import { selectRecommendedModelForPrompt } from "lib/ai/model-recommendations";
-import globalLogger from "logger";
+import { customModelProvider, getAvailableModelProviders } from "lib/ai/models";
 import { buildUserSystemPrompt } from "lib/ai/prompts";
 import { getUserPreferences } from "lib/user/server";
+import globalLogger from "logger";
 
 import { colorize } from "consola/utils";
 
@@ -32,16 +32,27 @@ export async function POST(request: Request) {
       instructions?: string;
     };
     logger.info(`model: ${chatModel?.provider}/${chatModel?.model}`);
-    
+
     // Use auto-selection logic for temporary chat as well
     const resolvedChatModel = selectRecommendedModelForPrompt({
-      prompt: messages[messages.length - 1]?.parts?.find((p) => p.type === "text")?.text || "",
-      providers: customModelProvider.modelsInfo,
+      prompt:
+        messages[messages.length - 1]?.parts?.find((p) => p.type === "text")
+          ?.text || "",
+      providers: await getAvailableModelProviders(),
       requestedModel: chatModel,
       requireToolCall: false,
       respectRequestedModel: false,
     });
-    
+    if (!resolvedChatModel) {
+      return Response.json(
+        {
+          message:
+            "Auto mode could not find a free model. Configure OpenRouter with a free model or install a local Ollama model.",
+        },
+        { status: 503 },
+      );
+    }
+
     const model = customModelProvider.getModel(resolvedChatModel);
     const userPreferences = session?.user?.id
       ? (await getUserPreferences(session.user.id)) || undefined

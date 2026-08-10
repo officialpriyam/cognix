@@ -1,64 +1,68 @@
 import {
+  Tool,
+  UIMessage,
   convertToModelMessages,
   createUIMessageStream,
   createUIMessageStreamResponse,
   smoothStream,
   stepCountIs,
   streamText,
-  Tool,
-  UIMessage,
 } from "ai";
 
-import { customModelProvider, isToolCallUnsupportedModel } from "lib/ai/models";
 import {
   selectImageToolModelForPrompt,
   selectRecommendedModelForPrompt,
 } from "lib/ai/model-recommendations";
+import {
+  customModelProvider,
+  getAvailableModelProviders,
+  isToolCallUnsupportedModel,
+} from "lib/ai/models";
 
 import { mcpClientsManager } from "lib/ai/mcp/mcp-manager";
 
-import { agentRepository, chatRepository } from "lib/db/repository";
-import globalLogger from "logger";
 import {
-  buildMcpServerCustomizationsSystemPrompt,
-  buildUserSystemPrompt,
-  buildToolCallUnsupportedModelSystemPrompt,
-} from "lib/ai/prompts";
-import {
-  chatApiSchemaRequestBodySchema,
   ChatMention,
   ChatMetadata,
+  chatApiSchemaRequestBodySchema,
 } from "app-types/chat";
+import {
+  buildMcpServerCustomizationsSystemPrompt,
+  buildToolCallUnsupportedModelSystemPrompt,
+  buildUserSystemPrompt,
+} from "lib/ai/prompts";
+import { agentRepository, chatRepository } from "lib/db/repository";
+import globalLogger from "logger";
 
 import { errorIf, safe } from "ts-safe";
 
-import {
-  excludeToolExecution,
-  handleError,
-  manualToolExecuteByLastMessage,
-  mergeSystemPrompt,
-  extractInProgressToolPart,
-  filterMcpServerCustomizations,
-  loadMcpTools,
-  loadWorkFlowTools,
-  loadAppDefaultTools,
-  convertToSavePart,
-} from "./shared.chat";
-import {
-  rememberAgentAction,
-  rememberMcpServerCustomizationsAction,
-} from "./actions";
+import { buildCsvIngestionPreviewParts } from "@/lib/ai/ingest/csv-ingest";
 import { getSession } from "auth/server";
 import { colorize } from "consola/utils";
-import { generateUUID } from "lib/utils";
+import { ImageToolName } from "lib/ai/tools";
 import {
   nanoBananaTool,
   nvidiaImageTool,
   openaiImageTool,
 } from "lib/ai/tools/image";
-import { ImageToolName } from "lib/ai/tools";
-import { buildCsvIngestionPreviewParts } from "@/lib/ai/ingest/csv-ingest";
 import { serverFileStorage } from "lib/file-storage";
+import { generateUUID } from "lib/utils";
+import {
+  rememberAgentAction,
+  rememberMcpServerCustomizationsAction,
+} from "./actions";
+import {
+  convertToSavePart,
+  excludeToolExecution,
+  extractInProgressToolPart,
+  filterMcpServerCustomizations,
+  handleError,
+  loadAppDefaultTools,
+  loadMcpTools,
+  loadWorkFlowTools,
+  manualToolExecuteByLastMessage,
+  mergeSystemPrompt,
+} from "./shared.chat";
 
 const logger = globalLogger.withDefaults({
   message: colorize("blackBright", `Chat API: `),
@@ -100,11 +104,20 @@ export async function POST(request: Request) {
     const useImageTool = Boolean(resolvedImageToolModel);
     const resolvedChatModel = selectRecommendedModelForPrompt({
       prompt: routingPromptText,
-      providers: customModelProvider.modelsInfo,
+      providers: await getAvailableModelProviders(),
       requestedModel: chatModel,
       requireToolCall: useImageTool,
       respectRequestedModel: chatModelPinned,
     });
+    if (!resolvedChatModel) {
+      return Response.json(
+        {
+          message:
+            "Auto mode could not find a free model. Configure OpenRouter with a free model or install a local Ollama model.",
+        },
+        { status: 503 },
+      );
+    }
     const model = customModelProvider.getModel(resolvedChatModel);
 
     let thread = await chatRepository.selectThreadDetails(id);

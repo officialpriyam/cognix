@@ -1,48 +1,21 @@
-import {
-  customModelProvider,
-  fetchGoogleModels,
-  fetchOpenRouterModels,
-} from "lib/ai/models";
+import { getAvailableModelProviders } from "lib/ai/models";
 
 export async function GET() {
-  const [openRouterModels, googleModels] = await Promise.all([
-    fetchOpenRouterModels(),
-    fetchGoogleModels(),
-  ]);
-
-  const modelsInfo = customModelProvider.modelsInfo
+  const availableProviders = await getAvailableModelProviders();
+  const modelsInfo = availableProviders
     .map((providerInfo) => {
       if (providerInfo.provider === "openRouter") {
-        const staticNames = new Set(providerInfo.models.map((m) => m.name));
-        const dynamicModels = openRouterModels.filter(
-          (m) => !staticNames.has(m.name),
-        );
-
-        const allModels = [...providerInfo.models, ...dynamicModels];
-
         return [
           {
             ...providerInfo,
-            models: allModels.filter((m) => !m.name.endsWith(":free")),
+            models: providerInfo.models.filter((m) => !m.isFree),
           },
           {
             ...providerInfo,
             provider: "openRouterFree",
-            models: allModels.filter((m) => m.name.endsWith(":free")),
+            models: providerInfo.models.filter((m) => m.isFree),
           },
         ];
-      }
-
-      if (providerInfo.provider === "google") {
-        const staticNames = new Set(providerInfo.models.map((m) => m.name));
-        const dynamicModels = googleModels.filter(
-          (m) => !staticNames.has(m.name),
-        );
-
-        return {
-          ...providerInfo,
-          models: [...providerInfo.models, ...dynamicModels],
-        };
       }
 
       return providerInfo;

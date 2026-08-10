@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_CHAT_MODEL,
+  selectAutoModel,
   selectImageToolModelForPrompt,
   selectRecommendedModelForPrompt,
 } from "./model-recommendations";
@@ -104,6 +105,38 @@ describe("model recommendations", () => {
       selectImageToolModelForPrompt("explain OAuth callbacks", {
         nvidia: true,
       }),
+    ).toBeUndefined();
+  });
+
+  it("selects only a free model in Auto mode", () => {
+    expect(
+      selectAutoModel([
+        {
+          provider: "openai",
+          hasAPIKey: true,
+          models: [{ name: "gpt-5.1-codex" }],
+        },
+        {
+          provider: "openRouter",
+          hasAPIKey: true,
+          models: [
+            { name: "qwen3-coder:free", isFree: true },
+            { name: "paid-model" },
+          ],
+        },
+      ]),
+    ).toEqual({ provider: "openRouter", model: "qwen3-coder:free" });
+  });
+
+  it("does not fall back to a paid model when no free model is available", () => {
+    expect(
+      selectAutoModel([
+        {
+          provider: "nvidia",
+          hasAPIKey: true,
+          models: [{ name: "minimax-m2.7" }],
+        },
+      ]),
     ).toBeUndefined();
   });
 });

@@ -8,6 +8,7 @@ type ProviderModelInfo = {
   hasAPIKey: boolean;
   models: {
     name: string;
+    isFree?: boolean;
     isToolCallUnsupported?: boolean;
   }[];
 };
@@ -120,41 +121,39 @@ export function selectRecommendedModelForPrompt({
 }
 
 /**
- * Automatically selects the best available model based on provider priority and capabilities
+ * Automatically selects the best available free model. A provider must explicitly
+ * identify the model as free; Auto never falls back to a paid model.
  */
 export function selectAutoModel(
   providers: ProviderModelInfo[],
   options?: { requireToolCall?: boolean },
-): ChatModel {
-  // Priority order for auto-selection (best models first)
+): ChatModel | undefined {
+  // Priority order for the bundled free models.
   const autoModelPriority: ChatModel[] = [
-    // Top-tier models with tool support
-    { provider: "openai", model: "gpt-5.1-codex" },
-    { provider: "anthropic", model: "sonnet-4.5" },
-    { provider: "google", model: "gemini-3-pro" },
-    { provider: "nvidia", model: "minimax-m2.7" },
-    { provider: "nvidia", model: "mistral-large-3-675b" },
-    { provider: "nvidia", model: "llama-4-maverick-17b" },
-    { provider: "groq", model: "qwen3-32b" },
+    { provider: "openRouter", model: "qwen3-coder:free" },
+    { provider: "openRouter", model: "deepseek-r1:free" },
+    { provider: "openRouter", model: "deepseek-v3:free" },
+    { provider: "openRouter", model: "gpt-oss-20b:free" },
+    { provider: "openRouter", model: "qwen3-14b:free" },
+    { provider: "openRouter", model: "qwen3-8b:free" },
+    { provider: "openRouter", model: "gemini-2.0-flash-exp:free" },
+    // Locally hosted models are free to use after they have been installed.
     { provider: "ollama", model: "qwen2.5-coder:14b" },
-    // Magical AI models (if available)
-    { provider: "Magical AI", model: "magicxcoder" },
-    { provider: "Magical AI", model: "magicx" },
-    // Fallback to default
-    DEFAULT_CHAT_MODEL,
   ];
 
   for (const model of autoModelPriority) {
-    if (isModelAvailable(model, providers, options)) {
+    if (isModelAvailable(model, providers, { ...options, requireFree: true })) {
       return model;
     }
   }
 
-  // Ultimate fallback - first available model with API key
+  // Support free models exposed by any configured provider, not just the
+  // bundled OpenRouter list.
   for (const provider of providers) {
     if (provider.hasAPIKey && provider.models.length > 0) {
       const model = provider.models.find(
-        (m) => !options?.requireToolCall || !m.isToolCallUnsupported,
+        (m) =>
+          m.isFree && (!options?.requireToolCall || !m.isToolCallUnsupported),
       );
       if (model) {
         return { provider: provider.provider, model: model.name };
@@ -162,7 +161,7 @@ export function selectAutoModel(
     }
   }
 
-  return DEFAULT_CHAT_MODEL;
+  return undefined;
 }
 
 export function selectImageToolModelForPrompt(
@@ -185,7 +184,7 @@ export function selectImageToolModelForPrompt(
 function pickAvailableModel(
   category: PromptCategory,
   providers: ProviderModelInfo[],
-  options?: { requireToolCall?: boolean },
+  options?: { requireToolCall?: boolean; requireFree?: boolean },
 ) {
   return MODEL_RECOMMENDATIONS[category].find((model) =>
     isModelAvailable(model, providers, options),
@@ -195,7 +194,7 @@ function pickAvailableModel(
 function isModelAvailable(
   model: ChatModel,
   providers: ProviderModelInfo[],
-  options?: { requireToolCall?: boolean },
+  options?: { requireToolCall?: boolean; requireFree?: boolean },
 ) {
   const provider = providers.find((item) => item.provider === model.provider);
   if (!provider?.hasAPIKey) {
@@ -206,6 +205,9 @@ function isModelAvailable(
     return false;
   }
   if (options?.requireToolCall && modelInfo.isToolCallUnsupported) {
+    return false;
+  }
+  if (options?.requireFree && !modelInfo.isFree) {
     return false;
   }
   return true;
