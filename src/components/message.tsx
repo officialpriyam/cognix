@@ -1,23 +1,23 @@
 "use client";
 
-import { isToolUIPart, type UIMessage } from "ai";
-import { memo, useMemo, useState } from "react";
+import { type UIMessage, isToolUIPart } from "ai";
 import equal from "lib/equal";
+import { memo, useMemo, useState } from "react";
 
-import { cn, truncateString } from "lib/utils";
 import type { UseChatHelpers } from "@ai-sdk/react";
-import {
-  UserMessagePart,
-  AssistMessagePart,
-  ToolMessagePart,
-  ReasoningPart,
-  FileMessagePart,
-  SourceUrlMessagePart,
-} from "./message-parts";
-import { ChevronDown, ChevronUp, TriangleAlertIcon } from "lucide-react";
-import { Button } from "ui/button";
-import { useTranslations } from "next-intl";
 import { ChatMetadata } from "app-types/chat";
+import { cn, truncateString } from "lib/utils";
+import { ChevronDown, ChevronUp, TriangleAlertIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { Button } from "ui/button";
+import {
+  AssistMessagePart,
+  FileMessagePart,
+  ReasoningPart,
+  SourceUrlMessagePart,
+  ToolMessagePart,
+  UserMessagePart,
+} from "./message-parts";
 
 interface Props {
   message: UIMessage;
@@ -210,6 +210,10 @@ export const ErrorMessage = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const maxLength = 200;
   const t = useTranslations();
+  const errorMessage =
+    error.message === "An error occurred."
+      ? "The chat request failed. If Auto is selected, no working free model was found. Add a free provider key or start Ollama with an installed local model."
+      : error.message;
   return (
     <div className="w-full mx-auto max-w-3xl px-6 animate-in fade-in mt-4">
       <div className="flex flex-col gap-2">
@@ -223,10 +227,10 @@ export const ErrorMessage = ({
               <div className="text-sm text-muted-foreground">
                 <div className="whitespace-pre-wrap">
                   {isExpanded
-                    ? error.message
-                    : truncateString(error.message, maxLength)}
+                    ? errorMessage
+                    : truncateString(errorMessage, maxLength)}
                 </div>
-                {error.message.length > maxLength && (
+                {errorMessage.length > maxLength && (
                   <Button
                     onClick={() => setIsExpanded(!isExpanded)}
                     variant={"ghost"}
