@@ -212,7 +212,7 @@ export const ErrorMessage = ({
   const t = useTranslations();
   const errorMessage =
     error.message === "An error occurred."
-      ? "The chat request failed. If Auto is selected, no working free model was found. Add a free provider key or start Ollama with an installed local model."
+      ? "The chat request failed. If Auto is selected, no configured model was found or the selected provider failed. Add a provider key or start Ollama with an installed local model."
       : error.message;
   return (
     <div className="w-full mx-auto max-w-3xl px-6 animate-in fade-in mt-4">

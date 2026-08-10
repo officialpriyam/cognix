@@ -111,7 +111,7 @@ export async function POST(request: Request) {
     });
     if (!resolvedChatModel) {
       return new Response(
-        "Auto mode could not find a free model. Configure a free model provider key, such as OPENROUTER_API_KEY or REQUESTY_API_KEY, or start Ollama with an installed local model.",
+        "Auto mode could not find any configured model. Add at least one provider API key, or start Ollama with an installed local model.",
         {
           status: 503,
           headers: { "Content-Type": "text/plain; charset=utf-8" },

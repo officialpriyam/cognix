@@ -119,7 +119,7 @@ describe("model recommendations", () => {
     ).toBe("nvidia");
   });
 
-  it("selects only a free model in Auto mode", () => {
+  it("prefers a free model in Auto mode", () => {
     expect(
       selectAutoModel([
         {
@@ -139,7 +139,7 @@ describe("model recommendations", () => {
     ).toEqual({ provider: "openRouter", model: "qwen3-coder:free" });
   });
 
-  it("does not fall back to a paid model when no free model is available", () => {
+  it("falls back to any configured model when no free model is available", () => {
     expect(
       selectAutoModel([
         {
@@ -148,6 +148,6 @@ describe("model recommendations", () => {
           models: [{ name: "minimax-m2.7" }],
         },
       ]),
-    ).toBeUndefined();
+    ).toEqual({ provider: "nvidia", model: "minimax-m2.7" });
   });
 });

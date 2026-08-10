@@ -126,14 +126,14 @@ export function selectRecommendedModelForPrompt({
 }
 
 /**
- * Automatically selects the best available free model. A provider must explicitly
- * identify the model as free; Auto never falls back to a paid model.
+ * Automatically selects the best available configured model. Free/local models
+ * are preferred first, then Auto falls back to any usable configured model.
  */
 export function selectAutoModel(
   providers: ProviderModelInfo[],
   options?: { requireToolCall?: boolean },
 ): ChatModel | undefined {
-  // Priority order for the bundled free models.
+  // Priority order for bundled preferred models.
   const autoModelPriority: ChatModel[] = [
     { provider: "openRouter", model: "qwen3-coder:free" },
     { provider: "openRouter", model: "deepseek-r1:free" },
@@ -144,21 +144,38 @@ export function selectAutoModel(
     { provider: "openRouter", model: "gemini-2.0-flash-exp:free" },
     // Locally hosted models are free to use after they have been installed.
     { provider: "ollama", model: "qwen2.5-coder:14b" },
+    { provider: "openai", model: "gpt-5.1-codex" },
+    { provider: "anthropic", model: "sonnet-4.5" },
+    { provider: "google", model: "gemini-3-pro" },
+    { provider: "nvidia", model: "qwen3-coder-480b-a35b" },
+    { provider: "nvidia", model: "minimax-m2.7" },
+    { provider: "groq", model: "qwen3-32b" },
   ];
 
   for (const model of autoModelPriority) {
-    if (isModelAvailable(model, providers, { ...options, requireFree: true })) {
+    if (isModelAvailable(model, providers, options)) {
       return model;
     }
   }
 
-  // Support free models exposed by any configured provider, not just the
-  // bundled OpenRouter list.
+  // Prefer any additional free/local models surfaced dynamically.
   for (const provider of providers) {
     if (provider.hasAPIKey && provider.models.length > 0) {
       const model = provider.models.find(
         (m) =>
           m.isFree && (!options?.requireToolCall || !m.isToolCallUnsupported),
+      );
+      if (model) {
+        return { provider: provider.provider, model: model.name };
+      }
+    }
+  }
+
+  // Final fallback: any configured model that satisfies required capabilities.
+  for (const provider of providers) {
+    if (provider.hasAPIKey && provider.models.length > 0) {
+      const model = provider.models.find(
+        (m) => !options?.requireToolCall || !m.isToolCallUnsupported,
       );
       if (model) {
         return { provider: provider.provider, model: model.name };
