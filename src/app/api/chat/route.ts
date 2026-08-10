@@ -41,8 +41,8 @@ import { getSession } from "auth/server";
 import { colorize } from "consola/utils";
 import { ImageToolName } from "lib/ai/tools";
 import {
+  createNvidiaImageTool,
   nanoBananaTool,
-  nvidiaImageTool,
   openaiImageTool,
 } from "lib/ai/tools/image";
 import { serverFileStorage } from "lib/file-storage";
@@ -319,8 +319,10 @@ export async function POST(request: Request) {
               [ImageToolName]:
                 resolvedImageToolModel === "google"
                   ? nanoBananaTool
-                  : resolvedImageToolModel === "nvidia"
-                    ? nvidiaImageTool
+                  : isNvidiaImageToolModel(resolvedImageToolModel)
+                    ? createNvidiaImageTool({
+                        model: getNvidiaImageModelName(resolvedImageToolModel),
+                      })
                     : openaiImageTool,
             }
           : {};
@@ -441,4 +443,14 @@ function extractTextFromMessage(message: UIMessage) {
 
 function isUsableSecret(value?: string) {
   return !!value && value !== "****";
+}
+
+function isNvidiaImageToolModel(model?: string) {
+  return model === "nvidia" || model?.startsWith("nvidia:");
+}
+
+function getNvidiaImageModelName(model?: string) {
+  return model?.startsWith("nvidia:")
+    ? model.slice("nvidia:".length)
+    : undefined;
 }

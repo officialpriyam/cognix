@@ -24,6 +24,7 @@ type GenerateImageOptions = {
   image?: ImageInput;
   messages?: ModelMessage[];
   mode?: "create" | "edit" | "composite";
+  model?: string;
   prompt: string;
   abortSignal?: AbortSignal;
 };
@@ -103,7 +104,7 @@ export async function generateImageWithNvidiaFlux(
     throw new Error("NVIDIA_API_KEY is not set");
   }
 
-  const model = selectNvidiaImageModel(options.mode);
+  const model = selectNvidiaImageModel(options.mode, options.model);
 
   if (usesNvidiaOpenAIImageApi(model)) {
     return generateNvidiaOpenAICompatibleImage({
@@ -257,7 +258,17 @@ async function postNvidiaImageEdit(
   });
 }
 
-function selectNvidiaImageModel(mode?: "create" | "edit" | "composite") {
+function selectNvidiaImageModel(
+  mode?: "create" | "edit" | "composite",
+  requestedModel?: string,
+) {
+  if (requestedModel) {
+    const normalizedRequestedModel = normalizeNvidiaImageModel(requestedModel);
+    if (mode !== "edit" || isNvidiaImageEditModel(normalizedRequestedModel)) {
+      return normalizedRequestedModel;
+    }
+  }
+
   const envModel =
     mode === "edit" || mode === "composite"
       ? process.env.NVIDIA_IMAGE_EDIT_MODEL || process.env.NVIDIA_IMAGE_MODEL
@@ -280,7 +291,17 @@ function usesNvidiaOpenAIImageApi(model: string) {
     "qwen/qwen-image",
     "qwen/qwen-image-edit",
     "black-forest-labs/flux.1-schnell",
+    "black-forest-labs/flux.1-kontext-dev",
     "black-forest-labs/flux.2-klein-4b",
+    "stabilityai/stable-diffusion-3.5-large",
+  ]).has(model);
+}
+
+function isNvidiaImageEditModel(model: string) {
+  return new Set([
+    "qwen/qwen-image-edit",
+    "black-forest-labs/flux.1-kontext-dev",
+    "black-forest-labs/flux.1-dev",
     "stabilityai/stable-diffusion-3.5-large",
   ]).has(model);
 }

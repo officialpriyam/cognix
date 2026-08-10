@@ -56,32 +56,33 @@ import { MCPIcon } from "ui/mcp-icon";
 
 import { useTranslations } from "next-intl";
 
-import { Switch } from "ui/switch";
-import { useShallow } from "zustand/shallow";
 import { useMcpList } from "@/hooks/queries/use-mcp-list";
 import { useWorkflowToolList } from "@/hooks/queries/use-workflow-tool-list";
-import { Avatar, AvatarFallback, AvatarImage } from "ui/avatar";
-import { WorkflowSummary } from "app-types/workflow";
-import { WorkflowGreeting } from "./workflow/workflow-greeting";
-import { AppDefaultToolkit } from "lib/ai/tools";
 import { ChatMention } from "app-types/chat";
+import { WorkflowSummary } from "app-types/workflow";
+import { AppDefaultToolkit } from "lib/ai/tools";
+import { Avatar, AvatarFallback, AvatarImage } from "ui/avatar";
 import { CountAnimation } from "ui/count-animation";
+import { Switch } from "ui/switch";
+import { useShallow } from "zustand/shallow";
+import { WorkflowGreeting } from "./workflow/workflow-greeting";
 
-import { Separator } from "ui/separator";
-import { Tooltip, TooltipContent, TooltipTrigger } from "ui/tooltip";
 import { AgentSummary } from "app-types/agent";
 import { authClient } from "auth/client";
+import { Separator } from "ui/separator";
+import { Tooltip, TooltipContent, TooltipTrigger } from "ui/tooltip";
 
-import { Alert, AlertDescription, AlertTitle } from "ui/alert";
-import { safe } from "ts-safe";
-import { mutate } from "swr";
-import { handleErrorWithToast } from "ui/shared-toast";
 import { useAgents } from "@/hooks/queries/use-agents";
-import { redriectMcpOauth } from "lib/ai/mcp/oauth-redirect";
-import { GeminiIcon } from "ui/gemini-icon";
 import { useChatModels } from "@/hooks/queries/use-chat-models";
-import { OpenAIIcon } from "ui/openai-icon";
+import { NVIDIA_IMAGE_MODEL_OPTIONS } from "lib/ai/image/nvidia-image-models";
+import { redriectMcpOauth } from "lib/ai/mcp/oauth-redirect";
+import { mutate } from "swr";
+import { safe } from "ts-safe";
+import { Alert, AlertDescription, AlertTitle } from "ui/alert";
+import { GeminiIcon } from "ui/gemini-icon";
 import { NvidiaIcon } from "ui/nvidia-icon";
+import { OpenAIIcon } from "ui/openai-icon";
+import { handleErrorWithToast } from "ui/shared-toast";
 
 interface ToolSelectDropdownProps {
   align?: "start" | "end" | "center";
@@ -90,7 +91,7 @@ interface ToolSelectDropdownProps {
   mentions?: ChatMention[];
   onSelectWorkflow?: (workflow: WorkflowSummary) => void;
   onSelectAgent?: (agent: AgentSummary) => void;
-  onGenerateImage?: (provider?: "google" | "openai" | "nvidia") => void;
+  onGenerateImage?: (provider?: string) => void;
   className?: string;
 }
 
@@ -1052,7 +1053,7 @@ function ImageGeneratorSelector({
   onGenerateImage,
   modelInfo,
 }: {
-  onGenerateImage?: (provider?: "google" | "openai" | "nvidia") => void;
+  onGenerateImage?: (provider?: string) => void;
   modelInfo?: { isToolCallUnsupported?: boolean };
 }) {
   const t = useTranslations("Chat");
@@ -1066,14 +1067,17 @@ function ImageGeneratorSelector({
         </DropdownMenuSubTrigger>
         <DropdownMenuPortal>
           <DropdownMenuSubContent>
-            <DropdownMenuItem
-              disabled={modelInfo?.isToolCallUnsupported}
-              onClick={() => onGenerateImage?.("nvidia")}
-              className="cursor-pointer"
-            >
-              <NvidiaIcon className="mr-2 size-4" />
-              NVIDIA FLUX
-            </DropdownMenuItem>
+            {NVIDIA_IMAGE_MODEL_OPTIONS.map((item) => (
+              <DropdownMenuItem
+                key={item.value}
+                disabled={modelInfo?.isToolCallUnsupported}
+                onClick={() => onGenerateImage?.(`nvidia:${item.value}`)}
+                className="cursor-pointer"
+              >
+                <NvidiaIcon className="mr-2 size-4" />
+                {item.label}
+              </DropdownMenuItem>
+            ))}
             <DropdownMenuItem
               disabled={modelInfo?.isToolCallUnsupported}
               onClick={() => onGenerateImage?.("google")}
