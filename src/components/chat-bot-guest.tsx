@@ -2,14 +2,15 @@
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, UIMessage } from "ai";
-import Link from "next/link";
-import { useMemo, useRef, useState, useEffect } from "react";
-import { LogInIcon } from "lucide-react";
-import PromptInput from "./prompt-input";
-import { ErrorMessage, PreviewMessage } from "./message";
-import { Think } from "ui/think";
-import { Button } from "ui/button";
+import { DEFAULT_AUTO_CHAT_MODEL } from "lib/ai/model-recommendations";
 import { cn } from "lib/utils";
+import { LogInIcon } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Button } from "ui/button";
+import { Think } from "ui/think";
+import { ErrorMessage, PreviewMessage } from "./message";
+import PromptInput from "./prompt-input";
 
 export default function ChatBotGuest() {
   const [input, setInput] = useState("");
@@ -21,6 +22,7 @@ export default function ChatBotGuest() {
       api: "/api/chat/temporary",
       prepareSendMessagesRequest: ({ messages }) => ({
         body: {
+          chatModel: DEFAULT_AUTO_CHAT_MODEL,
           messages,
         },
       }),
@@ -124,6 +126,7 @@ export default function ChatBotGuest() {
           input={input}
           sendMessage={sendMessage}
           setInput={setInput}
+          model={DEFAULT_AUTO_CHAT_MODEL}
           setModel={() => {}}
           disabledMention={true}
           toolDisabled

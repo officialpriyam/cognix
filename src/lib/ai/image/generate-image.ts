@@ -1,14 +1,14 @@
 "use server";
-import {
-  GoogleGenAI,
-  Part as GeminiPart,
-  Content as GeminiMessage,
-} from "@google/genai";
-import { safe, watchError } from "ts-safe";
-import { getBase64Data } from "lib/file-storage/storage-utils";
-import { serverFileStorage } from "lib/file-storage";
 import { openai } from "@ai-sdk/openai";
 import { xai } from "@ai-sdk/xai";
+import {
+  Content as GeminiMessage,
+  Part as GeminiPart,
+  GoogleGenAI,
+} from "@google/genai";
+import { serverFileStorage } from "lib/file-storage";
+import { getBase64Data } from "lib/file-storage/storage-utils";
+import { safe, watchError } from "ts-safe";
 
 import {
   FilePart,
@@ -21,9 +21,16 @@ import { isString } from "lib/utils";
 import logger from "logger";
 
 type GenerateImageOptions = {
+  image?: ImageInput;
   messages?: ModelMessage[];
+  mode?: "create" | "edit" | "composite";
   prompt: string;
   abortSignal?: AbortSignal;
+};
+
+type ImageInput = {
+  base64: string;
+  mimeType: string;
 };
 
 type GeneratedImage = {
@@ -33,6 +40,22 @@ type GeneratedImage = {
 
 export type GeneratedImageResult = {
   images: GeneratedImage[];
+  model?: string;
+};
+
+const NVIDIA_IMAGE_MODEL_ALIASES: Record<string, string> = {
+  "flux.1-dev": "black-forest-labs/flux.1-dev",
+  "flux_1-dev": "black-forest-labs/flux.1-dev",
+  "flux.1-schnell": "black-forest-labs/flux.1-schnell",
+  "flux_1-schnell": "black-forest-labs/flux.1-schnell",
+  "flux.1-kontext-dev": "black-forest-labs/flux.1-kontext-dev",
+  "flux_1-kontext-dev": "black-forest-labs/flux.1-kontext-dev",
+  "flux.2-klein-4b": "black-forest-labs/flux.2-klein-4b",
+  "flux_2-klein-4b": "black-forest-labs/flux.2-klein-4b",
+  "stable-diffusion-3.5-large": "stabilityai/stable-diffusion-3.5-large",
+  "stable-diffusion-3_5-large": "stabilityai/stable-diffusion-3.5-large",
+  "qwen-image": "qwen/qwen-image",
+  "qwen-image-edit": "qwen/qwen-image-edit",
 };
 
 export async function generateImageWithOpenAI(
@@ -80,28 +103,56 @@ export async function generateImageWithNvidiaFlux(
     throw new Error("NVIDIA_API_KEY is not set");
   }
 
+  const model = selectNvidiaImageModel(options.mode);
+
+  if (usesNvidiaOpenAIImageApi(model)) {
+    return generateNvidiaOpenAICompatibleImage({
+      ...options,
+      apiKey,
+      model,
+    });
+  }
+
+  return generateNvidiaNativeImage({
+    ...options,
+    apiKey,
+    model,
+  });
+}
+
+async function generateNvidiaNativeImage(
+  options: GenerateImageOptions & { apiKey: string; model: string },
+) {
   const baseURL =
     process.env.NVIDIA_IMAGE_BASE_URL || "https://ai.api.nvidia.com/v1/genai";
-  const model =
-    process.env.NVIDIA_IMAGE_MODEL || "black-forest-labs/flux.1-dev";
-  const endpoint = `${baseURL.replace(/\/$/, "")}/${model.replace(/^\//, "")}`;
+  const endpoint = `${baseURL.replace(/\/$/, "")}/${options.model.replace(
+    /^\//,
+    "",
+  )}`;
+
+  const body: Record<string, unknown> = {
+    prompt: options.prompt,
+    height: 1024,
+    width: 1024,
+    cfg_scale: options.image ? 3.5 : 5,
+    mode: "base",
+    samples: 1,
+    seed: 0,
+    steps: options.image ? 30 : 50,
+  };
+
+  if (options.image) {
+    body.image = `data:${options.image.mimeType};base64,${options.image.base64}`;
+    body.aspect_ratio = "match_input_image";
+  }
 
   const response = await fetch(endpoint, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${options.apiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      prompt: options.prompt,
-      height: 1024,
-      width: 1024,
-      cfg_scale: 5,
-      mode: "base",
-      samples: 1,
-      seed: 0,
-      steps: 50,
-    }),
+    body: JSON.stringify(body),
     signal: options.abortSignal,
   });
 
@@ -117,7 +168,121 @@ export async function generateImageWithNvidiaFlux(
     throw new Error("NVIDIA image generation returned no image data");
   }
 
-  return { images };
+  return { images, model: options.model };
+}
+
+async function generateNvidiaOpenAICompatibleImage(
+  options: GenerateImageOptions & { apiKey: string; model: string },
+) {
+  const baseURL =
+    process.env.NVIDIA_OPENAI_IMAGE_BASE_URL ||
+    process.env.NVIDIA_BASE_URL ||
+    "https://integrate.api.nvidia.com/v1";
+  const isEdit = options.mode !== "create" && Boolean(options.image);
+  const endpoint = `${baseURL.replace(/\/$/, "")}/images/${
+    isEdit ? "edits" : "generations"
+  }`;
+
+  const response = isEdit
+    ? await postNvidiaImageEdit(endpoint, options)
+    : await postNvidiaImageGeneration(endpoint, options);
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(
+      `NVIDIA image ${isEdit ? "edit" : "generation"} failed: ${JSON.stringify(
+        data,
+      ).slice(0, 500)}`,
+    );
+  }
+
+  const images = extractNvidiaImages(data);
+  if (!images.length) {
+    throw new Error("NVIDIA image generation returned no image data");
+  }
+
+  return { images, model: options.model };
+}
+
+async function postNvidiaImageGeneration(
+  endpoint: string,
+  options: GenerateImageOptions & { apiKey: string; model: string },
+) {
+  return fetch(endpoint, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${options.apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: getOpenAICompatibleNvidiaImageModel(options.model),
+      prompt: options.prompt,
+      n: 1,
+      size: "1024x1024",
+      response_format: "b64_json",
+    }),
+    signal: options.abortSignal,
+  });
+}
+
+async function postNvidiaImageEdit(
+  endpoint: string,
+  options: GenerateImageOptions & { apiKey: string; model: string },
+) {
+  if (!options.image) {
+    throw new Error("No image was found to edit.");
+  }
+
+  const formData = new FormData();
+  formData.set("model", getOpenAICompatibleNvidiaImageModel(options.model));
+  formData.set("prompt", options.prompt);
+  formData.set("n", "1");
+  formData.set("size", "1024x1024");
+  formData.set("response_format", "b64_json");
+  formData.set(
+    "image",
+    new Blob([Buffer.from(options.image.base64, "base64")], {
+      type: options.image.mimeType,
+    }),
+    "image.png",
+  );
+
+  return fetch(endpoint, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${options.apiKey}`,
+    },
+    body: formData,
+    signal: options.abortSignal,
+  });
+}
+
+function selectNvidiaImageModel(mode?: "create" | "edit" | "composite") {
+  const envModel =
+    mode === "edit" || mode === "composite"
+      ? process.env.NVIDIA_IMAGE_EDIT_MODEL || process.env.NVIDIA_IMAGE_MODEL
+      : process.env.NVIDIA_IMAGE_MODEL;
+
+  return normalizeNvidiaImageModel(envModel || "black-forest-labs/flux.1-dev");
+}
+
+function normalizeNvidiaImageModel(model: string) {
+  return NVIDIA_IMAGE_MODEL_ALIASES[model] ?? model;
+}
+
+function getOpenAICompatibleNvidiaImageModel(model: string) {
+  const parts = model.split("/");
+  return parts[1] ?? model;
+}
+
+function usesNvidiaOpenAIImageApi(model: string) {
+  return new Set([
+    "qwen/qwen-image",
+    "qwen/qwen-image-edit",
+    "black-forest-labs/flux.1-schnell",
+    "black-forest-labs/flux.2-klein-4b",
+    "stabilityai/stable-diffusion-3.5-large",
+  ]).has(model);
 }
 
 export const generateImageWithNanoBanana = async (

@@ -108,6 +108,17 @@ describe("model recommendations", () => {
     ).toBeUndefined();
   });
 
+  it("selects an image tool for image edit prompts", () => {
+    expect(
+      selectImageToolModelForPrompt(
+        "edit this photo and remove the background",
+        {
+          nvidia: true,
+        },
+      ),
+    ).toBe("nvidia");
+  });
+
   it("selects only a free model in Auto mode", () => {
     expect(
       selectAutoModel([

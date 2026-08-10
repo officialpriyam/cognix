@@ -541,7 +541,7 @@ export default function PromptInput({
                             className="cursor-pointer"
                           >
                             <NvidiaIcon className="mr-2 size-4" />
-                            NVIDIA FLUX
+                            NVIDIA NIM Image
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             disabled={modelInfo?.isToolCallUnsupported}

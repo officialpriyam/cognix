@@ -5,7 +5,10 @@ import {
   streamText,
 } from "ai";
 import { getSession } from "auth/server";
-import { selectRecommendedModelForPrompt } from "lib/ai/model-recommendations";
+import {
+  DEFAULT_AUTO_CHAT_MODEL,
+  selectRecommendedModelForPrompt,
+} from "lib/ai/model-recommendations";
 import { customModelProvider, getAvailableModelProviders } from "lib/ai/models";
 import { buildUserSystemPrompt } from "lib/ai/prompts";
 import { getUserPreferences } from "lib/user/server";
@@ -39,7 +42,7 @@ export async function POST(request: Request) {
         messages[messages.length - 1]?.parts?.find((p) => p.type === "text")
           ?.text || "",
       providers: await getAvailableModelProviders(),
-      requestedModel: chatModel,
+      requestedModel: chatModel ?? DEFAULT_AUTO_CHAT_MODEL,
       requireToolCall: false,
       respectRequestedModel: false,
     });

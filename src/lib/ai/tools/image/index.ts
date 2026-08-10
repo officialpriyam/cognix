@@ -1,3 +1,4 @@
+import { openai } from "@ai-sdk/openai";
 import {
   FilePart,
   ImagePart,
@@ -12,12 +13,12 @@ import {
   generateImageWithNvidiaFlux,
 } from "lib/ai/image/generate-image";
 import { serverFileStorage } from "lib/file-storage";
+import { getBase64Data } from "lib/file-storage/storage-utils";
+import { toAny } from "lib/utils";
+import logger from "logger";
 import { safe, watchError } from "ts-safe";
 import z from "zod";
 import { ImageToolName } from "..";
-import logger from "logger";
-import { openai } from "@ai-sdk/openai";
-import { toAny } from "lib/utils";
 
 export type ImageToolResult = {
   images: {
@@ -119,24 +120,32 @@ export const nanoBananaTool = createTool({
 
 export const nvidiaImageTool = createTool({
   name: ImageToolName,
-  description: `Generate images with NVIDIA FLUX based on the recent conversation context. Use this when the user requests image creation or visual content generation and NVIDIA image generation is selected or available as the default fallback.`,
+  description: `Generate or edit images with NVIDIA NIM image models based on the recent conversation context. Use 'create' for new images, and use 'edit' when the user asks to change, modify, replace, remove, restore, enhance, or otherwise edit an existing image.`,
   inputSchema: z.object({
     mode: z
       .enum(["create", "edit", "composite"])
       .optional()
       .default("create")
       .describe(
-        "Image generation mode. NVIDIA FLUX currently uses the latest text prompt to generate a new image.",
+        "Image mode: 'create' for a new image, 'edit' for modifying an existing image, or 'composite' for combining image context.",
       ),
   }),
   execute: async ({ mode }, { messages, abortSignal }) => {
-    const prompt = extractImagePrompt(messages, mode);
+    const effectiveMode = inferImageMode(messages, mode);
+    const prompt = extractImagePrompt(messages, effectiveMode);
     if (!prompt) {
       throw new Error("No image prompt was found in the conversation.");
     }
 
+    const image =
+      effectiveMode === "create"
+        ? undefined
+        : await extractLatestImage(messages);
+
     const images = await generateImageWithNvidiaFlux({
       prompt,
+      image,
+      mode: effectiveMode,
       abortSignal,
     });
 
@@ -172,12 +181,17 @@ export const nvidiaImageTool = createTool({
 
     return {
       images: resultImages,
-      mode,
-      model: process.env.NVIDIA_IMAGE_MODEL || "black-forest-labs/flux.1-dev",
+      mode: effectiveMode,
+      model:
+        images.model ||
+        (effectiveMode === "create"
+          ? process.env.NVIDIA_IMAGE_MODEL
+          : process.env.NVIDIA_IMAGE_EDIT_MODEL) ||
+        "black-forest-labs/flux.1-dev",
       guide:
-        mode === "create"
+        effectiveMode === "create"
           ? "The image has been successfully generated and is now displayed above. If you need any edits, modifications, or adjustments to the image, please let me know."
-          : "NVIDIA FLUX generated a new image from the latest text prompt. For precise edit or composite work, choose Gemini image generation.",
+          : "The image has been successfully edited and is now displayed above.",
     };
   },
 });
@@ -293,6 +307,71 @@ function extractImagePrompt(messages: ModelMessage[], mode: string) {
   }
 
   return `${prompt}\n\nApply this as a ${mode} request and generate a polished final image.`;
+}
+
+const IMAGE_EDIT_PATTERN =
+  /\b(edit|modify|change|replace|remove|erase|fix|retouch|restore|enhance|upscale|inpaint|outpaint|adjust|make it|turn (it|this)|background|foreground)\b/i;
+
+function inferImageMode(
+  messages: ModelMessage[],
+  mode: "create" | "edit" | "composite",
+) {
+  if (mode !== "create") {
+    return mode;
+  }
+
+  const prompt = extractImagePrompt(messages, mode);
+  return IMAGE_EDIT_PATTERN.test(prompt) ? "edit" : "create";
+}
+
+async function extractLatestImage(messages: ModelMessage[]) {
+  for (const message of [...messages].reverse()) {
+    if (typeof message.content === "string") {
+      continue;
+    }
+
+    for (const part of [...message.content].reverse()) {
+      const image = await getImageInput(part);
+      if (image) {
+        return image;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+async function getImageInput(part: any) {
+  if (part.type === "image") {
+    const image = await getBase64Data({
+      data: part.image,
+      mimeType: part.mediaType || "image/png",
+    });
+    return { base64: image.data, mimeType: image.mimeType };
+  }
+
+  if (part.type === "file" && part.mediaType?.startsWith("image/")) {
+    const image = await getBase64Data({
+      data: part.data,
+      mimeType: part.mediaType,
+    });
+    return { base64: image.data, mimeType: image.mimeType };
+  }
+
+  if (part.type === "tool-result") {
+    const image = convertToImageToolPartToFilePart(part).at(-1);
+    if (!image) {
+      return undefined;
+    }
+
+    const imageInput = await getBase64Data({
+      data: image.data,
+      mimeType: image.mediaType,
+    });
+    return { base64: imageInput.data, mimeType: imageInput.mimeType };
+  }
+
+  return undefined;
 }
 
 function convertToImageToolPartToFilePart(part: ToolResultPart): FilePart[] {

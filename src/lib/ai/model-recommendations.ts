@@ -20,6 +20,11 @@ export const DEFAULT_CHAT_MODEL: ChatModel = {
   model: "minimax-m2.7",
 };
 
+export const DEFAULT_AUTO_CHAT_MODEL: ChatModel = {
+  provider: "auto",
+  model: "auto",
+};
+
 export const DEFAULT_IMAGE_TOOL_MODEL: ImageToolModel = "nvidia";
 
 const MODEL_RECOMMENDATIONS: Record<PromptCategory, ChatModel[]> = {
@@ -64,7 +69,7 @@ const REASONING_PATTERN =
   /\b(reason|reasoning|think through|solve|proof|math|logic|analyze|compare|strategy|plan|derive|calculate|architecture)\b/i;
 
 const IMAGE_GENERATION_PATTERN =
-  /\b(generate|create|make|draw|design|render|paint|illustrate|produce)\b.{0,48}\b(image|photo|picture|poster|banner|logo|icon|avatar|wallpaper|mockup|illustration|art)\b|\b(image|photo|picture|poster|banner|logo|icon|avatar|wallpaper|mockup|illustration|art)\b.{0,48}\b(generate|create|make|draw|design|render|paint|illustrate|produce)\b/i;
+  /\b(generate|create|make|draw|design|render|paint|illustrate|produce|edit|modify|change|replace|remove|erase|retouch|restore|enhance|upscale|inpaint|outpaint)\b.{0,64}\b(image|photo|picture|poster|banner|logo|icon|avatar|wallpaper|mockup|illustration|art|background|foreground)\b|\b(image|photo|picture|poster|banner|logo|icon|avatar|wallpaper|mockup|illustration|art|background|foreground)\b.{0,64}\b(generate|create|make|draw|design|render|paint|illustrate|produce|edit|modify|change|replace|remove|erase|retouch|restore|enhance|upscale|inpaint|outpaint)\b/i;
 
 export function inferPromptCategory(prompt: string): PromptCategory {
   if (hasImageGenerationIntent(prompt)) {
