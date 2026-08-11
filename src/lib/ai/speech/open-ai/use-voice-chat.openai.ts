@@ -462,9 +462,19 @@ export function useOpenAIVoiceChat(props?: VoiceChatOptions): VoiceChatSession {
           },
         },
       );
+      const sdpText = await sdpResponse.text();
+      if (!sdpResponse.ok || !sdpText.trimStart().startsWith("v=")) {
+        console.error("SDP exchange failed:", {
+          status: sdpResponse.status,
+          body: sdpText,
+        });
+        throw new Error(
+          `SDP exchange failed (${sdpResponse.status}): ${sdpText.slice(0, 500)}`,
+        );
+      }
       const answer: RTCSessionDescriptionInit = {
         type: "answer",
-        sdp: await sdpResponse.text(),
+        sdp: sdpText,
       };
       await pc.setRemoteDescription(answer);
       peerConnection.current = pc;
