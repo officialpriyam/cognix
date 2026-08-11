@@ -118,88 +118,81 @@ export const nanoBananaTool = createTool({
   },
 });
 
-export const createNvidiaImageTool = (options?: { model?: string }) =>
-  createTool({
-    name: ImageToolName,
-    description: `Generate or edit images with NVIDIA NIM image models based on the recent conversation context. Use 'create' for new images, and use 'edit' when the user asks to change, modify, replace, remove, restore, enhance, or otherwise edit an existing image.`,
-    inputSchema: z.object({
-      mode: z
-        .enum(["create", "edit", "composite"])
-        .optional()
-        .default("create")
-        .describe(
-          "Image mode: 'create' for a new image, 'edit' for modifying an existing image, or 'composite' for combining image context.",
-        ),
-    }),
-    execute: async ({ mode }, { messages, abortSignal }) => {
-      const effectiveMode = inferImageMode(messages, mode);
-      const prompt = extractImagePrompt(messages, effectiveMode);
-      if (!prompt) {
-        throw new Error("No image prompt was found in the conversation.");
-      }
+export const nvidiaImageTool = createTool({
+  name: ImageToolName,
+  description: `Generate or edit images with NVIDIA FLUX based on the recent conversation context. Use 'create' for new images, and use 'edit' when the user asks to change, modify, replace, remove, restore, enhance, or otherwise edit an existing image.`,
+  inputSchema: z.object({
+    mode: z
+      .enum(["create", "edit", "composite"])
+      .optional()
+      .default("create")
+      .describe(
+        "Image mode: 'create' for a new image, 'edit' for modifying an existing image, or 'composite' for combining image context.",
+      ),
+  }),
+  execute: async ({ mode }, { messages, abortSignal }) => {
+    const effectiveMode = inferImageMode(messages, mode);
+    const prompt = extractImagePrompt(messages, effectiveMode);
+    if (!prompt) {
+      throw new Error("No image prompt was found in the conversation.");
+    }
 
-      const image =
-        effectiveMode === "create"
-          ? undefined
-          : await extractLatestImage(messages);
+    const image =
+      effectiveMode === "create"
+        ? undefined
+        : await extractLatestImage(messages);
 
-      const images = await generateImageWithNvidiaFlux({
-        prompt,
-        image,
-        mode: effectiveMode,
-        model: options?.model,
-        abortSignal,
-      });
+    const images = await generateImageWithNvidiaFlux({
+      prompt,
+      image,
+      mode: effectiveMode,
+      abortSignal,
+    });
 
-      const resultImages = await safe(images.images)
-        .map((images) => {
-          return Promise.all(
-            images.map(async (image) => {
-              const uploadedImage = await serverFileStorage.upload(
-                Buffer.from(image.base64, "base64"),
-                {
-                  contentType: image.mimeType,
-                },
-              );
-              return {
-                url: uploadedImage.sourceUrl,
-                mimeType: image.mimeType,
-              };
-            }),
-          );
-        })
-        .watch(
-          watchError((e) => {
-            logger.error(e);
-            logger.info("upload NVIDIA image failed");
+    const resultImages = await safe(images.images)
+      .map((images) => {
+        return Promise.all(
+          images.map(async (image) => {
+            const uploadedImage = await serverFileStorage.upload(
+              Buffer.from(image.base64, "base64"),
+              {
+                contentType: image.mimeType,
+              },
+            );
+            return {
+              url: uploadedImage.sourceUrl,
+              mimeType: image.mimeType,
+            };
           }),
-        )
-        .ifFail(() => {
-          throw new Error(
-            "Image generation was successful, but file upload failed. Please check your file upload configuration and try again.",
-          );
-        })
-        .unwrap();
+        );
+      })
+      .watch(
+        watchError((e) => {
+          logger.error(e);
+          logger.info("upload NVIDIA image failed");
+        }),
+      )
+      .ifFail(() => {
+        throw new Error(
+          "Image generation was successful, but file upload failed. Please check your file upload configuration and try again.",
+        );
+      })
+      .unwrap();
 
-      return {
-        images: resultImages,
-        mode: effectiveMode,
-        model:
-          images.model ||
-          options?.model ||
-          (effectiveMode === "create"
-            ? process.env.NVIDIA_IMAGE_MODEL
-            : process.env.NVIDIA_IMAGE_EDIT_MODEL) ||
-          "black-forest-labs/flux.1-dev",
-        guide:
-          effectiveMode === "create"
-            ? "The image has been successfully generated and is now displayed above. If you need any edits, modifications, or adjustments to the image, please let me know."
-            : "The image has been successfully edited and is now displayed above.",
-      };
-    },
-  });
-
-export const nvidiaImageTool = createNvidiaImageTool();
+    return {
+      images: resultImages,
+      mode: effectiveMode,
+      model:
+        images.model ||
+        process.env.NVIDIA_IMAGE_MODEL ||
+        "black-forest-labs/flux.1-dev",
+      guide:
+        effectiveMode === "create"
+          ? "The image has been successfully generated and is now displayed above. If you need any edits, modifications, or adjustments to the image, please let me know."
+          : "The image has been successfully edited and is now displayed above.",
+    };
+  },
+});
 
 export const openaiImageTool = createTool({
   name: ImageToolName,

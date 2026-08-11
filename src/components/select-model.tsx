@@ -109,7 +109,7 @@ export const SelectModel = (props: PropsWithChildren<SelectModelProps>) => {
                   <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
                     Auto
                   </span>
-                  <span>Automatically select the best free model</span>
+                  <span>Automatically select the first working model</span>
                 </span>
               </CommandItem>
             </CommandGroup>

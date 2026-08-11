@@ -9,6 +9,7 @@ import {
   streamText,
 } from "ai";
 
+import { resolveWorkingAutoModel } from "lib/ai/auto-model";
 import {
   selectImageToolModelForPrompt,
   selectRecommendedModelForPrompt,
@@ -41,8 +42,8 @@ import { getSession } from "auth/server";
 import { colorize } from "consola/utils";
 import { ImageToolName } from "lib/ai/tools";
 import {
-  createNvidiaImageTool,
   nanoBananaTool,
+  nvidiaImageTool,
   openaiImageTool,
 } from "lib/ai/tools/image";
 import { serverFileStorage } from "lib/file-storage";
@@ -102,16 +103,24 @@ export async function POST(request: Request) {
         openai: isUsableSecret(process.env.OPENAI_API_KEY),
       });
     const useImageTool = Boolean(resolvedImageToolModel);
-    const resolvedChatModel = selectRecommendedModelForPrompt({
-      prompt: routingPromptText,
-      providers: await getAvailableModelProviders(),
-      requestedModel: chatModel,
-      requireToolCall: useImageTool,
-      respectRequestedModel: chatModelPinned,
-    });
+    const availableProviders = await getAvailableModelProviders();
+    const resolvedChatModel =
+      chatModel?.model === "auto"
+        ? await resolveWorkingAutoModel({
+            providers: availableProviders,
+            requireToolCall: useImageTool,
+            abortSignal: request.signal,
+          })
+        : selectRecommendedModelForPrompt({
+            prompt: routingPromptText,
+            providers: availableProviders,
+            requestedModel: chatModel,
+            requireToolCall: useImageTool,
+            respectRequestedModel: chatModelPinned,
+          });
     if (!resolvedChatModel) {
       return new Response(
-        "Auto mode could not find any configured model. Add at least one provider API key, or start Ollama with an installed local model.",
+        "Auto mode could not find any working configured model. Add a working provider API key, or start Ollama with an installed local model.",
         {
           status: 503,
           headers: { "Content-Type": "text/plain; charset=utf-8" },
@@ -319,10 +328,8 @@ export async function POST(request: Request) {
               [ImageToolName]:
                 resolvedImageToolModel === "google"
                   ? nanoBananaTool
-                  : isNvidiaImageToolModel(resolvedImageToolModel)
-                    ? createNvidiaImageTool({
-                        model: getNvidiaImageModelName(resolvedImageToolModel),
-                      })
+                  : resolvedImageToolModel === "nvidia"
+                    ? nvidiaImageTool
                     : openaiImageTool,
             }
           : {};
@@ -443,14 +450,4 @@ function extractTextFromMessage(message: UIMessage) {
 
 function isUsableSecret(value?: string) {
   return !!value && value !== "****";
-}
-
-function isNvidiaImageToolModel(model?: string) {
-  return model === "nvidia" || model?.startsWith("nvidia:");
-}
-
-function getNvidiaImageModelName(model?: string) {
-  return model?.startsWith("nvidia:")
-    ? model.slice("nvidia:".length)
-    : undefined;
 }

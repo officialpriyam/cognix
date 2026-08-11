@@ -74,7 +74,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "ui/tooltip";
 
 import { useAgents } from "@/hooks/queries/use-agents";
 import { useChatModels } from "@/hooks/queries/use-chat-models";
-import { NVIDIA_IMAGE_MODEL_OPTIONS } from "lib/ai/image/nvidia-image-models";
 import { redriectMcpOauth } from "lib/ai/mcp/oauth-redirect";
 import { mutate } from "swr";
 import { safe } from "ts-safe";
@@ -1067,17 +1066,14 @@ function ImageGeneratorSelector({
         </DropdownMenuSubTrigger>
         <DropdownMenuPortal>
           <DropdownMenuSubContent>
-            {NVIDIA_IMAGE_MODEL_OPTIONS.map((item) => (
-              <DropdownMenuItem
-                key={item.value}
-                disabled={modelInfo?.isToolCallUnsupported}
-                onClick={() => onGenerateImage?.(`nvidia:${item.value}`)}
-                className="cursor-pointer"
-              >
-                <NvidiaIcon className="mr-2 size-4" />
-                {item.label}
-              </DropdownMenuItem>
-            ))}
+            <DropdownMenuItem
+              disabled={modelInfo?.isToolCallUnsupported}
+              onClick={() => onGenerateImage?.("nvidia")}
+              className="cursor-pointer"
+            >
+              <NvidiaIcon className="mr-2 size-4" />
+              NVIDIA FLUX
+            </DropdownMenuItem>
             <DropdownMenuItem
               disabled={modelInfo?.isToolCallUnsupported}
               onClick={() => onGenerateImage?.("google")}

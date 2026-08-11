@@ -5,6 +5,7 @@ import {
   streamText,
 } from "ai";
 import { getSession } from "auth/server";
+import { resolveWorkingAutoModel } from "lib/ai/auto-model";
 import {
   DEFAULT_AUTO_CHAT_MODEL,
   selectRecommendedModelForPrompt,
@@ -37,18 +38,28 @@ export async function POST(request: Request) {
     logger.info(`model: ${chatModel?.provider}/${chatModel?.model}`);
 
     // Use auto-selection logic for temporary chat as well
-    const resolvedChatModel = selectRecommendedModelForPrompt({
-      prompt:
-        messages[messages.length - 1]?.parts?.find((p) => p.type === "text")
-          ?.text || "",
-      providers: await getAvailableModelProviders(),
-      requestedModel: chatModel ?? DEFAULT_AUTO_CHAT_MODEL,
-      requireToolCall: false,
-      respectRequestedModel: false,
-    });
+    const requestedModel = chatModel ?? DEFAULT_AUTO_CHAT_MODEL;
+    const prompt =
+      messages[messages.length - 1]?.parts?.find((p) => p.type === "text")
+        ?.text || "";
+    const availableProviders = await getAvailableModelProviders();
+    const resolvedChatModel =
+      requestedModel.model === "auto"
+        ? await resolveWorkingAutoModel({
+            providers: availableProviders,
+            requireToolCall: false,
+            abortSignal: request.signal,
+          })
+        : selectRecommendedModelForPrompt({
+            prompt,
+            providers: availableProviders,
+            requestedModel,
+            requireToolCall: false,
+            respectRequestedModel: false,
+          });
     if (!resolvedChatModel) {
       return new Response(
-        "Auto mode could not find any configured model. Add at least one provider API key, or start Ollama with an installed local model.",
+        "Auto mode could not find any working configured model. Add a working provider API key, or start Ollama with an installed local model.",
         {
           status: 503,
           headers: { "Content-Type": "text/plain; charset=utf-8" },

@@ -133,6 +133,13 @@ export function selectAutoModel(
   providers: ProviderModelInfo[],
   options?: { requireToolCall?: boolean },
 ): ChatModel | undefined {
+  return getAutoModelCandidates(providers, options)[0];
+}
+
+export function getAutoModelCandidates(
+  providers: ProviderModelInfo[],
+  options?: { requireToolCall?: boolean },
+): ChatModel[] {
   // Priority order for bundled preferred models.
   const autoModelPriority: ChatModel[] = [
     { provider: "openRouter", model: "qwen3-coder:free" },
@@ -152,9 +159,23 @@ export function selectAutoModel(
     { provider: "groq", model: "qwen3-32b" },
   ];
 
+  const candidates: ChatModel[] = [];
+  const addCandidate = (candidate: ChatModel) => {
+    if (
+      candidates.some(
+        (item) =>
+          item.provider === candidate.provider &&
+          item.model === candidate.model,
+      )
+    ) {
+      return;
+    }
+    candidates.push(candidate);
+  };
+
   for (const model of autoModelPriority) {
     if (isModelAvailable(model, providers, options)) {
-      return model;
+      addCandidate(model);
     }
   }
 
@@ -166,7 +187,7 @@ export function selectAutoModel(
           m.isFree && (!options?.requireToolCall || !m.isToolCallUnsupported),
       );
       if (model) {
-        return { provider: provider.provider, model: model.name };
+        addCandidate({ provider: provider.provider, model: model.name });
       }
     }
   }
@@ -178,12 +199,12 @@ export function selectAutoModel(
         (m) => !options?.requireToolCall || !m.isToolCallUnsupported,
       );
       if (model) {
-        return { provider: provider.provider, model: model.name };
+        addCandidate({ provider: provider.provider, model: model.name });
       }
     }
   }
 
-  return undefined;
+  return candidates;
 }
 
 export function selectImageToolModelForPrompt(

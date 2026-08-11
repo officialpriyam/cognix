@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_CHAT_MODEL,
+  getAutoModelCandidates,
   selectAutoModel,
   selectImageToolModelForPrompt,
   selectRecommendedModelForPrompt,
@@ -149,5 +150,31 @@ describe("model recommendations", () => {
         },
       ]),
     ).toEqual({ provider: "nvidia", model: "minimax-m2.7" });
+  });
+
+  it("returns ordered Auto candidates with free models before paid fallbacks", () => {
+    expect(
+      getAutoModelCandidates([
+        {
+          provider: "openai",
+          hasAPIKey: true,
+          models: [{ name: "gpt-5.1-codex" }],
+        },
+        {
+          provider: "nvidia",
+          hasAPIKey: true,
+          models: [{ name: "minimax-m2.7" }],
+        },
+        {
+          provider: "openRouter",
+          hasAPIKey: true,
+          models: [{ name: "qwen3-coder:free", isFree: true }],
+        },
+      ]),
+    ).toEqual([
+      { provider: "openRouter", model: "qwen3-coder:free" },
+      { provider: "openai", model: "gpt-5.1-codex" },
+      { provider: "nvidia", model: "minimax-m2.7" },
+    ]);
   });
 });

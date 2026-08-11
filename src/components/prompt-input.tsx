@@ -55,7 +55,6 @@ import { useChatModels } from "@/hooks/queries/use-chat-models";
 import { isFilePartSupported, isIngestSupported } from "@/lib/ai/file-support";
 import { FileUIPart, TextUIPart } from "ai";
 import { AgentSummary } from "app-types/agent";
-import { NVIDIA_IMAGE_MODEL_OPTIONS } from "lib/ai/image/nvidia-image-models";
 import { EMOJI_DATA } from "lib/const";
 import { toast } from "sonner";
 
@@ -536,19 +535,14 @@ export default function PromptInput({
                       </DropdownMenuSubTrigger>
                       <DropdownMenuPortal>
                         <DropdownMenuSubContent>
-                          {NVIDIA_IMAGE_MODEL_OPTIONS.map((item) => (
-                            <DropdownMenuItem
-                              key={item.value}
-                              disabled={modelInfo?.isToolCallUnsupported}
-                              onClick={() =>
-                                handleGenerateImage(`nvidia:${item.value}`)
-                              }
-                              className="cursor-pointer"
-                            >
-                              <NvidiaIcon className="mr-2 size-4" />
-                              {item.label}
-                            </DropdownMenuItem>
-                          ))}
+                          <DropdownMenuItem
+                            disabled={modelInfo?.isToolCallUnsupported}
+                            onClick={() => handleGenerateImage("nvidia")}
+                            className="cursor-pointer"
+                          >
+                            <NvidiaIcon className="mr-2 size-4" />
+                            NVIDIA FLUX
+                          </DropdownMenuItem>
                           <DropdownMenuItem
                             disabled={modelInfo?.isToolCallUnsupported}
                             onClick={() => handleGenerateImage("google")}
