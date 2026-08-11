@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
             audio: {
               output: {
                 voice: voice || "alloy",
-                format: "audio/pcm",
+                format: { type: "audio/pcm" },
               },
               input: {
                 format: {
