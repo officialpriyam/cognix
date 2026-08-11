@@ -442,6 +442,9 @@ export function useOpenAIVoiceChat(props?: VoiceChatOptions): VoiceChatSession {
       });
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
+      if (!offer.sdp) {
+        throw new Error("Failed to create SDP offer");
+      }
       const sessionConfig = JSON.stringify({
         type: "realtime",
         model: model,
