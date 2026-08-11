@@ -442,14 +442,23 @@ export function useOpenAIVoiceChat(props?: VoiceChatOptions): VoiceChatSession {
       });
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
+      const sessionConfig = JSON.stringify({
+        type: "realtime",
+        model: model,
+        audio: {
+          output: { voice: voice || "alloy" },
+        },
+      });
+      const fd = new FormData();
+      fd.append("sdp", offer.sdp);
+      fd.append("session", sessionConfig);
       const sdpResponse = await fetch(
         `https://api.openai.com/v1/realtime/calls`,
         {
           method: "POST",
-          body: offer.sdp,
+          body: fd,
           headers: {
             Authorization: `Bearer ${sessionToken}`,
-            "Content-Type": "application/sdp",
           },
         },
       );
