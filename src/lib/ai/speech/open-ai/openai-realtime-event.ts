@@ -1,26 +1,12 @@
-export const OPENAI_REALTIME_URL =
-  "https://api.openai.com/v1/realtime/sessions";
+export const OPENAI_REALTIME_CLIENT_SECRETS_URL =
+  "https://api.openai.com/v1/realtime/client_secrets";
+
+export const OPENAI_REALTIME_CALLS_URL =
+  "https://api.openai.com/v1/realtime/calls";
 
 export type OpenAIRealtimeSession = {
-  id: string;
-  object: string;
-  model: string;
-  modalities: string[];
-  instructions: string;
-  voice: string;
-  input_audio_format: string;
-  output_audio_format: string;
-  input_audio_transcription: {
-    model: string;
-  };
-  tools: any[];
-  tool_choice: string;
-  temperature: number;
-  max_response_output_tokens: number;
-  client_secret: {
-    value: string;
-    expires_at: number;
-  };
+  value: string;
+  expires_at: number;
   [key: string]: any;
 };
 

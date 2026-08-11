@@ -94,23 +94,29 @@ export async function POST(request: NextRequest) {
 
     const bindingTools = [...openAITools, ...DEFAULT_VOICE_TOOLS];
 
-    const r = await fetch("https://api.openai.com/v1/realtime/sessions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-
-      body: JSON.stringify({
-        model: "gpt-4o-realtime-preview",
-        voice: voice || "alloy",
-        input_audio_transcription: {
-          model: "whisper-1",
+    const r = await fetch(
+      "https://api.openai.com/v1/realtime/client_secrets",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
         },
-        instructions: systemPrompt,
-        tools: bindingTools,
-      }),
-    });
+
+        body: JSON.stringify({
+          session: {
+            model: "gpt-realtime",
+            type: "realtime",
+            voice: voice || "alloy",
+            input_audio_transcription: {
+              model: "whisper-1",
+            },
+            instructions: systemPrompt,
+            tools: bindingTools,
+          },
+        }),
+      },
+    );
 
     return new Response(r.body, {
       status: 200,

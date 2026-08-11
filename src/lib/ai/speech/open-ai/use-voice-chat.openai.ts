@@ -77,7 +77,7 @@ const createUIMessage = (m: {
 };
 
 export function useOpenAIVoiceChat(props?: VoiceChatOptions): VoiceChatSession {
-  const { model = "gpt-4o-realtime-preview", voice = OPENAI_VOICE.Ash } =
+  const { model = "gpt-realtime", voice = OPENAI_VOICE.Ash } =
     props || {};
 
   const [isUserSpeaking, setIsUserSpeaking] = useState(false);
@@ -385,7 +385,7 @@ export function useOpenAIVoiceChat(props?: VoiceChatOptions): VoiceChatSession {
     try {
       const session = await createSession();
       console.log({ session });
-      const sessionToken = session.client_secret.value;
+      const sessionToken = session.value;
       const pc = new RTCPeerConnection();
       if (!audioElement.current) {
         audioElement.current = document.createElement("audio");
@@ -442,14 +442,17 @@ export function useOpenAIVoiceChat(props?: VoiceChatOptions): VoiceChatSession {
       });
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
-      const sdpResponse = await fetch(`https://api.openai.com/v1/realtime`, {
-        method: "POST",
-        body: offer.sdp,
-        headers: {
-          Authorization: `Bearer ${sessionToken}`,
-          "Content-Type": "application/sdp",
+      const sdpResponse = await fetch(
+        `https://api.openai.com/v1/realtime/calls`,
+        {
+          method: "POST",
+          body: offer.sdp,
+          headers: {
+            Authorization: `Bearer ${sessionToken}`,
+            "Content-Type": "application/sdp",
+          },
         },
-      });
+      );
       const answer: RTCSessionDescriptionInit = {
         type: "answer",
         sdp: await sdpResponse.text(),
