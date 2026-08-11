@@ -117,10 +117,10 @@ export async function POST(request: NextRequest) {
                   type: "audio/pcm",
                   rate: 24000,
                 },
+                transcription: {
+                  model: "whisper-1",
+                },
               },
-            },
-            input_audio_transcription: {
-              model: "whisper-1",
             },
             instructions: systemPrompt,
             tools: bindingTools,
