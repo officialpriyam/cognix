@@ -107,7 +107,18 @@ export async function POST(request: NextRequest) {
           session: {
             model: "gpt-realtime",
             type: "realtime",
-            voice: voice || "alloy",
+            audio: {
+              output: {
+                voice: voice || "alloy",
+                format: "audio/pcm",
+              },
+              input: {
+                format: {
+                  type: "audio/pcm",
+                  rate: 24000,
+                },
+              },
+            },
             input_audio_transcription: {
               model: "whisper-1",
             },
