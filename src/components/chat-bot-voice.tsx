@@ -7,6 +7,7 @@ import {
   OPENAI_VOICE,
   useOpenAIVoiceChat as OpenAIVoiceChat,
 } from "lib/ai/speech/open-ai/use-voice-chat.openai";
+import { useGeminiVoiceChat as GeminiVoiceChat } from "lib/ai/speech/google/use-voice-chat.gemini";
 import { cn, groupBy, isNull } from "lib/utils";
 import {
   CheckIcon,
@@ -56,6 +57,16 @@ import { isShortcutEvent, Shortcuts } from "lib/keyboard-shortcuts";
 import { useAgent } from "@/hooks/queries/use-agent";
 import { ChatMention } from "app-types/chat";
 import { Avatar, AvatarFallback, AvatarImage } from "ui/avatar";
+
+const GEMINI_VOICE: [string, string][] = [
+  ["Puck", "Puck"],
+  ["Charon", "Charon"],
+  ["Kore", "Kore"],
+  ["Fenrir", "Fenrir"],
+  ["Aoede", "Aoede"],
+  ["Orus", "Orus"],
+  ["Zephyr", "Zephyr"],
+];
 
 const prependTools: EnabledTools[] = [
   {
@@ -122,6 +133,21 @@ export function ChatBotVoice() {
     );
   }, [agentId, agent, mcpList, allowedMcpServers]);
 
+  const openaiVoice = OpenAIVoiceChat({
+    toolMentions,
+    agentId,
+    ...voiceChat.options.providerOptions,
+  });
+
+  const geminiVoice = GeminiVoiceChat({
+    toolMentions,
+    agentId,
+    ...voiceChat.options.providerOptions,
+  });
+
+  const isGemini = voiceChat.options.provider === "gemini";
+  const voiceSession = isGemini ? geminiVoice : openaiVoice;
+
   const {
     isListening,
     isAssistantSpeaking,
@@ -134,11 +160,7 @@ export function ChatBotVoice() {
     startListening,
     stop,
     stopListening,
-  } = OpenAIVoiceChat({
-    toolMentions,
-    agentId,
-    ...voiceChat.options.providerOptions,
-  });
+  } = voiceSession;
 
   const startWithSound = useCallback(() => {
     if (!startAudio.current) {
@@ -411,9 +433,32 @@ export function ChatBotVoice() {
                           </DropdownMenuSubTrigger>
                           <DropdownMenuPortal>
                             <DropdownMenuSubContent>
-                              <div className="text-xs text-muted-foreground p-6">
-                                Not Implemented Yet
-                              </div>
+                              {GEMINI_VOICE.map(([key, value]) => (
+                                <DropdownMenuItem
+                                  className="cursor-pointer flex items-center justify-between"
+                                  onClick={() =>
+                                    appStoreMutate({
+                                      voiceChat: {
+                                        ...voiceChat,
+                                        options: {
+                                          provider: "gemini",
+                                          providerOptions: {
+                                            voice: value,
+                                          },
+                                        },
+                                      },
+                                    })
+                                  }
+                                  key={key}
+                                >
+                                  {key}
+                                  {value ===
+                                    voiceChat.options.providerOptions
+                                      ?.voice && (
+                                    <CheckIcon className="size-3.5" />
+                                  )}
+                                </DropdownMenuItem>
+                              ))}
                             </DropdownMenuSubContent>
                           </DropdownMenuPortal>
                         </DropdownMenuSub>
