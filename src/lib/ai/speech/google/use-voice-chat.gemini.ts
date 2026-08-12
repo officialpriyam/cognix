@@ -75,19 +75,18 @@ export function useGeminiVoiceChat(props?: VoiceChatOptions): VoiceChatSession {
     }
     const bytes = new Uint8Array(int16Data.buffer);
     let binary = "";
-    for (let i = 0; i < bytes.length; i++) {
-      binary += String.fromCharCode(bytes[i]);
+    const chunkSize = 8192;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
     }
     const base64 = btoa(binary);
     wsRef.current.send(
       JSON.stringify({
         realtimeInput: {
-          mediaChunks: [
-            {
-              mimeType: "audio/pcm;rate=16000",
-              data: base64,
-            },
-          ],
+          audio: {
+            mimeType: "audio/pcm;rate=16000",
+            data: base64,
+          },
         },
       }),
     );
@@ -292,13 +291,16 @@ export function useGeminiVoiceChat(props?: VoiceChatOptions): VoiceChatSession {
         console.log("[Gemini] setup sent");
       };
 
-      ws.onmessage = (event) => {
+      ws.onmessage = async (event) => {
         try {
-          const msg = JSON.parse(event.data) as GeminiServerMessage;
+          const raw = event.data instanceof Blob
+            ? await event.data.text()
+            : event.data;
+          const msg = JSON.parse(raw) as GeminiServerMessage;
           console.log("[Gemini] received:", msg.setupComplete ? "setupComplete" : msg.serverContent?.turnComplete ? "turnComplete" : "other");
           handleServerMessage(msg);
         } catch (err) {
-          console.error("[Gemini] WS parse error:", err, event.data);
+          console.error("[Gemini] WS parse error:", err);
         }
       };
 
