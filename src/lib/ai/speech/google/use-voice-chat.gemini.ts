@@ -75,9 +75,8 @@ export function useGeminiVoiceChat(props?: VoiceChatOptions): VoiceChatSession {
     }
     const bytes = new Uint8Array(int16Data.buffer);
     let binary = "";
-    const chunkSize = 8192;
-    for (let i = 0; i < bytes.length; i += chunkSize) {
-      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
     }
     const base64 = btoa(binary);
     wsRef.current.send(
