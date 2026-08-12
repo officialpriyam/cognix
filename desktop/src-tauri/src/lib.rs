@@ -9,15 +9,18 @@ pub fn run() {
 
             #[cfg(debug_assertions)]
             {
+                // In dev, load from Vite dev server
+                let url: tauri::Url = "http://localhost:3001"
+                    .parse()
+                    .expect("Invalid URL");
+                window.navigate(url);
                 window.open_devtools();
             }
 
             #[cfg(not(debug_assertions))]
             {
-                let url: tauri::Url = "https://cognix.iampriyam.me/"
-                    .parse()
-                    .expect("Invalid URL");
-                window.navigate(url);
+                // In production, load from the bundled dist
+                // The frontendDist is set in tauri.conf.json
             }
 
             Ok(())

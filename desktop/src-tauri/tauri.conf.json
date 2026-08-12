@@ -4,8 +4,9 @@
   "version": "1.26.0",
   "identifier": "com.cognix.app",
   "build": {
-    "beforeDevCommand": "pnpm dev",
-    "devUrl": "http://localhost:3000",
+    "beforeDevCommand": "cd src && npm install && npx vite --port 3001",
+    "devUrl": "http://localhost:3001",
+    "beforeBuildCommand": "echo skip",
     "frontendDist": "../dist"
   },
   "app": {
@@ -13,7 +14,6 @@
     "windows": [
       {
         "title": "Cognix",
-        "url": "http://localhost:3000",
         "width": 1280,
         "height": 800,
         "minWidth": 800,
