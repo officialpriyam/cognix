@@ -6,14 +6,14 @@
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:3000",
-    "beforeBuildCommand": "pnpm build",
-    "frontendDist": "../out"
+    "frontendDist": "../dist"
   },
   "app": {
     "withGlobalTauri": true,
     "windows": [
       {
         "title": "Cognix",
+        "url": "http://localhost:3000",
         "width": 1280,
         "height": 800,
         "minWidth": 800,
