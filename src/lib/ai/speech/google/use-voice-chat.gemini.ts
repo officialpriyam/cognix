@@ -131,6 +131,7 @@ export function useGeminiVoiceChat(props?: VoiceChatOptions): VoiceChatSession {
     systemPrompt: string;
     voice: string;
   }> => {
+    console.log("[Gemini] fetch session from /api/chat/gemini-realtime");
     const response = await fetch("/api/chat/gemini-realtime", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -140,11 +141,14 @@ export function useGeminiVoiceChat(props?: VoiceChatOptions): VoiceChatSession {
         mentions: props?.toolMentions,
       }),
     });
+    console.log("[Gemini] session response status:", response.status);
     if (response.status !== 200) {
       const text = await response.text();
+      console.error("[Gemini] session error:", text);
       throw new Error(`Server error (${response.status}): ${text}`);
     }
     const data = await response.json();
+    console.log("[Gemini] session data:", { model: data.model, hasToken: !!data.token, hasPrompt: !!data.systemPrompt });
     if (data.error) {
       throw new Error(data.error);
     }
@@ -244,19 +248,28 @@ export function useGeminiVoiceChat(props?: VoiceChatOptions): VoiceChatSession {
   );
 
   const start = useCallback(async () => {
-    if (isActive || isLoading) return;
+    if (isActive || isLoading) {
+      console.log("[Gemini] start skipped:", { isActive, isLoading });
+      return;
+    }
+    console.log("[Gemini] start called");
     setIsLoading(true);
     setError(null);
     setMessages([]);
 
     try {
+      console.log("[Gemini] creating session...");
       const { token, model: geminiModel, systemPrompt, voice: sessionVoice } = await createSession();
+      console.log("[Gemini] session created, model:", geminiModel, "voice:", sessionVoice);
+
       const wsUrl = `${GEMINI_WS_URL}?access_token=${token}`;
+      console.log("[Gemini] connecting WebSocket...");
 
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
+        console.log("[Gemini] WebSocket opened, sending setup...");
         const setupMsg = {
           setup: {
             model: `models/${geminiModel}`,
@@ -276,26 +289,28 @@ export function useGeminiVoiceChat(props?: VoiceChatOptions): VoiceChatSession {
           },
         };
         ws.send(JSON.stringify(setupMsg));
+        console.log("[Gemini] setup sent");
       };
 
       ws.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data) as GeminiServerMessage;
+          console.log("[Gemini] received:", msg.setupComplete ? "setupComplete" : msg.serverContent?.turnComplete ? "turnComplete" : "other");
           handleServerMessage(msg);
         } catch (err) {
-          console.error("Gemini WS parse error:", err, event.data);
+          console.error("[Gemini] WS parse error:", err, event.data);
         }
       };
 
       ws.onerror = (event) => {
-        console.error("Gemini WS error:", event);
+        console.error("[Gemini] WS error:", event);
         setError(new Error("WebSocket connection error"));
         setIsActive(false);
         setIsLoading(false);
       };
 
       ws.onclose = (event) => {
-        console.log("Gemini WS closed:", event.code, event.reason);
+        console.log("[Gemini] WS closed:", event.code, event.reason, "wasClean:", event.wasClean);
         if (!event.wasClean) {
           setError(
             new Error(`WebSocket closed: ${event.code} ${event.reason}`),
@@ -306,6 +321,7 @@ export function useGeminiVoiceChat(props?: VoiceChatOptions): VoiceChatSession {
         setIsLoading(false);
       };
 
+      console.log("[Gemini] requesting microphone...");
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           sampleRate: 16000,
@@ -314,6 +330,7 @@ export function useGeminiVoiceChat(props?: VoiceChatOptions): VoiceChatSession {
           noiseSuppression: true,
         },
       });
+      console.log("[Gemini] microphone acquired, setting up audio...");
       audioStreamRef.current = stream;
 
       const ctx = new AudioContext({ sampleRate: 16000 });
@@ -330,8 +347,9 @@ export function useGeminiVoiceChat(props?: VoiceChatOptions): VoiceChatSession {
       };
       source.connect(processor);
       processor.connect(ctx.destination);
+      console.log("[Gemini] audio pipeline ready, waiting for setupComplete...");
     } catch (err) {
-      console.error("Gemini voice chat start error:", err);
+      console.error("[Gemini] start error:", err);
       setError(err instanceof Error ? err : new Error(String(err)));
       setIsActive(false);
       setIsLoading(false);

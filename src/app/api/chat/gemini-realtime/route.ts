@@ -61,6 +61,7 @@ export async function POST(request: NextRequest) {
 
     const model = "gemini-2.5-flash-live";
 
+    console.log("[Gemini] creating ephemeral token...");
     const token = await genai.authTokens.create({
       config: {
         uses: 1,
@@ -111,7 +112,7 @@ export async function POST(request: NextRequest) {
       { status: 200, headers: { "Content-Type": "application/json" } },
     );
   } catch (error: any) {
-    console.error("Gemini token error:", error);
+    console.error("Gemini token error:", error?.message, error?.cause, error?.stack);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
     });
