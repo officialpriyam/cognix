@@ -6,6 +6,11 @@ import { buildSpeechSystemPrompt } from "lib/ai/prompts";
 import { getUserPreferences } from "lib/user/server";
 import { rememberAgentAction } from "../actions";
 
+const GEMINI_LIVE_MODELS = [
+  "gemini-3.0-flash-live",
+  "gemini-live-2.5-flash-native-audio",
+];
+
 export async function POST(request: NextRequest) {
   try {
     if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
@@ -59,48 +64,63 @@ export async function POST(request: NextRequest) {
       apiVersion: "v1alpha",
     });
 
-    const model = "gemini-2.5-flash-live";
+    let token;
+    let model;
 
-    console.log("[Gemini] creating ephemeral token...");
-    const token = await genai.authTokens.create({
-      config: {
-        uses: 1,
-        expireTime: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-        newSessionExpireTime: new Date(
-          Date.now() + 2 * 60 * 1000,
-        ).toISOString(),
-        liveConnectConstraints: {
-          model,
+    for (const m of GEMINI_LIVE_MODELS) {
+      try {
+        console.log(`[Gemini] trying model: ${m}`);
+        token = await genai.authTokens.create({
           config: {
-            sessionResumption: {},
-            responseModalities: ["AUDIO" as any],
-            speechConfig: {
-              voiceConfig: {
-                prebuiltVoiceConfig: {
-                  voiceName: voice || "Kore",
+            uses: 1,
+            expireTime: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+            newSessionExpireTime: new Date(
+              Date.now() + 2 * 60 * 1000,
+            ).toISOString(),
+            liveConnectConstraints: {
+              model: m,
+              config: {
+                sessionResumption: {},
+                responseModalities: ["AUDIO" as any],
+                speechConfig: {
+                  voiceConfig: {
+                    prebuiltVoiceConfig: {
+                      voiceName: voice || "Kore",
+                    },
+                  },
                 },
+                systemInstruction: {
+                  parts: [{ text: systemPrompt }],
+                },
+                ...(geminiTools.length > 0
+                  ? {
+                      tools: [
+                        {
+                          functionDeclarations: geminiTools.map((t) => ({
+                            name: t.name,
+                            description: t.description,
+                            parameters: t.parameters,
+                          })),
+                        },
+                      ],
+                    }
+                  : {}),
               },
             },
-            systemInstruction: {
-              parts: [{ text: systemPrompt }],
-            },
-            ...(geminiTools.length > 0
-              ? {
-                  tools: [
-                    {
-                      functionDeclarations: geminiTools.map((t) => ({
-                        name: t.name,
-                        description: t.description,
-                        parameters: t.parameters,
-                      })),
-                    },
-                  ],
-                }
-              : {}),
           },
-        },
-      },
-    });
+        });
+        model = m;
+        console.log(`[Gemini] token created with model: ${m}`);
+        break;
+      } catch (err: any) {
+        console.log(`[Gemini] model ${m} failed:`, err.message);
+        continue;
+      }
+    }
+
+    if (!token || !model) {
+      throw new Error("All Gemini Live models failed");
+    }
 
     return new Response(
       JSON.stringify({
@@ -112,7 +132,7 @@ export async function POST(request: NextRequest) {
       { status: 200, headers: { "Content-Type": "application/json" } },
     );
   } catch (error: any) {
-    console.error("Gemini token error:", error?.message, error?.cause, error?.stack);
+    console.error("[Gemini] token error:", error?.message);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
     });
