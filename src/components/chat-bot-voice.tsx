@@ -279,9 +279,11 @@ export function ChatBotVoice() {
   }, [voiceChat.isOpen]);
 
   useEffect(() => {
-    if (error && isActive) {
+    if (error) {
       toast.error(error.message);
-      stop();
+      if (isActive) {
+        stop();
+      }
     }
   }, [error]);
 

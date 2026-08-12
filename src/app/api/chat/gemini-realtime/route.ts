@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       return new Response("Unauthorized", { status: 401 });
     }
 
-    const { mentions, agentId } = (await request.json()) as {
+    const { voice, mentions, agentId } = (await request.json()) as {
       voice: string;
       agentId?: string;
       mentions: any[];
@@ -73,6 +73,13 @@ export async function POST(request: NextRequest) {
           config: {
             sessionResumption: {},
             responseModalities: ["AUDIO" as any],
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: {
+                  voiceName: voice || "Kore",
+                },
+              },
+            },
             systemInstruction: {
               parts: [{ text: systemPrompt }],
             },

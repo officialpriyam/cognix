@@ -13,6 +13,7 @@ const GEMINI_WS_URL =
   "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained";
 
 type GeminiServerMessage = {
+  setupComplete?: {};
   serverContent?: {
     modelTurn?: {
       parts?: Array<{
@@ -31,7 +32,6 @@ type GeminiServerMessage = {
       args: any;
     }>;
   };
-  setupComplete?: {};
 };
 
 export function useGeminiVoiceChat(props?: VoiceChatOptions): VoiceChatSession {
@@ -66,32 +66,32 @@ export function useGeminiVoiceChat(props?: VoiceChatOptions): VoiceChatSession {
     completed: m.completed ?? false,
   });
 
-  const sendAudioChunk = useCallback(
-    (float32Data: Float32Array) => {
-      if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-      const int16Data = new Int16Array(float32Data.length);
-      for (let i = 0; i < float32Data.length; i++) {
-        const s = Math.max(-1, Math.min(1, float32Data[i]));
-        int16Data[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
-      }
-      const base64 = btoa(
-        String.fromCharCode(...new Uint8Array(int16Data.buffer)),
-      );
-      wsRef.current.send(
-        JSON.stringify({
-          realtimeInput: {
-            mediaChunks: [
-              {
-                mimeType: "audio/pcm;rate=16000",
-                data: base64,
-              },
-            ],
-          },
-        }),
-      );
-    },
-    [],
-  );
+  const sendAudioChunk = useCallback((float32Data: Float32Array) => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+    const int16Data = new Int16Array(float32Data.length);
+    for (let i = 0; i < float32Data.length; i++) {
+      const s = Math.max(-1, Math.min(1, float32Data[i]));
+      int16Data[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+    }
+    const bytes = new Uint8Array(int16Data.buffer);
+    let binary = "";
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    const base64 = btoa(binary);
+    wsRef.current.send(
+      JSON.stringify({
+        realtimeInput: {
+          mediaChunks: [
+            {
+              mimeType: "audio/pcm;rate=16000",
+              data: base64,
+            },
+          ],
+        },
+      }),
+    );
+  }, []);
 
   const playAudioChunk = useCallback(async (base64Data: string) => {
     if (!playbackContextRef.current) {
@@ -129,7 +129,7 @@ export function useGeminiVoiceChat(props?: VoiceChatOptions): VoiceChatSession {
     token: string;
     model: string;
   }> => {
-    const response = await fetch(`/api/chat/gemini-realtime`, {
+    const response = await fetch("/api/chat/gemini-realtime", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -139,7 +139,8 @@ export function useGeminiVoiceChat(props?: VoiceChatOptions): VoiceChatSession {
       }),
     });
     if (response.status !== 200) {
-      throw new Error(await response.text());
+      const text = await response.text();
+      throw new Error(`Server error (${response.status}): ${text}`);
     }
     const data = await response.json();
     if (data.error) {
@@ -174,7 +175,7 @@ export function useGeminiVoiceChat(props?: VoiceChatOptions): VoiceChatSession {
                           parts: [
                             {
                               type: "text",
-                              text: (m.parts[0] as any).text + part.text,
+                              text: ((m.parts[0] as any).text || "") + part.text,
                             },
                           ],
                         }
@@ -183,10 +184,7 @@ export function useGeminiVoiceChat(props?: VoiceChatOptions): VoiceChatSession {
                 }
                 return [
                   ...prev,
-                  createUIMessage({
-                    role: "assistant",
-                    text: part.text ?? "",
-                  }),
+                  createUIMessage({ role: "assistant", text: part.text ?? "" }),
                 ];
               });
               setIsAssistantSpeaking(true);
@@ -257,26 +255,15 @@ export function useGeminiVoiceChat(props?: VoiceChatOptions): VoiceChatSession {
       wsRef.current = ws;
 
       ws.onopen = () => {
-        ws.send(
-          JSON.stringify({
-            setup: {
-              model: `models/${geminiModel}`,
-              generationConfig: {
-                responseModalities: ["AUDIO"],
-                speechConfig: {
-                  voiceConfig: {
-                    prebuiltVoiceConfig: {
-                      voiceName: voice,
-                    },
-                  },
-                },
-              },
-              systemInstruction: {
-                parts: [{ text: "You are a helpful assistant." }],
-              },
+        const setupMsg = {
+          setup: {
+            model: `models/${geminiModel}`,
+            generationConfig: {
+              responseModalities: ["AUDIO"],
             },
-          }),
-        );
+          },
+        };
+        ws.send(JSON.stringify(setupMsg));
       };
 
       ws.onmessage = (event) => {
@@ -284,7 +271,7 @@ export function useGeminiVoiceChat(props?: VoiceChatOptions): VoiceChatSession {
           const msg = JSON.parse(event.data) as GeminiServerMessage;
           handleServerMessage(msg);
         } catch (err) {
-          console.error("Gemini WS parse error:", err);
+          console.error("Gemini WS parse error:", err, event.data);
         }
       };
 
@@ -296,8 +283,11 @@ export function useGeminiVoiceChat(props?: VoiceChatOptions): VoiceChatSession {
       };
 
       ws.onclose = (event) => {
+        console.log("Gemini WS closed:", event.code, event.reason);
         if (!event.wasClean) {
-          setError(new Error(`WebSocket closed: ${event.code} ${event.reason}`));
+          setError(
+            new Error(`WebSocket closed: ${event.code} ${event.reason}`),
+          );
         }
         setIsActive(false);
         setIsListening(false);
@@ -329,42 +319,53 @@ export function useGeminiVoiceChat(props?: VoiceChatOptions): VoiceChatSession {
       source.connect(processor);
       processor.connect(ctx.destination);
     } catch (err) {
+      console.error("Gemini voice chat start error:", err);
       setError(err instanceof Error ? err : new Error(String(err)));
       setIsActive(false);
       setIsLoading(false);
     }
-  }, [isActive, isLoading, createSession, handleServerMessage, sendAudioChunk, voice]);
+  }, [
+    isActive,
+    isLoading,
+    createSession,
+    handleServerMessage,
+    sendAudioChunk,
+    voice,
+  ]);
 
   const stop = useCallback(async () => {
-    if (processorRef.current) {
-      processorRef.current.disconnect();
-      processorRef.current = null;
+    try {
+      if (processorRef.current) {
+        processorRef.current.disconnect();
+        processorRef.current = null;
+      }
+      if (sourceRef.current) {
+        sourceRef.current.disconnect();
+        sourceRef.current = null;
+      }
+      if (audioContextRef.current) {
+        await audioContextRef.current.close();
+        audioContextRef.current = null;
+      }
+      if (audioStreamRef.current) {
+        audioStreamRef.current.getTracks().forEach((t) => t.stop());
+        audioStreamRef.current = null;
+      }
+      if (playbackContextRef.current) {
+        await playbackContextRef.current.close();
+        playbackContextRef.current = null;
+      }
+      audioQueueRef.current = [];
+      isPlayingRef.current = false;
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+    } finally {
+      setIsActive(false);
+      setIsListening(false);
+      setIsLoading(false);
     }
-    if (sourceRef.current) {
-      sourceRef.current.disconnect();
-      sourceRef.current = null;
-    }
-    if (audioContextRef.current) {
-      await audioContextRef.current.close();
-      audioContextRef.current = null;
-    }
-    if (audioStreamRef.current) {
-      audioStreamRef.current.getTracks().forEach((t) => t.stop());
-      audioStreamRef.current = null;
-    }
-    if (playbackContextRef.current) {
-      await playbackContextRef.current.close();
-      playbackContextRef.current = null;
-    }
-    audioQueueRef.current = [];
-    isPlayingRef.current = false;
-    if (wsRef.current) {
-      wsRef.current.close();
-      wsRef.current = null;
-    }
-    setIsActive(false);
-    setIsListening(false);
-    setIsLoading(false);
   }, []);
 
   const startListening = useCallback(async () => {
@@ -373,7 +374,11 @@ export function useGeminiVoiceChat(props?: VoiceChatOptions): VoiceChatSession {
         audioStreamRef.current,
       );
       sourceRef.current = source;
-      const processor = audioContextRef.current.createScriptProcessor(4096, 1, 1);
+      const processor = audioContextRef.current.createScriptProcessor(
+        4096,
+        1,
+        1,
+      );
       processorRef.current = processor;
       processor.onaudioprocess = (e) => {
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
