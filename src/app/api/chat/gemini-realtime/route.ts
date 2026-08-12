@@ -105,6 +105,8 @@ export async function POST(request: NextRequest) {
       JSON.stringify({
         token: token.name,
         model,
+        systemPrompt,
+        voice: voice || "Kore",
       }),
       { status: 200, headers: { "Content-Type": "application/json" } },
     );

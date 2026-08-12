@@ -128,6 +128,8 @@ export function useGeminiVoiceChat(props?: VoiceChatOptions): VoiceChatSession {
   const createSession = useCallback(async (): Promise<{
     token: string;
     model: string;
+    systemPrompt: string;
+    voice: string;
   }> => {
     const response = await fetch("/api/chat/gemini-realtime", {
       method: "POST",
@@ -248,7 +250,7 @@ export function useGeminiVoiceChat(props?: VoiceChatOptions): VoiceChatSession {
     setMessages([]);
 
     try {
-      const { token, model: geminiModel } = await createSession();
+      const { token, model: geminiModel, systemPrompt, voice: sessionVoice } = await createSession();
       const wsUrl = `${GEMINI_WS_URL}?access_token=${token}`;
 
       const ws = new WebSocket(wsUrl);
@@ -260,6 +262,16 @@ export function useGeminiVoiceChat(props?: VoiceChatOptions): VoiceChatSession {
             model: `models/${geminiModel}`,
             generationConfig: {
               responseModalities: ["AUDIO"],
+              speechConfig: {
+                voiceConfig: {
+                  prebuiltVoiceConfig: {
+                    voiceName: sessionVoice,
+                  },
+                },
+              },
+            },
+            systemInstruction: {
+              parts: [{ text: systemPrompt }],
             },
           },
         };
