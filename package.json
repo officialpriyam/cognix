@@ -45,7 +45,10 @@
     "docker:app": "docker build -f docker/Dockerfile -t cognix . && docker run -p 3000:3000 -e NO_HTTPS=1 cognix",
     "prepare": "husky",
     "playwright:install": "playwright install",
-    "check": "pnpm lint:fix && pnpm check-types && pnpm test"
+    "check": "pnpm lint:fix && pnpm check-types && pnpm test",
+    "desktop:dev": "tauri dev",
+    "desktop:build": "tauri build",
+    "desktop:build:win": "tauri build --target universal-pc-windows-msvc"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.56",
@@ -136,6 +139,8 @@
     "@biomejs/biome": "1.9.4",
     "@playwright/test": "^1.57.0",
     "@tailwindcss/postcss": "^4.1.18",
+    "@tauri-apps/api": "^2.11.1",
+    "@tauri-apps/cli": "^2.11.4",
     "@types/json-schema": "^7.0.15",
     "@types/node": "^20.19.27",
     "@types/pg": "^8.16.0",
