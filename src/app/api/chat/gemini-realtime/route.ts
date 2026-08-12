@@ -7,7 +7,7 @@ import { getUserPreferences } from "lib/user/server";
 import { rememberAgentAction } from "../actions";
 
 const GEMINI_LIVE_MODELS = [
-  "gemini-3.0-flash-live",
+  "gemini-3.1-flash-live-preview",
   "gemini-live-2.5-flash-native-audio",
 ];
 
