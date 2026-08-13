@@ -61,7 +61,12 @@ export async function signOut() {
 
 export async function getSession() {
   try {
-    return await request<{ user: any; session: any }>('/api/auth/get-session');
+    const token = getAuthToken();
+    if (!token) return null;
+    return await request<{ user: any; session: any }>('/api/desktop/session', {
+      method: 'POST',
+      body: { token },
+    });
   } catch {
     return null;
   }
