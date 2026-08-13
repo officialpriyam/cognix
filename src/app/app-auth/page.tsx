@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
+import { getSessionCookie } from "better-auth/cookies";
 import { Suspense } from "react";
-import { getSession } from "lib/auth/server";
 import AppAuthClient from "./client";
 
 export default async function AppAuthPage({
@@ -9,9 +10,10 @@ export default async function AppAuthPage({
   searchParams: Promise<{ state?: string }>;
 }) {
   const { state = "" } = await searchParams;
+  const hdrs = await headers();
+  const sessionToken = getSessionCookie(hdrs);
 
-  const session = await getSession();
-  if (!session?.session) {
+  if (!sessionToken) {
     const callbackURL = encodeURIComponent(`/app-auth?state=${state}`);
     redirect(`/sign-in?callbackURL=${callbackURL}`);
   }
