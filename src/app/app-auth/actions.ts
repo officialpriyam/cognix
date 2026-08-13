@@ -1,14 +1,9 @@
 "use server";
 
-import { headers } from "next/headers";
-import { getSessionCookie } from "better-auth/cookies";
-
 export async function approveAppAuth(
   state: string,
+  sessionToken: string,
 ): Promise<{ error?: string; url?: string }> {
-  const hdrs = await headers();
-  const sessionToken = getSessionCookie(hdrs);
-
   if (!sessionToken) {
     return { error: "Not authenticated" };
   }

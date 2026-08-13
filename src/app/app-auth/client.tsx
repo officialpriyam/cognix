@@ -13,14 +13,18 @@ import {
 } from "@/components/ui/card";
 import { Loader2, Monitor } from "lucide-react";
 
-export default function AppAuthClient() {
+export default function AppAuthClient({
+  sessionToken,
+}: {
+  sessionToken: string;
+}) {
   const searchParams = useSearchParams();
   const state = searchParams.get("state") || "";
   const [isPending, startTransition] = useTransition();
 
   const handleApprove = () => {
     startTransition(async () => {
-      const result = await approveAppAuth(state);
+      const result = await approveAppAuth(state, sessionToken);
       if (result.url) {
         window.location.href = result.url;
       } else if (result.error) {

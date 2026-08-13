@@ -19,7 +19,7 @@ async function request<T>(
 
   const token = getAuthToken();
   if (token) {
-    headers['Cookie'] = `better-auth.session_token=${token}; __Secure-better-auth.session_token=${token}`;
+    headers['Authorization'] = `Bearer ${token}`;
   }
 
   const response = await tauriFetch(`${API_BASE}${endpoint}`, {
@@ -175,7 +175,7 @@ export async function streamChat(
     'Content-Type': 'application/json',
   };
   const token = getAuthToken();
-  if (token) headers['Cookie'] = `better-auth.session_token=${token}; __Secure-better-auth.session_token=${token}`;
+  if (token) headers['Authorization'] = `Bearer ${token}`;
 
   try {
     const response = await tauriFetch(`${API_BASE}/api/chat`, {
