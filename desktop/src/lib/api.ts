@@ -60,16 +60,16 @@ export async function signOut() {
 }
 
 export async function getSession(): Promise<{ user: any; session: any } | null> {
+  const token = getAuthToken();
+  if (!token) return null;
   try {
-    const token = getAuthToken();
-    if (!token) return null;
     return await request<{ user: any; session: any }>('/api/desktop/session', {
       method: 'POST',
       body: { token },
     });
   } catch (e: any) {
     console.error('[auth] getSession failed:', e?.message || e);
-    return null;
+    throw new Error(e?.message || 'Failed to verify session');
   }
 }
 

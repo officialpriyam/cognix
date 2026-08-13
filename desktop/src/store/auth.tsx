@@ -78,11 +78,20 @@ export const useAuthStore = create<AuthState>()(
           localStorage.setItem('cognix-token', token);
           set({ token, authState: null, isLoading: true, error: null });
 
-          const res = await getSession();
-          if (res?.user) {
-            set({ user: res.user as User, isLoading: false, error: null });
-          } else {
-            set({ user: null, token: null, isLoading: false, error: 'Could not verify session. Please sign in again.' });
+          try {
+            const res = await getSession();
+            if (res?.user) {
+              set({ user: res.user as User, isLoading: false, error: null });
+            } else {
+              throw new Error('Server returned no user');
+            }
+          } catch (e: any) {
+            set({
+              user: null,
+              token: null,
+              isLoading: false,
+              error: `Could not verify session (${e?.message || 'unknown error'}). Please sign in again.`,
+            });
             localStorage.removeItem('cognix-token');
           }
         } catch {
