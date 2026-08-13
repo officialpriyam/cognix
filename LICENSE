@@ -1,21 +1,77 @@
-MIT License
+Cognix Open Source License (COSL) v1.0
+Copyright (c) 2026 Priyam
+All Rights Reserved, subject to the permissions granted below.
 
-Copyright (c) 2026 Priyx
+1. DEFINITIONS
+"Software" means the source code, object code, and associated
+documentation files distributed under this License.
+"You" means any individual or entity exercising permissions granted
+by this License.
+"Derivative Work" means any work based on, modified from, or
+incorporating any part of the Software.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+2. GRANT OF RIGHTS
+Subject to the terms of this License, the copyright holder grants
+You a worldwide, royalty-free, non-exclusive license to:
+  a. View, study, and run the Software for any purpose.
+  b. Modify the Software and create Derivative Works.
+  c. Use the Software and Derivative Works internally, including
+     for commercial purposes within your own organization.
+  d. Distribute the Software and Derivative Works, provided all
+     conditions in Section 3 are met.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+3. CONDITIONS
+Any distribution or public deployment (including as a hosted
+service, SaaS, or API) of the Software or a Derivative Work MUST:
+  a. Include this License, unmodified, with all copies.
+  b. Retain all original copyright, attribution, and license
+     notices.
+  c. Clearly state that the work is based on "Cognix" and link to
+     the original repository.
+  d. Make the complete corresponding source code of the Derivative
+     Work available to all users of that service, free of charge,
+     under this same License.
+  e. NOT be sold, sublicensed, or relicensed under different terms.
+     You may charge for support, hosting, or services surrounding
+     the Software, but You may not sell the Software or a
+     Derivative Work itself as a standalone closed-source product.
+  f. NOT be represented as the original "Cognix" project or imply
+     official endorsement by the copyright holder without written
+     permission.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE. 
+4. PROHIBITED USES
+You may NOT:
+  a. Remove or obscure this License or attribution notices.
+  b. Relicense the Software or any Derivative Work under a more
+     permissive or proprietary license.
+  c. Use the Software as part of a closed-source commercial product
+     where the source is not made available as required in Section 3.
+  d. Claim authorship of the original Software.
+
+5. CONTRIBUTIONS
+Any contribution intentionally submitted for inclusion in the
+Software shall be under the terms of this License, unless stated
+otherwise, and the contributor grants the copyright holder a
+perpetual, irrevocable right to relicense their contribution as
+part of the Software (e.g., for dual-licensing or future license
+changes).
+
+6. TERMINATION
+This License and the rights granted hereunder will terminate
+automatically if You fail to comply with any of its terms. Upon
+termination, You must cease all use, distribution, and deployment
+of the Software and Derivative Works.
+
+7. NO WARRANTY
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHOR OR COPYRIGHT HOLDER
+BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING FROM
+THE SOFTWARE OR ITS USE.
+
+8. GOVERNING LAW
+This License shall be governed by and construed in accordance with
+the laws of India, without regard to conflict of law principles.
+
+END OF LICENSE
