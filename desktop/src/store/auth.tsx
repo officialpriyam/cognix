@@ -82,7 +82,7 @@ export const useAuthStore = create<AuthState>()(
           if (res?.user) {
             set({ user: res.user as User, isLoading: false, error: null });
           } else {
-            set({ user: null, token: null, isLoading: false, error: 'Session expired. Please sign in again.' });
+            set({ user: null, token: null, isLoading: false, error: 'Could not verify session. Please sign in again.' });
             localStorage.removeItem('cognix-token');
           }
         } catch {

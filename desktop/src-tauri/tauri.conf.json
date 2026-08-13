@@ -6,7 +6,7 @@
   "build": {
     "beforeDevCommand": "cd src && npm install && npx vite --port 3001",
     "devUrl": "http://localhost:3001",
-    "beforeBuildCommand": "node src-tauri/ensure-dist.cjs",
+    "beforeBuildCommand": "node ../src-tauri/ensure-dist.cjs",
     "frontendDist": "../dist"
   },
   "app": {

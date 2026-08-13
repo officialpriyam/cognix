@@ -59,7 +59,7 @@ export async function signOut() {
   localStorage.removeItem('cognix-token');
 }
 
-export async function getSession() {
+export async function getSession(): Promise<{ user: any; session: any } | null> {
   try {
     const token = getAuthToken();
     if (!token) return null;
@@ -67,7 +67,8 @@ export async function getSession() {
       method: 'POST',
       body: { token },
     });
-  } catch {
+  } catch (e: any) {
+    console.error('[auth] getSession failed:', e?.message || e);
     return null;
   }
 }
