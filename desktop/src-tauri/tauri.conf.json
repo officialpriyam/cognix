@@ -6,7 +6,7 @@
   "build": {
     "beforeDevCommand": "cd src && npm install && npx vite --port 3001",
     "devUrl": "http://localhost:3001",
-    "beforeBuildCommand": "echo skip",
+    "beforeBuildCommand": "node src-tauri/ensure-dist.cjs",
     "frontendDist": "../dist"
   },
   "app": {
@@ -28,6 +28,13 @@
       "csp": null
     }
   },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["cognix"]
+      }
+    }
+  },
   "bundle": {
     "active": true,
     "targets": "all",
@@ -37,6 +44,9 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "resources": {
+      "target/release/WebView2Loader.dll": "WebView2Loader.dll"
+    }
   }
 }

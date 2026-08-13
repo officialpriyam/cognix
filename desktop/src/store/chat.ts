@@ -2,9 +2,12 @@ import { create } from 'zustand';
 import {
   getChatThreads,
   createChatThread,
+  streamChat,
   type ChatThread,
   type ChatMessage,
 } from '@/lib/api';
+
+const API_BASE = 'https://cognix.iampriyam.me';
 
 interface ChatState {
   threads: ChatThread[];
@@ -20,8 +23,6 @@ interface ChatState {
   sendMessage: (content: string) => Promise<void>;
   setModel: (model: string) => void;
 }
-
-const API_BASE = 'https://cognix.iampriyam.me';
 
 export const useChatStore = create<ChatState>((set, get) => ({
   threads: [],
@@ -42,19 +43,23 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   selectThread: async (id: string) => {
-    set({ activeThreadId: id, isLoading: true });
+    set({ activeThreadId: id, isLoading: true, messages: [] });
     try {
-      const res = await fetch(`${API_BASE}/api/chat/threads/${id}`, { credentials: 'include' });
-      const data = await res.json();
-      set({ messages: data.messages ?? [], isLoading: false });
+      const { fetch: tauriFetch } = await import('@tauri-apps/plugin-http');
+      const response = await tauriFetch(`${API_BASE}/api/chat/threads/${id}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await response.json();
+      set({ messages: data.messages ?? data ?? [], isLoading: false });
     } catch {
-      set({ isLoading: false, error: 'Failed to load messages' });
+      set({ isLoading: false });
     }
   },
 
   createThread: async (title: string) => {
     const thread = await createChatThread(title);
-    set((s) => ({ threads: [thread, ...s.threads], activeThreadId: thread.id }));
+    set((s) => ({ threads: [thread, ...s.threads], activeThreadId: thread.id, messages: [] }));
     return thread.id;
   },
 
@@ -69,69 +74,37 @@ export const useChatStore = create<ChatState>((set, get) => ({
       createdAt: new Date().toISOString(),
     };
 
-    set({ messages: [...messages, userMsg], isStreaming: true, error: null });
+    const assistantId = crypto.randomUUID();
+    let assistantContent = '';
 
-    try {
-      const res = await fetch(`${API_BASE}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          id: activeThreadId,
-          message: { role: 'user', content, id: userMsg.id },
-          chatModel: selectedModel || undefined,
-        }),
-      });
+    set({
+      messages: [
+        ...messages,
+        userMsg,
+        { id: assistantId, role: 'assistant', content: '', createdAt: new Date().toISOString() },
+      ],
+      isStreaming: true,
+      error: null,
+    });
 
-      if (!res.ok) throw new Error(`Chat failed: ${res.status}`);
-
-      const reader = res.body?.getReader();
-      if (!reader) return;
-
-      const decoder = new TextDecoder();
-      let assistantContent = '';
-      const assistantId = crypto.randomUUID();
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
-
-        for (const line of lines) {
-          if (line.startsWith('0:')) {
-            try {
-              const text = JSON.parse(line.slice(2));
-              if (typeof text === 'string') {
-                assistantContent += text;
-                set((s) => {
-                  const msgs = [...s.messages];
-                  const last = msgs[msgs.length - 1];
-                  if (last?.id === assistantId && last.role === 'assistant') {
-                    msgs[msgs.length - 1] = { ...last, content: assistantContent };
-                  } else {
-                    msgs.push({
-                      id: assistantId,
-                      role: 'assistant',
-                      content: assistantContent,
-                      createdAt: new Date().toISOString(),
-                    });
-                  }
-                  return { messages: msgs };
-                });
-              }
-            } catch {
-              // skip non-json lines
-            }
+    await streamChat(
+      activeThreadId,
+      { role: 'user', content, id: userMsg.id },
+      selectedModel || undefined,
+      (chunk) => {
+        assistantContent += chunk;
+        set((s) => {
+          const msgs = [...s.messages];
+          const idx = msgs.findIndex((m) => m.id === assistantId);
+          if (idx >= 0) {
+            msgs[idx] = { ...msgs[idx], content: assistantContent };
           }
-        }
-      }
-    } catch (e) {
-      set({ error: e instanceof Error ? e.message : 'Failed to send message' });
-    } finally {
-      set({ isStreaming: false });
-    }
+          return { messages: msgs };
+        });
+      },
+      () => set({ isStreaming: false }),
+      (err) => set({ error: err.message, isStreaming: false })
+    );
   },
 
   setModel: (model: string) => set({ selectedModel: model }),

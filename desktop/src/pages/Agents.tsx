@@ -17,7 +17,7 @@ export default function Agents() {
   const handleCreate = async () => {
     if (!form.name.trim()) return;
     try {
-      const agent = await createAgent(form);
+      const agent = await createAgent({ ...form, tools: [] });
       setAgents((prev) => [agent, ...prev]);
       setShowCreate(false);
       setForm({ name: '', description: '', systemPrompt: '', model: 'gpt-4o' });

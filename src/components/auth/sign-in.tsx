@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,6 +35,8 @@ export default function SignIn({
   isFirstUser: boolean;
 }) {
   const t = useTranslations("Auth.SignIn");
+  const searchParams = useSearchParams();
+  const callbackURL = searchParams.get("callbackURL") || "/";
 
   const [loading, setLoading] = useState(false);
 
@@ -49,7 +52,7 @@ export default function SignIn({
         {
           email: formData.email,
           password: formData.password,
-          callbackURL: "/",
+          callbackURL,
         },
         {
           onError(ctx) {
@@ -63,7 +66,7 @@ export default function SignIn({
   };
 
   const handleSocialSignIn = (provider: SocialAuthenticationProvider) => {
-    authClient.signIn.social({ provider }).catch((e) => {
+    authClient.signIn.social({ provider, callbackURL }).catch((e) => {
       toast.error(e.error);
     });
   };

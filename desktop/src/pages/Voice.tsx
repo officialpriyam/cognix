@@ -1,6 +1,9 @@
 import { useState, useRef, useCallback } from 'react';
 import { Mic, MicOff, Phone, PhoneOff, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { fetch as tauriFetch } from '@tauri-apps/plugin-http';
+
+const API_BASE = 'https://cognix.iampriyam.me';
 
 type Provider = 'openai' | 'gemini';
 const VOICES: Record<Provider, string[]> = {
@@ -20,10 +23,9 @@ export default function Voice() {
   const connect = useCallback(async () => {
     setConnecting(true);
     try {
-      const res = await fetch(`https://cognix.iampriyam.me/api/chat/${provider === 'openai' ? 'openai-realtime' : 'gemini-realtime'}`, {
+      const res = await tauriFetch(`${API_BASE}/api/chat/${provider === 'openai' ? 'openai-realtime' : 'gemini-realtime'}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ voice, model: provider === 'openai' ? 'gpt-realtime' : undefined }),
       });
 

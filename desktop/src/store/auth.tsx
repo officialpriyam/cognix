@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { api } from '@/lib/api';
+import { getSession, signOut as apiSignOut } from '@/lib/api';
 
 interface User {
   id: string;
@@ -12,89 +12,101 @@ interface User {
 
 interface AuthState {
   user: User | null;
+  token: string | null;
   isLoading: boolean;
   error: string | null;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, name: string) => Promise<void>;
-  signInWithProvider: (provider: string) => Promise<string>;
+  authState: string | null;
+  openBrowserAuth: () => void;
+  handleDeepLink: (url: string) => void;
   signOut: () => Promise<void>;
   checkSession: () => Promise<void>;
   clearError: () => void;
 }
 
+function generateState(): string {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return Array.from(array, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
+      token: null,
       isLoading: false,
       error: null,
+      authState: null,
 
-      signIn: async (email: string, password: string) => {
-        set({ isLoading: true, error: null });
-        try {
-          const res = await api.signInEmail(email, password);
-          const user = res?.user || res?.data?.user;
-          if (user) {
-            set({ user, isLoading: false });
-          } else {
-            throw new Error('Invalid response from server');
-          }
-        } catch (error) {
-          const msg = error instanceof Error ? error.message : 'Sign in failed';
-          set({ error: msg, isLoading: false });
-          throw error;
-        }
+      openBrowserAuth: async () => {
+        const state = generateState();
+        set({ authState: state, error: null });
+        const url = `https://cognix.iampriyam.me/app-auth?state=${state}`;
+        window.open(url, '_blank');
+        set({ error: 'Complete sign-in in your browser. The app will update automatically.' });
       },
 
-      signUp: async (email: string, password: string, name: string) => {
-        set({ isLoading: true, error: null });
+      handleDeepLink: async (url: string) => {
         try {
-          const res = await api.signUpEmail(email, password, name);
-          const user = res?.user || res?.data?.user;
-          if (user) {
-            set({ user, isLoading: false });
-          } else {
-            throw new Error('Invalid response from server');
-          }
-        } catch (error) {
-          const msg = error instanceof Error ? error.message : 'Sign up failed';
-          set({ error: msg, isLoading: false });
-          throw error;
-        }
-      },
+          const parsed = new URL(url);
+          const token = parsed.searchParams.get('token');
+          const state = parsed.searchParams.get('state');
+          const errorParam = parsed.searchParams.get('error');
 
-      signInWithProvider: async (provider: string) => {
-        set({ isLoading: true, error: null });
-        try {
-          const res = await api.signInSocial(provider);
-          const url = res?.url || res?.data?.url;
-          if (!url) throw new Error('No OAuth URL returned');
-          set({ isLoading: false });
-          return url;
-        } catch (error) {
-          const msg = error instanceof Error ? error.message : 'OAuth sign in failed';
-          set({ error: msg, isLoading: false });
-          throw error;
+          if (errorParam) {
+            set({ error: errorParam, isLoading: false });
+            return;
+          }
+
+          if (!token) {
+            set({ error: 'No token received from authentication.', isLoading: false });
+            return;
+          }
+
+          const savedState = get().authState;
+          if (savedState && state && state !== savedState) {
+            set({ error: 'Authentication state mismatch. Please try again.', isLoading: false });
+            return;
+          }
+
+          localStorage.setItem('cognix-token', token);
+          set({ token, authState: null, isLoading: true, error: null });
+
+          const res = await getSession();
+          if (res?.user) {
+            set({ user: res.user as User, isLoading: false, error: null });
+          } else {
+            set({ user: null, token: null, isLoading: false, error: 'Session expired. Please sign in again.' });
+            localStorage.removeItem('cognix-token');
+          }
+        } catch {
+          set({ error: 'Failed to process authentication response.', isLoading: false });
         }
       },
 
       signOut: async () => {
         set({ isLoading: true });
         try {
-          await api.signOut();
-          set({ user: null, isLoading: false });
-        } catch (error) {
-          set({ user: null, isLoading: false, error: error instanceof Error ? error.message : 'Sign out failed' });
-        }
+          await apiSignOut();
+        } catch {}
+        localStorage.removeItem('cognix-token');
+        set({ user: null, token: null, isLoading: false });
       },
 
       checkSession: async () => {
+        set({ isLoading: true });
         try {
-          const res = await api.getSession();
-          const user = res?.user || res?.data?.user;
-          set({ user: user || null, isLoading: false });
+          const res = await getSession();
+          const user = res?.user;
+          if (user) {
+            set({ user, isLoading: false, error: null });
+          } else {
+            localStorage.removeItem('cognix-token');
+            set({ user: null, token: null, isLoading: false });
+          }
         } catch {
-          set({ user: null, isLoading: false });
+          localStorage.removeItem('cognix-token');
+          set({ user: null, token: null, isLoading: false });
         }
       },
 
@@ -103,10 +115,39 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'cognix-auth',
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ user: state.user }),
+      partialize: (state) => ({ user: state.user, token: state.token }),
     }
   )
 );
+
+export function initDeepLinkListener() {
+  const setup = async () => {
+    try {
+      const { getCurrent, onOpenUrl } = await import('@tauri-apps/plugin-deep-link');
+
+      const startUrls = await getCurrent();
+      if (startUrls && startUrls.length > 0) {
+        for (const url of startUrls) {
+          if (url.startsWith('cognix://')) {
+            useAuthStore.getState().handleDeepLink(url);
+          }
+        }
+      }
+
+      await onOpenUrl((urls: string[]) => {
+        for (const url of urls) {
+          if (url.startsWith('cognix://')) {
+            useAuthStore.getState().handleDeepLink(url);
+          }
+        }
+      });
+    } catch {
+      console.warn('Deep link listener not available (running in browser?)');
+    }
+  };
+
+  setup();
+}
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;

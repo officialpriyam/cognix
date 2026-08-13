@@ -2,7 +2,6 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/auth';
 import { useEffect } from 'react';
 import SignIn from './pages/SignIn';
-import SignUp from './pages/SignUp';
 import Chat from './pages/Chat';
 import Voice from './pages/Voice';
 import Agents from './pages/Agents';
@@ -37,10 +36,17 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function App() {
   const { user } = useAuthStore();
 
+  useEffect(() => {
+    const init = async () => {
+      const { initDeepLinkListener } = await import('./store/auth');
+      initDeepLinkListener();
+    };
+    init();
+  }, []);
+
   return (
     <Routes>
       <Route path="/sign-in" element={user ? <Navigate to="/" replace /> : <SignIn />} />
-      <Route path="/sign-up" element={user ? <Navigate to="/" replace /> : <SignUp />} />
       <Route
         path="/"
         element={
