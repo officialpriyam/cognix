@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +15,7 @@ import {
 import { useObjectState } from "@/hooks/use-object-state";
 
 import { Loader, LogIn, ShieldCheck } from "lucide-react";
+import { safe } from "ts-safe";
 import { authClient } from "auth/client";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
@@ -34,8 +34,6 @@ export default function SignIn({
   isFirstUser: boolean;
 }) {
   const t = useTranslations("Auth.SignIn");
-  const searchParams = useSearchParams();
-  const callbackURL = searchParams.get("callbackURL") || "/";
 
   const [loading, setLoading] = useState(false);
 
@@ -44,25 +42,28 @@ export default function SignIn({
     password: "",
   });
 
-  const emailAndPasswordSignIn = async () => {
+  const emailAndPasswordSignIn = () => {
     setLoading(true);
-    try {
-      const { error } = await authClient.signIn.email({
-        email: formData.email,
-        password: formData.password,
-      });
-      if (error) {
-        toast.error(error.message || error.statusText);
-        return;
-      }
-      window.location.href = callbackURL;
-    } finally {
-      setLoading(false);
-    }
+    safe(() =>
+      authClient.signIn.email(
+        {
+          email: formData.email,
+          password: formData.password,
+          callbackURL: "/",
+        },
+        {
+          onError(ctx) {
+            toast.error(ctx.error.message || ctx.error.statusText);
+          },
+        },
+      ),
+    )
+      .watch(() => setLoading(false))
+      .unwrap();
   };
 
   const handleSocialSignIn = (provider: SocialAuthenticationProvider) => {
-    authClient.signIn.social({ provider, callbackURL }).catch((e) => {
+    authClient.signIn.social({ provider }).catch((e) => {
       toast.error(e.error);
     });
   };
@@ -157,7 +158,7 @@ export default function SignIn({
             <div className="my-7 text-center text-sm text-muted-foreground">
               {t("noAccount")}
               <Link
-                href={`/sign-up${callbackURL !== "/" ? `?callbackURL=${encodeURIComponent(callbackURL)}` : ""}`}
+                href="/sign-up"
                 className="font-medium underline-offset-4 text-primary hover:underline"
               >
                 {t("signUp")}

@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import SignIn from "@/components/auth/sign-in";
 import { getAuthConfig } from "lib/auth/config";
 import { getIsFirstUser } from "lib/auth/server";
@@ -16,13 +15,11 @@ export default async function SignInPage() {
     ) as (keyof typeof socialAuthenticationProviders)[]
   ).filter((key) => socialAuthenticationProviders[key]);
   return (
-    <Suspense>
-      <SignIn
-        emailAndPasswordEnabled={emailAndPasswordEnabled}
-        signUpEnabled={signUpEnabled}
-        socialAuthenticationProviders={enabledProviders}
-        isFirstUser={isFirstUser}
-      />
-    </Suspense>
+    <SignIn
+      emailAndPasswordEnabled={emailAndPasswordEnabled}
+      signUpEnabled={signUpEnabled}
+      socialAuthenticationProviders={enabledProviders}
+      isFirstUser={isFirstUser}
+    />
   );
 }

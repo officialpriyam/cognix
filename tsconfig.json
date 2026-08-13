@@ -46,5 +46,5 @@
     "tests/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "desktop"]
+  "exclude": ["node_modules"]
 }
