@@ -20,7 +20,12 @@ export default function AppAuthClient() {
 
   const handleApprove = () => {
     startTransition(async () => {
-      await approveAppAuth(state);
+      const result = await approveAppAuth(state);
+      if (result.url) {
+        window.location.href = result.url;
+      } else if (result.error) {
+        window.location.href = `/sign-in?callbackURL=${encodeURIComponent(`/app-auth?state=${state}`)}`;
+      }
     });
   };
 
