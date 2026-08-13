@@ -1,17 +1,16 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { getSession } from "lib/auth/server";
 
 export async function approveAppAuth(
   state: string,
 ): Promise<{ error?: string; url?: string }> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("better-auth.session_token")?.value;
+  const session = await getSession();
 
-  if (!token) {
+  if (!session?.session) {
     return { error: "Not authenticated" };
   }
 
-  const url = `cognix://auth?token=${encodeURIComponent(token)}&state=${encodeURIComponent(state)}`;
+  const url = `cognix://auth?token=${encodeURIComponent(session.session.token)}&state=${encodeURIComponent(state)}`;
   return { url };
 }
