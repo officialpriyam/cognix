@@ -19,17 +19,15 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Skip auth check for /app-auth — handled by the server component
+  // which uses getSession() reliably
+  if (pathname === "/app-auth") {
+    return NextResponse.next();
+  }
+
   const sessionCookie = getSessionCookie(request);
 
   if (!sessionCookie) {
-    if (pathname === "/app-auth") {
-      const url = new URL(request.url);
-      const state = url.searchParams.get("state") || "";
-      const callbackURL = encodeURIComponent(`/app-auth?state=${state}`);
-      return NextResponse.redirect(
-        new URL(`/sign-in?callbackURL=${callbackURL}`, request.url),
-      );
-    }
     return NextResponse.redirect(new URL("/sign-in", request.url));
   }
   return NextResponse.next();
