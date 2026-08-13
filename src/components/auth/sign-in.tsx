@@ -45,24 +45,21 @@ export default function SignIn({
     password: "",
   });
 
-  const emailAndPasswordSignIn = () => {
+  const emailAndPasswordSignIn = async () => {
     setLoading(true);
-    safe(() =>
-      authClient.signIn.email(
-        {
-          email: formData.email,
-          password: formData.password,
-          callbackURL,
-        },
-        {
-          onError(ctx) {
-            toast.error(ctx.error.message || ctx.error.statusText);
-          },
-        },
-      ),
-    )
-      .watch(() => setLoading(false))
-      .unwrap();
+    try {
+      const { data, error } = await authClient.signIn.email({
+        email: formData.email,
+        password: formData.password,
+      });
+      if (error) {
+        toast.error(error.message || error.statusText);
+        return;
+      }
+      window.location.href = callbackURL;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSocialSignIn = (provider: SocialAuthenticationProvider) => {

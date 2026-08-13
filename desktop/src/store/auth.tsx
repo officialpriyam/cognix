@@ -42,7 +42,13 @@ export const useAuthStore = create<AuthState>()(
         const state = generateState();
         set({ authState: state, error: null });
         const url = `https://cognix.iampriyam.me/app-auth?state=${state}`;
-        window.open(url, '_blank');
+        try {
+          const { invoke } = await import('@tauri-apps/api/core');
+          await invoke('open_url', { url });
+        } catch (e) {
+          console.error('Failed to open browser:', e);
+          window.open(url, '_blank');
+        }
         set({ error: 'Complete sign-in in your browser. The app will update automatically.' });
       },
 

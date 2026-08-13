@@ -4,9 +4,10 @@
   "description": "Default capabilities for Cognix Desktop",
   "windows": ["main"],
   "permissions": [
-    "core:event:default",
+    "core:default",
     "deep-link:default",
     "shell:default",
+    "shell:allow-open",
     "http:default"
   ]
 }

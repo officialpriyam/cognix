@@ -486,6 +486,7 @@ dependencies = [
 name = "cognix"
 version = "1.26.0"
 dependencies = [
+ "open",
  "serde",
  "serde_json",
  "tauri",
