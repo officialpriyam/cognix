@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import SignUpPage from "@/components/auth/sign-up";
 import { getAuthConfig } from "auth/config";
 import { getIsFirstUser } from "lib/auth/server";
@@ -26,10 +27,12 @@ export default async function SignUp() {
   }
 
   return (
-    <SignUpPage
-      isFirstUser={isFirstUser}
-      emailAndPasswordEnabled={emailAndPasswordEnabled}
-      socialAuthenticationProviders={enabledProviders}
-    />
+    <Suspense>
+      <SignUpPage
+        isFirstUser={isFirstUser}
+        emailAndPasswordEnabled={emailAndPasswordEnabled}
+        socialAuthenticationProviders={enabledProviders}
+      />
+    </Suspense>
   );
 }

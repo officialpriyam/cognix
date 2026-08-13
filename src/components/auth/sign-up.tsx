@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -28,10 +29,12 @@ export default function SignUpPage({
   isFirstUser: boolean;
 }) {
   const t = useTranslations();
+  const searchParams = useSearchParams();
+  const callbackURL = searchParams.get("callbackURL") || "/";
   const handleSocialSignIn = (provider: SocialAuthenticationProvider) => {
     startTransition(async () => {
       try {
-        await authClient.signIn.social({ provider });
+        await authClient.signIn.social({ provider, callbackURL });
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Unknown error");
       }
@@ -55,7 +58,7 @@ export default function SignUpPage({
       <CardContent className="flex flex-col gap-3 pb-2">
         {emailAndPasswordEnabled && (
           <Link
-            href="/sign-up/email"
+            href={`/sign-up/email${callbackURL !== "/" ? `?callbackURL=${encodeURIComponent(callbackURL)}` : ""}`}
             data-testid="email-signup-button"
             className={cn(
               buttonVariants({ variant: "default" }),
@@ -86,7 +89,7 @@ export default function SignUpPage({
         <div className="my-5 text-center text-sm text-muted-foreground">
           Already have an account?{" "}
           <Link
-            href="/sign-in"
+            href={`/sign-in${callbackURL !== "/" ? `?callbackURL=${encodeURIComponent(callbackURL)}` : ""}`}
             className="font-medium text-primary underline-offset-4 hover:underline"
           >
             {t("Auth.SignUp.signIn")}

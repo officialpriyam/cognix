@@ -16,7 +16,6 @@ import {
 import { useObjectState } from "@/hooks/use-object-state";
 
 import { Loader, LogIn, ShieldCheck } from "lucide-react";
-import { safe } from "ts-safe";
 import { authClient } from "auth/client";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
@@ -48,7 +47,7 @@ export default function SignIn({
   const emailAndPasswordSignIn = async () => {
     setLoading(true);
     try {
-      const { data, error } = await authClient.signIn.email({
+      const { error } = await authClient.signIn.email({
         email: formData.email,
         password: formData.password,
       });
@@ -158,7 +157,7 @@ export default function SignIn({
             <div className="my-7 text-center text-sm text-muted-foreground">
               {t("noAccount")}
               <Link
-                href="/sign-up"
+                href={`/sign-up${callbackURL !== "/" ? `?callbackURL=${encodeURIComponent(callbackURL)}` : ""}`}
                 className="font-medium underline-offset-4 text-primary hover:underline"
               >
                 {t("signUp")}

@@ -27,7 +27,7 @@ import { toast } from "sonner";
 import { safe } from "ts-safe";
 import { UserZodSchema } from "app-types/user";
 import { existsByEmailAction, signUpAction } from "@/app/api/auth/actions";
-import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 
 export default function EmailSignUp({
@@ -36,8 +36,9 @@ export default function EmailSignUp({
   isFirstUser: boolean;
 }) {
   const t = useTranslations();
+  const searchParams = useSearchParams();
+  const callbackURL = searchParams.get("callbackURL") || "/";
   const [step, setStep] = useState(1);
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useObjectState({
     email: "",
@@ -116,7 +117,7 @@ export default function EmailSignUp({
     ).unwrap();
     if (success) {
       toast.success(message);
-      router.push("/");
+      window.location.href = callbackURL;
     } else {
       toast.error(message);
     }
@@ -303,7 +304,7 @@ export default function EmailSignUp({
           <div className="mt-5 text-center text-sm text-muted-foreground">
             Already have an account?{" "}
             <Link
-              href="/sign-in"
+              href={`/sign-in${callbackURL !== "/" ? `?callbackURL=${encodeURIComponent(callbackURL)}` : ""}`}
               className="font-medium text-primary underline-offset-4 hover:underline"
             >
               {t("Auth.SignUp.signIn")}
