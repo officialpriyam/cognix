@@ -52,23 +52,15 @@ const orcaRouter = createOpenAICompatible({
   apiKey: process.env.ORCAROUTER_API_KEY,
 });
 
-const magicxCoder = createOpenAICompatible({
-  name: "Magical AI",
-  baseURL:
-    process.env.MAGICX_CODER_BASE_URL || "http://185.172.175.223:1234/v1",
-  apiKey: process.env.MAGICX_CODER_API_KEY,
-});
-
-const magicx = createOpenAICompatible({
-  name: "Magical AI",
-  baseURL: process.env.MAGICX_BASE_URL || "http://185.172.175.223:1234/api/v1",
-  apiKey: process.env.MAGICX_API_KEY,
+const fastCogni = createOpenAICompatible({
+  name: "FastCogni",
+  baseURL: process.env.FASTCOGNI_BASE_URL || "",
+  apiKey: process.env.FASTCOGNI_API_KEY,
 });
 
 const staticModels = {
-  "Magical AI": {
-    magicxcoder: magicxCoder("google/gemma-3-1b"),
-    magicxdaily: magicx("llama-3.2-1b-instruct"),
+  FastCogni: {
+    FastCogni: fastCogni("phi-4-mini-instruct"),
   },
   openai: {
     "gpt-4.1": openai("gpt-4.1"),
@@ -314,18 +306,6 @@ export const customModelProvider = {
     if (provider === "ollama") {
       return ollama(modelName);
     }
-    if (provider === "Magical AI") {
-      // Try magicxcoder first, then magicx
-      if (modelName === "magicxcoder") {
-        return magicxCoder("qwen2.5-coder-1.5b-instruct");
-      }
-      if (modelName === "magicx") {
-        return magicx("google/gemma-3-1b");
-      }
-      // Fallback to magicxcoder
-      return magicxCoder("qwen2.5-coder-1.5b-instruct");
-    }
-
     return allModels[provider]?.[modelName] || fallbackModel;
   },
 };
@@ -575,8 +555,8 @@ function checkProviderAPIKey(provider: keyof typeof staticModels) {
     case "openRouter":
       key = process.env.OPENROUTER_API_KEY;
       break;
-    case "Magical AI":
-      key = process.env.MAGICX_CODER_API_KEY || process.env.MAGICX_API_KEY;
+    case "FastCogni":
+      key = process.env.FASTCOGNI_API_KEY;
       break;
     default:
       return true; // assume the provider has an API key
