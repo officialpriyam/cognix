@@ -21,9 +21,10 @@ import { sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { UserTable } from "../src/lib/db/pg/schema.pg";
 import { like } from "drizzle-orm";
+import { getDbUrl } from "../src/lib/db/db-url";
 
 // Create database connection
-const db = drizzle(process.env.POSTGRES_URL!);
+const db = drizzle(getDbUrl().url);
 
 async function cleanupAllTestData() {
   console.log("🧹 Cleaning up ALL test data including seeded users...");

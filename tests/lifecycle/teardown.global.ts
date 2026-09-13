@@ -8,10 +8,11 @@ import {
 } from "../../src/lib/db/pg/schema.pg";
 import { eq, like, or } from "drizzle-orm";
 import { config } from "dotenv";
+import { getDbUrl } from "../../src/lib/db/db-url";
 
 config();
 
-const db = drizzle(process.env.POSTGRES_URL!);
+const db = drizzle(getDbUrl().url);
 
 async function cleanup() {
   console.log("Cleaning up test data...");

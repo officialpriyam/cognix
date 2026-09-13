@@ -23,6 +23,7 @@ import { USER_ROLES } from "app-types/roles";
 import { sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
+import { getDbUrl } from "lib/db/db-url";
 import {
   UserTable,
   ChatMessageTable,
@@ -30,9 +31,9 @@ import {
 } from "lib/db/pg/schema.pg";
 import { like, eq } from "drizzle-orm";
 
-// Create database connection with Pool
+// Create database connection with Pool (resolves DATABASE_URL/POSTGRES_URL/Supabase/PG* vars)
 const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL!,
+  connectionString: getDbUrl().url,
 });
 const db = drizzle(pool);
 

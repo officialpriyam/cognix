@@ -1,9 +1,10 @@
 import { defineConfig } from "drizzle-kit";
 import "load-env";
+import { resolveDbUrl } from "lib/db/db-url";
 
 const dialect = "postgresql";
 
-const url = process.env.POSTGRES_URL!;
+const url = resolveDbUrl().url;
 
 const schema = "./src/lib/db/pg/schema.pg.ts";
 
