@@ -1,0 +1,4 @@
+# Supabase CLI local artifacts
+/.temp
+/.branches
+/.temp_clone

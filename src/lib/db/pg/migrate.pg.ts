@@ -14,6 +14,7 @@ import {
   MIGRATION_MODE_ENV,
 } from "./migrate-mode";
 import { migrateWithSessionLock } from "./migrate-session";
+import { parseEnvBoolean } from "lib/utils";
 
 const MIGRATIONS_FOLDER = join(process.cwd(), "src/lib/db/migrations/pg");
 
@@ -145,6 +146,13 @@ export async function getMigrationStatus(): Promise<MigrationStatus> {
  * | check           | log pending migrations without applying them       |
  */
 export const runMigrateIfEnabled = async (): Promise<void> => {
+  if (parseEnvBoolean(process.env.DB_DISABLE_MIGRATIONS)) {
+    logger.info(
+      "DB_DISABLE_MIGRATIONS=true - skipping startup migrations entirely",
+    );
+    return;
+  }
+
   const mode = parseMigrationMode(process.env[MIGRATION_MODE_ENV]);
 
   if (mode === "never") {

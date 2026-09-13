@@ -11,7 +11,9 @@ export async function getStorageInfoAction() {
   return {
     type: storageDriver,
     supportsDirectUpload:
-      storageDriver === "vercel-blob" || storageDriver === "s3",
+      storageDriver === "vercel-blob" ||
+      storageDriver === "s3" ||
+      storageDriver === "supabase",
   };
 }
 

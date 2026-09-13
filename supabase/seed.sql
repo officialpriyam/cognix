@@ -1,0 +1,7 @@
+-- Seed script for local Supabase development.
+-- Applied by `supabase db reset` (migrations + this seed).
+--
+-- Ensure the app's storage bucket exists (the app also creates it at runtime):
+-- insert into storage.buckets (id, name, public)
+-- values ('cognix', 'cognix', true)
+-- on conflict (id) do nothing;
