@@ -37,6 +37,9 @@ const LOCAL_HOSTS = new Set([
   "pgbouncer",
 ]);
 
+/** Standard libpq `sslmode=require` compatibility for managed PostgreSQL TLS. */
+const LIBPQ_COMPAT = "uselibpqcompat=true";
+
 const URL_KEYS = [
   "DATABASE_URL",
   "POSTGRES_URL",
@@ -45,7 +48,10 @@ const URL_KEYS = [
 ] as const;
 
 /** URL used only for schema migrations (direct connection, no pooler). */
-const MIGRATION_URL_KEYS = ["DB_MIGRATION_URL", "POSTGRES_URL_NON_POOLING"] as const;
+const MIGRATION_URL_KEYS = [
+  "DB_MIGRATION_URL",
+  "POSTGRES_URL_NON_POOLING",
+] as const;
 
 const CREDENTIAL_KEYS = [
   [
@@ -80,7 +86,7 @@ function hasExplicitSslMode(url: string): boolean {
 }
 
 function withSsl(url: string): string {
-  return `${url}${url.includes("?") ? "&" : "?"}sslmode=require`;
+  return `${url}${url.includes("?") ? "&" : "?"}${LIBPQ_COMPAT}&sslmode=require`;
 }
 
 /**

@@ -92,7 +92,7 @@ describe("resolveDbUrl", () => {
 
     const r = resolveDbUrl();
     expect(r.url).toBe(
-      "postgres://u:p@ep-cool-name-123.eu-central-1.aws.neon.tech/neondb?sslmode=require",
+      "postgres://u:p@ep-cool-name-123.eu-central-1.aws.neon.tech/neondb?uselibpqcompat=true&sslmode=require",
     );
     expect(r.source).toBe("POSTGRES_URL");
     expect(r.sslInjected).toBe(true);
@@ -120,12 +120,23 @@ describe("resolveDbUrl", () => {
     expect(r.sslInjected).toBe(false);
   });
 
+  it("appends libpq-compatible TLS settings for managed hosts", () => {
+    process.env.DATABASE_URL = "postgres://u:p@db.example.com:5432/postgres";
+
+    const r = resolveDbUrl();
+    expect(r.url).toBe(
+      "postgres://u:p@db.example.com:5432/postgres?uselibpqcompat=true&sslmode=require",
+    );
+    expect(r.source).toBe("DATABASE_URL");
+    expect(r.sslInjected).toBe(true);
+  });
+
   it("appends sslmode with & when query params already exist", () => {
     process.env.DATABASE_URL =
       "postgres://u:p@myhost.example.com:5432/db?pools=true";
     const r = resolveDbUrl();
     expect(r.url).toBe(
-      "postgres://u:p@myhost.example.com:5432/db?pools=true&sslmode=require",
+      "postgres://u:p@myhost.example.com:5432/db?pools=true&uselibpqcompat=true&sslmode=require",
     );
     expect(r.sslInjected).toBe(true);
   });
@@ -138,7 +149,7 @@ describe("resolveDbUrl", () => {
 
     const r = resolveDbUrl();
     expect(r.url).toBe(
-      "postgres://neon_user:s3cret@ep-cool-name.eu-central-1.aws.neon.tech:5432/neondb?sslmode=require",
+      "postgres://neon_user:s3cret@ep-cool-name.eu-central-1.aws.neon.tech:5432/neondb?uselibpqcompat=true&sslmode=require",
     );
     expect(r.source).toBe("POSTGRES_HOST (ssl injected)");
     expect(r.sslInjected).toBe(true);
