@@ -1,19 +1,31 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
-    // Dependency installation must never require a reachable database or
-    // perform DDL. Runtime startup applies migrations according to
-    // DB_AUTO_MIGRATE and holds an advisory lock while doing so.
-    const runMigrateIfEnabled = await import("./lib/db/pg/migrate.pg").then(
-      (m) => m.runMigrateIfEnabled,
-    );
-    await runMigrateIfEnabled().catch((e) => {
-      console.error(e);
-      process.exit(1);
-    });
+    // Startup tasks are intentionally best-effort. A transient database
+    // outage, a failed migration, or an MCP init error must never take down
+    // the whole server — that previously caused repeated 500s / "Routing
+    // Middleware has crashed" on every request and a crash loop on restart.
+    try {
+      const runMigrateIfEnabled = await import("./lib/db/pg/migrate.pg").then(
+        (m) => m.runMigrateIfEnabled,
+      );
+      await runMigrateIfEnabled();
+    } catch (error) {
+      console.error(
+        "[instrumentation] startup migration failed; continuing without it:",
+        error,
+      );
+    }
 
-    const initMCPManager = await import("./lib/ai/mcp/mcp-manager").then(
-      (m) => m.initMCPManager,
-    );
-    await initMCPManager();
+    try {
+      const initMCPManager = await import("./lib/ai/mcp/mcp-manager").then(
+        (m) => m.initMCPManager,
+      );
+      await initMCPManager();
+    } catch (error) {
+      console.error(
+        "[instrumentation] MCP manager init failed; continuing without it:",
+        error,
+      );
+    }
   }
 }
