@@ -13,6 +13,7 @@ import {
   type MigrationMode,
   MIGRATION_MODE_ENV,
 } from "./migrate-mode";
+import { migrateWithSessionLock } from "./migrate-session";
 
 const MIGRATIONS_FOLDER = join(process.cwd(), "src/lib/db/migrations/pg");
 
@@ -85,12 +86,13 @@ async function runMigrationsWithLock() {
   const db = getMigrationDb();
   const client = await (db.$client as PgPool).connect();
   try {
-    await client.query("select pg_advisory_lock($1)", [MIGRATION_LOCK_KEY]);
-    try {
-      await migrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
-    } finally {
-      await client.query("select pg_advisory_unlock($1)", [MIGRATION_LOCK_KEY]);
-    }
+    await migrateWithSessionLock(
+      client,
+      async (lockedDb) => {
+        await migrate(lockedDb, { migrationsFolder: MIGRATIONS_FOLDER });
+      },
+      MIGRATION_LOCK_KEY,
+    );
   } finally {
     client.release();
   }
@@ -154,7 +156,11 @@ export const runMigrateIfEnabled = async (): Promise<void> => {
     logger.info("⏳ Running PostgreSQL migrations (DB_AUTO_MIGRATE=force)...");
     const start = Date.now();
     await runMigrationsWithLock();
-    logger.info("✅ PostgreSQL migrations completed in", Date.now() - start, "ms");
+    logger.info(
+      "✅ PostgreSQL migrations completed in",
+      Date.now() - start,
+      "ms",
+    );
     return;
   }
 
@@ -181,7 +187,11 @@ export const runMigrateIfEnabled = async (): Promise<void> => {
   }
 
   await runMigrationsWithLock();
-  logger.info("✅ PostgreSQL migrations completed in", Date.now() - start, "ms");
+  logger.info(
+    "✅ PostgreSQL migrations completed in",
+    Date.now() - start,
+    "ms",
+  );
 };
 
 /**
@@ -197,5 +207,9 @@ export const runMigrate = async (): Promise<void> => {
     );
     throw err;
   });
-  logger.info("✅ PostgreSQL migrations completed in", Date.now() - start, "ms");
-};
+  logger.info(
+    "✅ PostgreSQL migrations completed in",
+    Date.now() - start,
+    "ms",
+  );
+};
