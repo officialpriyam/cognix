@@ -14,6 +14,43 @@ const loadMermaid = async () => {
   return mermaidModule;
 };
 
+// Common LLM-output issues: node labels contain raw/smart double quotes or chars
+// like `?`, `(`, `)` that Mermaid only allows inside quoted labels. We only touch
+// labels that actually contain a quote (already-valid charts stay untouched) and wrap
+// their content in "..." escaping inner quotes as #quot;.
+const SMART_QUOTES = ["\u201C", "\u201D", "\u201E", "\u00AB", "\u00BB", '"'];
+function needsQuote(inner: string) {
+  return inner.includes('"') || SMART_QUOTES.some((q) => inner.includes(q));
+}
+function repairMermaid(chart: string): string {
+  const wrap = (open: string, close: string, inner: string) => {
+    const trimmed = inner.trim();
+    if (/^".*"$/.test(trimmed)) return `${open}${inner}${close}`;
+    const cleaned = inner
+      .replace(/["\u201C\u201D\u201E]/g, "#quot;")
+      .replace(/["\u2018\u2019]/g, "#quot;")
+      .trim();
+    return `${open}"${cleaned}"${close}`;
+  };
+  let out = chart.replace(/\[([^\][\n]*)\]/g, (m, inner: string) =>
+    needsQuote(inner) ? wrap("[", "]", inner) : m,
+  );
+  out = out.replace(/\{([^}\n]*)\}/g, (m, inner: string) =>
+    needsQuote(inner) ? wrap("{", "}", inner) : m,
+  );
+  out = out.replace(/\((?![\[(])([^)\n]*)\)/g, (m, inner: string) =>
+    needsQuote(inner) ? wrap("(", ")", inner) : m,
+  );
+  return out;
+}
+
+async function renderChart(chart: string) {
+  const mermaid = await loadMermaid();
+  await mermaid.parse(chart);
+  const id = `mermaid-${Date.now()}`;
+  return await mermaid.render(id, chart);
+}
+
 interface MermaidDiagramProps {
   chart?: string;
 }
@@ -49,22 +86,21 @@ export function MermaidDiagram({ chart }: MermaidDiagramProps) {
 
       try {
         const mermaid = await loadMermaid();
-
-        // Initialize mermaid with theme
         mermaid.initialize({
           startOnLoad: false,
           theme: (resolvedTheme || theme) === "dark" ? "dark" : "default",
           securityLevel: "loose",
         });
 
-        // // First try to parse to catch syntax errors early
-        await mermaid.parse(chart);
+        let result: { svg: string };
+        try {
+          result = await renderChart(chart);
+        } catch {
+          // Retry with a repaired (auto-quoted) chart before giving up.
+          result = await renderChart(repairMermaid(chart));
+        }
 
-        // Render the diagram
-        const id = `mermaid-${Date.now()}`;
-        const { svg } = await mermaid.render(id, chart);
-
-        setState({ svg, error: null, loading: false });
+        setState({ svg: result.svg, error: null, loading: false });
       } catch (err) {
         console.error("Mermaid rendering error:", err);
         setState({

@@ -371,6 +371,55 @@ export const ChatExportCommentTable = pgTable("chat_export_comment", {
   updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+// Cognix Desktop session backups (pushed from the desktop app, kept here in the cloud in
+// addition to the desktop's local store). Full transcript is preserved as raw JSON in `parts`.
+export const CognixSessionTable = pgTable(
+  "cognix_session",
+  {
+    id: text("id").primaryKey().notNull(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => UserTable.id, { onDelete: "cascade" }),
+    title: text("title").notNull().default(""),
+    model: json("model").$type<Record<string, unknown> | null>(),
+    meta: json("meta").$type<Record<string, unknown>>(),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [index("cognix_session_user_idx").on(table.userId)],
+);
+
+export const CognixSessionMessageTable = pgTable(
+  "cognix_session_message",
+  {
+    id: text("id").primaryKey().notNull(),
+    sessionId: text("session_id")
+      .notNull()
+      .references(() => CognixSessionTable.id, { onDelete: "cascade" }),
+    role: text("role").notNull(),
+    parts: json("parts").notNull(),
+    meta: json("meta").$type<Record<string, unknown>>(),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [index("cognix_session_message_session_idx").on(table.sessionId)],
+);
+
+export const CognixChatMemoryTable = pgTable(
+  "cognix_chat_memory",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => UserTable.id, { onDelete: "cascade" }),
+    sessionId: text("session_id"),
+    kind: text("kind").notNull().default("summary"), // summary | note | fact
+    content: text("content").notNull(),
+    createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [index("cognix_chat_memory_user_idx").on(table.userId)],
+);
+
 export type ArchiveEntity = typeof ArchiveTable.$inferSelect;
 export type ArchiveItemEntity = typeof ArchiveItemTable.$inferSelect;
 export type BookmarkEntity = typeof BookmarkTable.$inferSelect;
