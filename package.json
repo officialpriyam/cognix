@@ -2,7 +2,7 @@
   "name": "cognix",
   "version": "1.26.0",
   "private": true,
-  "author": "Priyx",
+  "author": "Priyam",
   "license": "MIT",
   "type": "module",
   "scripts": {

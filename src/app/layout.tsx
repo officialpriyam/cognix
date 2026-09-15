@@ -21,7 +21,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Cognix",
-  description: "Cognix is a powerful AI chatbot platform by Priyx.",
+  description: "Cognix is a powerful AI chatbot platform by Priyam.",
   icons: {
     icon: [
       { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },

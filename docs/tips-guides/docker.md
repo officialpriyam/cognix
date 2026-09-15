@@ -14,7 +14,7 @@ Docker provides a streamlined and efficient method for managing containerized ap
     Navigate to the desired directory in your terminal and clone the project repository. If you're not already in the project directory after cloning, change into it:
 
     ```sh
-    git clone https://github.com/priyx/cognix
+    git clone https://github.com/officialpriyam/cognix
     cd cognix
     ```
 

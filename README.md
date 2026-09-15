@@ -1,100 +1,144 @@
 # Cognix
 
-[![MCP Supported](https://img.shields.io/badge/MCP-Supported-00c853)](https://modelcontextprotocol.io/introduction)
-[![Local First](https://img.shields.io/badge/Local-First-blue)](https://localfirstweb.dev/)
-[![Discord](https://img.shields.io/discord/1374047276074537103?label=Discord&logo=discord&color=5865F2)](https://cognixdc.iampriyam.me)
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/priyx/cognix&env=BETTER_AUTH_SECRET&env=OPENAI_API_KEY&env=GOOGLE_GENERATIVE_AI_API_KEY&env=ANTHROPIC_API_KEY&envDescription=BETTER_AUTH_SECRET+is+required+(enter+any+secret+value).+At+least+one+LLM+provider+API+key+(OpenAI,+Claude,+or+Google)+is+required,+but+you+can+add+all+of+them.+See+the+link+below+for+details.&envLink=https://github.com/priyx/cognix/blob/main/.env.example&demo-title=cognix&demo-description=An+Open-Source+Chatbot+Template+Built+With+Next.js+and+the+AI+SDK+by+Vercel.&products=[{"type":"integration","protocol":"storage","productSlug":"neon","integrationSlug":"neon"},{"type":"integration","protocol":"storage","productSlug":"upstash-kv","integrationSlug":"upstash"},{"type":"blob"}]>)
+A self-hostable, open-source AI chatbot platform — Next.js 16 + React 19 + the Vercel AI SDK
+— with agents, MCP tool management, workflows, image generation, multi-provider chat, i18n,
+and a first-party **Cognix Desktop** companion app that signs in via Cognix and syncs chats to
+the cloud.
 
-🚀 [Live Demo](https://cognix-demo.vercel.app/) | See the experience in action in the [preview](#preview) below!
-
-#### Demo Chats
-
-- MCP Tools Demo: [Chat with Tools](https://cognix-demo.vercel.app/export/a4820921-8012-496b-8a5d-13757050bafe)
-- Image Generation Demo: [Chat with Image Generation](https://cognix-demo.vercel.app/export/452ad745-9efb-49ae-9114-10db15f1b827)
-
----
-
-## Overview
-
-Cognix — an open‑source AI chatbot for individuals and teams.
-
-> Cognix is a powerful, extensible AI chatbot platform inspired by ChatGPT, Claude, Grok, and Gemini. It brings multiple LLM providers, MCP tools, automation, and collaboration into a single, clean interface.
-
-* Multi‑AI Support — OpenAI, Anthropic, Google, xAI, Ollama, OpenRouter, and more
-* MCP Tools — Web search, browser automation, code execution, custom MCP servers
-* Image Generation — Generate and edit images using supported AI models
-* Automation — Custom agents, workflows, and reusable tools
-* Collaboration — Share agents, workflows, and MCP configurations
-* Voice Assistant — Realtime voice chat with MCP tool execution
-* Fast UX — Invoke tools and agents instantly using `@mentions`
-
-Built with Next.js and the Vercel AI SDK.
-
----
-
-## Table of Contents
-
-* [Overview](#overview)
-* [Features](#features)
-* [Getting Started](#getting-started)
-* [Environment Variables](#environment-variables)
-* [Guides](#guides)
-* [Roadmap](#roadmap)
-* [Contributing](#contributing)
-* [Community](#community)
+- Repo: https://github.com/officialpriyam/cognix
+- Deploy: https://vercel.com/new/clone?repository-url=https://github.com/officialpriyam/cognix
+- License: MIT
 
 ---
 
 ## Features
 
-### 🧩 MCP Tools
+- **Multi-provider chat** — OpenAI, Anthropic, Google, Groq, xAI, OpenRouter, Ollama, NVIDIA,
+  and any OpenAI‑compatible endpoint. Tool calling, streaming, reasoning, and image output.
+- **Agents** — reusable system prompts, model + tool bindings, and shareable agent definitions.
+- **Tools** — built‑in web search & content (Exa), HTTP fetch, JavaScript & Python execution, and
+  chart/table generation; extensible via **MCP** servers.
+- **Tools Management** — a DB‑backed MCP registry with per‑server connection status, cached tool
+  info for **lazy connections**, and per‑user enable/disable + custom instructions.
+- **Workflows** — a visual node editor (LLM, HTTP, condition, and data nodes) for multi‑step pipelines.
+- **Auth & accounts** — powered by **better‑auth** (email/password, OAuth social providers,
+  sessions), plus an **admin** area and role‑based access control.
+- **Internationalized** UI and **theming**.
+- **Cognix Desktop** — an Electron app that logs in through this server (OAuth) and backs up
+  sessions + memory to the cloud.
 
-Full support for the *Model Context Protocol (MCP)**
-* Connect multiple MCP servers
-* LLMs can autonomously decide when and how to use tools
+## Tech stack
 
-### 🔗 Visual Workflows
+| Concern        | Tech |
+| -------------- | ---- |
+| Framework      | Next.js 16 (App Router), React 19 |
+| AI             | Vercel AI SDK 5, Model Context Protocol (MCP) |
+| Auth           | better‑auth |
+| Database       | PostgreSQL (Neon or **Supabase**) via Drizzle ORM |
+| Cache / realtime | Redis (optional) |
+| File storage   | Vercel Blob or S3‑compatible (optional) |
+| Styling / UI   | Tailwind CSS 4, shadcn/ui, Radix, Framer Motion |
+| Language       | TypeScript (strict) |
 
-* Build workflows visually using LLM nodes and tool nodes
-* Publish workflows as callable tools
-* Reuse complex multi‑step processes
+## Database
 
-### 🤖 Custom Agents
+PostgreSQL only. The app talks to it through a connection string (`POSTGRES_URL`) via
+`drizzle-orm/node-postgres`; migrations are Drizzle SQL in `src/lib/db/migrations/pg`.
 
-* Create specialized agents with custom instructions
-* Assign tools per agent
-* Invoke agents using `@agent_name`
+**Supabase works** (it is Postgres) — use the **session pooler / direct connection (port 5432)**
+for the app, and a non‑pooler URL for `DB_MIGRATION_URL`. The **transaction pooler (6543)**
+breaks node‑postgres prepared statements. Supabase URLs need `?sslmode=require`.
 
-### 🎙️ Realtime Voice Assistant
+## Getting started
 
-* Natural voice conversations
-* Real‑time tool execution
-* MCP‑aware voice interactions
+```bash
+git clone https://github.com/officialpriyam/cognix
+cd cognix
+pnpm install
+cp .env.example .env        # fill in at least BETTER_AUTH_SECRET + one LLM key
+pnpm db:migrate             # apply schema/migrations to your Postgres/Supabase DB
+pnpm dev
+```
 
-### ⚡ Tool Mentions & Presets
+### Key environment variables
 
-* Use `@toolname` to call tools on demand
-* Create tool presets for different tasks
-* Reduce token usage and improve accuracy
-
-### 🧭 Tool Choice Mode
-
-* Auto — Model decides when to call tools
-* Manual — Ask before tool execution
-* None — Disable tools completely
-
-### 🛠️ Built‑in Tools
-
-* Web Search (Exa AI integration)
-* JS / Python Executor
-* Data Visualization (tables, charts, exports)
-* Image Generation & Editing
+| Var | Required | Notes |
+| --- | --- | --- |
+| `BETTER_AUTH_URL` / `NEXT_PUBLIC_BASE_URL` | yes | Public base URL (used as OAuth issuer). |
+| `BETTER_AUTH_SECRET` | yes | Auth signing secret. |
+| `POSTGRES_URL` | yes | App DB connection (session pooler / port 5432 for Supabase). |
+| `DB_MIGRATION_URL` | yes | Direct (non‑pooler) URL for `pnpm db:migrate`. |
+| `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `GOOGLE_GENERATIVE_AI_API_KEY` / … | one+ | LLM providers. |
+| `EXA_API_KEY` | for web search | Enables the web‑search & web‑content tools. |
+| `REDIS_URL` | optional | Cache / realtime. |
+| `FILE_BASED_MCP_CONFIG` | optional | `true` = file‑backed MCP config; default `false` = DB‑backed. |
+| `COGNIX_DESKTOP_*` | optional | Overrides for the desktop OAuth client (see below). |
 
 ---
 
-## Getting Started
+## Cognix Desktop — authentication & cloud sync
 
-> This project uses pnpm as the recommended package manager.
+Cognix Desktop is a first‑party **OAuth2 client**. Login uses **Authorization Code + PKCE**
+(no client secret). The web app is the **authorization server**.
+
+### Endpoints exposed by this app
+
+| Method | Path | Purpose |
+| ------ | ---- | ------- |
+| `GET`  | `/oauth/authorize` | Consent screen. Requires a logged‑in web session (redirects to `/sign-in` otherwise). On approve → `302` to `redirect_uri` with `code` + `state`. |
+| `POST` | `/oauth/token` | Exchanges `code` + `code_verifier` for an `access_token` (a better‑auth **session token**) + signed `id_token`. |
+| `POST` | `/oauth/revoke` | Revokes the desktop's session. |
+| `POST` | `…/oauth/authorize/deny` | Cancel → `302` back with `error=access_denied`. |
+
+The returned `access_token` is a real session token, so the desktop authenticates every
+`/api/*` route with `Authorization: Bearer <token>` (the better‑auth **bearer** plugin).
+
+### Authorize request (what the desktop builds)
+
+```
+GET https://<your-host>/oauth/authorize
+  ?response_type=code
+  &client_id=cognix-desktop
+  &redirect_uri=cognix://oauth/callback
+  &scope=openid profile email
+  &state=<random>
+  &code_challenge=<S256(code_verifier)>
+  &code_challenge_method=S256
+```
+
+Callback: `cognix://oauth/callback?code=…&state=…` → desktop `POST`s
+`grant_type=authorization_code&code&code_verifier&client_id&redirect_uri` to `/oauth/token`.
+
+### Cloud chat backup + memory APIs (bearer‑authenticated)
+
+| Method | Path | Purpose |
+| ------ | ---- | ------- |
+| `POST`/`GET` | `/api/cognix/sessions` | Upsert / list a user's Cognix Desktop sessions (full transcript). Triggers auto‑summary. |
+| `GET`/`DELETE` | `/api/cognix/sessions/[id]` | Fetch or delete one session with its messages. |
+| `POST`/`GET` | `/api/cognix/memory` | Store / read per‑session **memory** (`summary` \| `note` \| `fact`). |
+
+Backing tables: `cognix_session`, `cognix_session_message`, `cognix_chat_memory` (created by the
+Drizzle migrations). Chats are stored **locally on the desktop and in the cloud** here.
+
+Configurable via env: `COGNIX_DESKTOP_CLIENT_ID`, `COGNIX_DESKTOP_REDIRECT_URI`,
+`COGNIX_DESKTOP_SCOPES`.
+
+## Development
 
 ```bash
-npm install -g pnpm
+pnpm lint           # Biome
+pnpm check-types    # tsc --noEmit
+pnpm test           # Vitest
+pnpm test:e2e       # Playwright
+pnpm db:generate    # create a migration from schema changes
+pnpm db:push        # push schema (dev)
+pnpm db:migrate     # apply migrations
+```
+
+## Contributing
+
+See `CONTRIBUTING.md` and `AGENTS.md`. Log notable changes in `update-logs/`.
+
+## License
+
+MIT © Priyam

@@ -140,7 +140,7 @@ export function AppSidebarUserInner(props: {
             <DropdownMenuItem
               onClick={() => {
                 window.open(
-                  "https://github.com/priyx/cognix/issues/new",
+                  "https://github.com/officialpriyam/cognix/issues/new",
                   "_blank",
                 );
               }}
