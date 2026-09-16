@@ -26,7 +26,16 @@ export async function POST(
       minRole: "editor",
     });
 
-    const parsed = TextSourceSchema.safeParse(await request.json());
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: { code: "invalid_source", message: "Invalid source text." } },
+        { status: 400 },
+      );
+    }
+    const parsed = TextSourceSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
         {

@@ -32,3 +32,21 @@
    the public Render URL (e.g. `https://cognix-web.onrender.com`), or auth/OAuth breaks.
 2. Pick a plan (omitted from the blueprint on purpose — `free` sleeps, `starter` bills).
 3. Optional feature keys (`EXA_API_KEY`, provider keys, `REDIS_URL`, S3_*, etc.) as needed.
+
+## 2026-09-16 — first-deploy log triage (`text/sources` JSON crash)
+- `MCP Config Storage: No userId ... loading empty config` → benign by design (logged-out/anon context).
+- “Optional integrations not configured” (Inngest/Superlog keys) → benign; features stay local/off.
+- `localStorage` / negative-timeout warnings → benign Node/undici noise.
+- `Unexpected end of JSON input` in `app/api/projects/[id]/sources/text`: stack shows it fires
+  while that route's module graph evaluates on first load. Traced the full 71-file import closure
+  (`@/lib/ai/rag/ingest`, `gate`, `project-brain/enqueue`, agentset, models, auth, db, …):
+  no unguarded top-level `JSON.parse` in app code, the only env-JSON reader
+  (`openaiCompatibleModelsSafeParse`) is try/catch-guarded, and the route imports cleanly both
+  locally and under `NODE_ENV=production`. So the trigger is Render-environment-specific.
+  Most likely: (a) the Render service is running an **older commit** than this tree, or
+  (b) a JSON env var is **set-but-empty** on Render (check `OPENAI_COMPATIBLE_DATA` and any
+  custom JSON vars — empty string parses to exactly this error).
+- Hardened `POST .../sources/text` to return **400** on empty/unparseable bodies instead of 500
+  (covers the truncated-stack variant where the throw is request-time).
+- “No open HTTP ports … continuing to scan”: normal during boot; confirm the service reaches
+  **Live**. If the deploy timed out instead, that — not the lines above — is the killer.
