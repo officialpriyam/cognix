@@ -1,28 +1,72 @@
 # Changelog
 
+## [2.0.0](https://github.com/officialpriyam/cognix/releases/tag/v2.0.0)
+
+cognix is now the community edition of
+[Cognix](https://cognix.iampriyam.me), generated from that codebase rather
+than maintained as a separate fork. Everything Navigator does is here except
+team management and billing.
+
+### Added
+
+* Projects that group chats, documents and tools around a piece of work, with
+  retrieval over uploaded documents using pgvector — no external service needed
+* Knowledge bases for hosted retrieval with reranking and citations
+* Skills: reusable capabilities an agent loads on demand
+* Scheduled tasks that run an agent on a schedule and report back
+* Sandboxed code execution, published pages, and a model router that can pick a
+  model per task
+* An Electron desktop app with local (stdio) MCP servers, filesystem access and
+  keychain support
+* Voice: realtime conversation through the gateway, plus transcription
+
+### Changed
+
+* **Repository layout is now a monorepo.** The app lives in `apps/web`, with
+  shared packages alongside it
+* **Models are served through the Vercel AI Gateway.** One `AI_GATEWAY_API_KEY`
+  replaces the per-provider keys, which are no longer read. Ollama, LM Studio,
+  TensorX and any OpenAI-compatible endpoint still work
+* **Archives are now projects.** Existing archives are converted, and the
+  threads inside them stay linked
+* File uploads use Supabase Storage
+* Postgres must have the `pgvector` extension
+
+### Upgrading
+
+Back up your database, then:
+
+```bash
+pnpm tsx scripts/upgrade/from-cognix-1.ts --dry-run
+pnpm tsx scripts/upgrade/from-cognix-1.ts --yes
+```
+
+Your users, chats, agents, MCP servers and workflows carry over. The migration
+is one way, which is why the backup matters.
+
 ## [1.26.0](https://github.com/officialpriyam/cognix/compare/v1.25.0...v1.26.0) (2025-11-07)
 
 
 ### Features
 
-* add LaTeX/TeX math equation rendering support ([#318](https://github.com/officialpriyam/cognix/issues/318)) ([c0a8b5b](https://github.com/officialpriyam/cognix/commit/c0a8b5b9b28599716013c83cac03fa5745ffd403)) by @jezweb
+* add LaTeX/TeX math equation rendering support ([#318](https://github.com/officialpriyam/cognix/issues/318)) ([c0a8b5b](https://github.com/officialpriyam/cognix/commit/c0a8b5b9b28599716013c83cac03fa5745ffd403)) by @officialpriyam
 
 
 ### Bug Fixes
 
-* hide MCP server credentials from non-owners ([#317](https://github.com/officialpriyam/cognix/issues/317)) ([#319](https://github.com/officialpriyam/cognix/issues/319)) ([6e32417](https://github.com/officialpriyam/cognix/commit/6e32417535c27f1215f96d68b7302dba4a1b904d)) by @jezweb
+* hide MCP server credentials from non-owners ([#317](https://github.com/officialpriyam/cognix/issues/317)) ([#319](https://github.com/officialpriyam/cognix/issues/319)) ([6e32417](https://github.com/officialpriyam/cognix/commit/6e32417535c27f1215f96d68b7302dba4a1b904d)) by @officialpriyam
 
 ## [1.25.0](https://github.com/officialpriyam/cognix/compare/v1.24.0...v1.25.0) (2025-10-30)
 
 
 ### Features
 
-* s3 storage and richer file support ([#301](https://github.com/officialpriyam/cognix/issues/301)) ([051a974](https://github.com/officialpriyam/cognix/commit/051a9740a6ecf774bfead9ce327c376ea5b279a5)) by @mrjasonroy
+* s3 storage and richer file support ([#301](https://github.com/officialpriyam/cognix/issues/301)) ([051a974](https://github.com/officialpriyam/cognix/commit/051a9740a6ecf774bfead9ce327c376ea5b279a5)) by @officialpriyam
 
 
 ### Bug Fixes
 
-* model name for gpt-4.1-mini in staticModels ([#299](https://github.com/officialpriyam/cognix/issues/299)) ([4513ac0](https://github.com/officialpriyam/cognix/commit/4513ac0e842f588a24d7075af8700e3cc7a3eb39)) by @mayur9210
+* model name for gpt-4.1-mini in staticModels ([#299](https://github.com/officialpriyam/cognix/issues/299)) ([4513ac0](https://github.com/officialpriyam/cognix/commit/4513ac0e842f588a24d7075af8700e3cc7a3eb39)) by @officialpriyam
 
 ## [1.24.0](https://github.com/officialpriyam/cognix/compare/v1.23.0...v1.24.0) (2025-10-06)
 
@@ -43,29 +87,29 @@
 
 ### Bug Fixes
 
-* Apply DISABLE_SIGN_UP to OAuth providers ([#282](https://github.com/officialpriyam/cognix/issues/282)) ([bcc0db8](https://github.com/officialpriyam/cognix/commit/bcc0db8eb81997e54e8904e64fc76229fbfc1338)) by @cgoing-bot
+* Apply DISABLE_SIGN_UP to OAuth providers ([#282](https://github.com/officialpriyam/cognix/issues/282)) ([bcc0db8](https://github.com/officialpriyam/cognix/commit/bcc0db8eb81997e54e8904e64fc76229fbfc1338)) by @officialpriyam
 * ollama disable issue ([#283](https://github.com/officialpriyam/cognix/issues/283)) ([5e0a690](https://github.com/officialpriyam/cognix/commit/5e0a690bb6c3f074680d13e09165ca9fff139f93)) by @officialpriyam
 
 ## [1.22.0](https://github.com/officialpriyam/cognix/compare/v1.21.0...v1.22.0) (2025-09-25)
 
 ### Features
 
-- admin and roles ([#270](https://github.com/officialpriyam/cognix/issues/270)) ([63bddca](https://github.com/officialpriyam/cognix/commit/63bddcaa4bc62bc85204a0982a06f2bed09fc5f5)) by @mrjasonroy
+- admin and roles ([#270](https://github.com/officialpriyam/cognix/issues/270)) ([63bddca](https://github.com/officialpriyam/cognix/commit/63bddcaa4bc62bc85204a0982a06f2bed09fc5f5)) by @officialpriyam
 - groq provider ([#268](https://github.com/officialpriyam/cognix/issues/268)) ([aef213d](https://github.com/officialpriyam/cognix/commit/aef213d2f9dd0255996cc4184b03425db243cd7b)) by @officialpriyam
 - hide LLM providers without API keys in model selection ([#269](https://github.com/officialpriyam/cognix/issues/269)) ([63c15dd](https://github.com/officialpriyam/cognix/commit/63c15dd386ea99b8fa56f7b6cb1e58e5779b525d)) by @officialpriyam
 - **voice-chat:** binding agent tools ([#275](https://github.com/officialpriyam/cognix/issues/275)) ([ed45e82](https://github.com/officialpriyam/cognix/commit/ed45e822eb36447f2a02ef3aa69eeec88009e357)) by @officialpriyam
 
 ### Bug Fixes
 
-- ensure PKCE works for MCP Server auth ([#256](https://github.com/officialpriyam/cognix/issues/256)) ([09b938f](https://github.com/officialpriyam/cognix/commit/09b938f17ca78993a1c7b84c5a702b95159542b2)) by @jvg123
+- ensure PKCE works for MCP Server auth ([#256](https://github.com/officialpriyam/cognix/issues/256)) ([09b938f](https://github.com/officialpriyam/cognix/commit/09b938f17ca78993a1c7b84c5a702b95159542b2)) by @officialpriyam
 
 ## [1.21.0](https://github.com/officialpriyam/cognix/compare/v1.20.2...v1.21.0) (2025-08-24)
 
 ### Features
 
-- agent sharing ([#226](https://github.com/officialpriyam/cognix/issues/226)) ([090dd8f](https://github.com/officialpriyam/cognix/commit/090dd8f4bf4fb82beb2cd9bfa0b427425bbbf352)) by @mrjasonroy
+- agent sharing ([#226](https://github.com/officialpriyam/cognix/issues/226)) ([090dd8f](https://github.com/officialpriyam/cognix/commit/090dd8f4bf4fb82beb2cd9bfa0b427425bbbf352)) by @officialpriyam
 - ai v5 ([#230](https://github.com/officialpriyam/cognix/issues/230)) ([0461879](https://github.com/officialpriyam/cognix/commit/0461879740860055a278c96656328367980fa533)) by @officialpriyam
-- improve markdown table styling ([#244](https://github.com/officialpriyam/cognix/issues/244)) ([7338e04](https://github.com/officialpriyam/cognix/commit/7338e046196f72a7cc8ec7903593d94ecabcc05e)) by @hakonharnes
+- improve markdown table styling ([#244](https://github.com/officialpriyam/cognix/issues/244)) ([7338e04](https://github.com/officialpriyam/cognix/commit/7338e046196f72a7cc8ec7903593d94ecabcc05e)) by @officialpriyam
 
 ### Bug Fixes
 
@@ -82,22 +126,22 @@
 
 ### Bug Fixes
 
-- **mcp:** fix MCP infinite loading issue ([#220](https://github.com/officialpriyam/cognix/issues/220)) ([c25e351](https://github.com/officialpriyam/cognix/commit/c25e3515867c76cc5494a67e79711e9343196078)) by @cgoing-bot
+- **mcp:** fix MCP infinite loading issue ([#220](https://github.com/officialpriyam/cognix/issues/220)) ([c25e351](https://github.com/officialpriyam/cognix/commit/c25e3515867c76cc5494a67e79711e9343196078)) by @officialpriyam
 
 ## [1.20.0](https://github.com/officialpriyam/cognix/compare/v1.19.1...v1.20.0) (2025-08-04)
 
 ### Features
 
 - add qwen3 coder to models file for openrouter ([#206](https://github.com/officialpriyam/cognix/issues/206)) ([3731d00](https://github.com/officialpriyam/cognix/commit/3731d007100ac36a814704f8bde8398ce1378a4e)) by @officialpriyam
-- improve authentication configuration and social login handling ([#211](https://github.com/officialpriyam/cognix/issues/211)) ([cd25937](https://github.com/officialpriyam/cognix/commit/cd25937020710138ab82458e70ea7f6cabfd03ca)) by @mrjasonroy
-- introduce interactive table creation and enhance visualization tools ([#205](https://github.com/officialpriyam/cognix/issues/205)) ([623a736](https://github.com/officialpriyam/cognix/commit/623a736f6895b8737acaa06811088be2dc1d0b3c)) by @cgoing-bot
+- improve authentication configuration and social login handling ([#211](https://github.com/officialpriyam/cognix/issues/211)) ([cd25937](https://github.com/officialpriyam/cognix/commit/cd25937020710138ab82458e70ea7f6cabfd03ca)) by @officialpriyam
+- introduce interactive table creation and enhance visualization tools ([#205](https://github.com/officialpriyam/cognix/issues/205)) ([623a736](https://github.com/officialpriyam/cognix/commit/623a736f6895b8737acaa06811088be2dc1d0b3c)) by @officialpriyam
 - **mcp:** oauth ([#208](https://github.com/officialpriyam/cognix/issues/208)) ([136aded](https://github.com/officialpriyam/cognix/commit/136aded6de716367380ff64c2452d1b4afe4aa7f)) by @officialpriyam
-- **web-search:** replace Tavily API with Exa AI integration ([#204](https://github.com/officialpriyam/cognix/issues/204)) ([7140487](https://github.com/officialpriyam/cognix/commit/7140487dcdadb6c5cb6af08f92b06d42411f7168)) by @cgoing-bot
+- **web-search:** replace Tavily API with Exa AI integration ([#204](https://github.com/officialpriyam/cognix/issues/204)) ([7140487](https://github.com/officialpriyam/cognix/commit/7140487dcdadb6c5cb6af08f92b06d42411f7168)) by @officialpriyam
 
 ### Bug Fixes
 
 - implement responsive horizontal layout for chat mention input with improved UX And generate Agent Prompt ([43ec980](https://github.com/officialpriyam/cognix/commit/43ec98059e0d27ab819491518263df55fb1c9ad3)) by @officialpriyam
-- **mcp:** Safe MCP manager init logic for the Vercel environment ([#202](https://github.com/officialpriyam/cognix/issues/202)) ([708fdfc](https://github.com/officialpriyam/cognix/commit/708fdfcfed70299044a90773d3c9a76c9a139f2f)) by @cgoing-bot
+- **mcp:** Safe MCP manager init logic for the Vercel environment ([#202](https://github.com/officialpriyam/cognix/issues/202)) ([708fdfc](https://github.com/officialpriyam/cognix/commit/708fdfcfed70299044a90773d3c9a76c9a139f2f)) by @officialpriyam
 
 ## [1.19.1](https://github.com/officialpriyam/cognix/compare/v1.19.0...v1.19.1) (2025-07-29)
 
@@ -112,7 +156,7 @@
 
 ### Features
 
-- Add Azure OpenAI provider support with comprehensive testing ([#189](https://github.com/officialpriyam/cognix/issues/189)) ([edad917](https://github.com/officialpriyam/cognix/commit/edad91707d49fcb5d3bd244a77fbaae86527742a)) by @shukyr
+- Add Azure OpenAI provider support with comprehensive testing ([#189](https://github.com/officialpriyam/cognix/issues/189)) ([edad917](https://github.com/officialpriyam/cognix/commit/edad91707d49fcb5d3bd244a77fbaae86527742a)) by @officialpriyam
 - add bot name preference to user settings ([f4aa588](https://github.com/officialpriyam/cognix/commit/f4aa5885d0be06cc21149d09e604c781e551ec4a)) by @officialpriyam
 - **agent:** agent and archive ([#192](https://github.com/officialpriyam/cognix/issues/192)) ([c63ae17](https://github.com/officialpriyam/cognix/commit/c63ae179363b66bfa4f4b5524bdf27b71166c299)) by @officialpriyam
 
@@ -151,7 +195,7 @@
 ### Features
 
 - Lazy Chat Title Generation: Save Empty Title First, Then Generate and Upsert in Parallel ([#162](https://github.com/officialpriyam/cognix/issues/162)) ([31dfd78](https://github.com/officialpriyam/cognix/commit/31dfd7802e33d8d4e91aae321c3d16a07fe42552)) by @officialpriyam
-- publish container to GitHub registry ([#149](https://github.com/officialpriyam/cognix/issues/149)) ([9f03cbc](https://github.com/officialpriyam/cognix/commit/9f03cbc1d2890746f14919ebaad60f773b0a333d)) by @codingjoe
+- publish container to GitHub registry ([#149](https://github.com/officialpriyam/cognix/issues/149)) ([9f03cbc](https://github.com/officialpriyam/cognix/commit/9f03cbc1d2890746f14919ebaad60f773b0a333d)) by @officialpriyam
 - update mention ux ([#161](https://github.com/officialpriyam/cognix/issues/161)) ([7ceb9c6](https://github.com/officialpriyam/cognix/commit/7ceb9c69c32de25d523a4d14623b25a34ffb3c9d)) by @officialpriyam
 
 ### Bug Fixes
@@ -159,8 +203,8 @@
 - bug(LineChart): series are incorrectly represented [#165](https://github.com/officialpriyam/cognix/issues/165) ([4e4905c](https://github.com/officialpriyam/cognix/commit/4e4905c0f7f6a3eca73ea2ac06f718fa29b0f821)) by @officialpriyam
 - ignore tool binding on unsupported models (server-side) ([#160](https://github.com/officialpriyam/cognix/issues/160)) ([277b4fe](https://github.com/officialpriyam/cognix/commit/277b4fe986d5b6d9780d9ade83f294d8f34806f6)) by @officialpriyam
 - js executor tool and gemini model version ([#169](https://github.com/officialpriyam/cognix/issues/169)) ([e25e10a](https://github.com/officialpriyam/cognix/commit/e25e10ab9fac4247774b0dee7e01d5f6a4b16191)) by @officialpriyam
-- **scripts:** parse openai compatible on windows ([#164](https://github.com/officialpriyam/cognix/issues/164)) ([41f5ff5](https://github.com/officialpriyam/cognix/commit/41f5ff55b8d17c76a23a2abf4a6e4cb0c4d95dc5)) by @axel7083
-- **workflow-panel:** fix save button width ([#168](https://github.com/officialpriyam/cognix/issues/168)) ([3e66226](https://github.com/officialpriyam/cognix/commit/3e6622630c9cc40ff3d4357e051c45f8c860fc10)) by @axel7083
+- **scripts:** parse openai compatible on windows ([#164](https://github.com/officialpriyam/cognix/issues/164)) ([41f5ff5](https://github.com/officialpriyam/cognix/commit/41f5ff55b8d17c76a23a2abf4a6e4cb0c4d95dc5)) by @officialpriyam
+- **workflow-panel:** fix save button width ([#168](https://github.com/officialpriyam/cognix/issues/168)) ([3e66226](https://github.com/officialpriyam/cognix/commit/3e6622630c9cc40ff3d4357e051c45f8c860fc10)) by @officialpriyam
 
 ## [1.15.0](https://github.com/officialpriyam/cognix/compare/v1.14.1...v1.15.0) (2025-07-11)
 
@@ -195,7 +239,7 @@
 
 ### Features
 
-- Add web search and content extraction tools using Tavily API ([#126](https://github.com/officialpriyam/cognix/issues/126)) ([f7b4ea5](https://github.com/officialpriyam/cognix/commit/f7b4ea5828b33756a83dd881b9afa825796bf69f)) by @cgoing-bot
+- Add web search and content extraction tools using Tavily API ([#126](https://github.com/officialpriyam/cognix/issues/126)) ([f7b4ea5](https://github.com/officialpriyam/cognix/commit/f7b4ea5828b33756a83dd881b9afa825796bf69f)) by @officialpriyam
 
 ### Bug Fixes
 
@@ -213,7 +257,7 @@
 
 ### Features
 
-- **chat:** enable [@mention](https://github.com/mention) and tool click to trigger workflow execution in chat ([#122](https://github.com/officialpriyam/cognix/issues/122)) ([b4e7f02](https://github.com/officialpriyam/cognix/commit/b4e7f022fa155ef70be2aee9228a4d1d2643bf10)) by @cgoing-bot
+- **chat:** enable [@mention](https://github.com/mention) and tool click to trigger workflow execution in chat ([#122](https://github.com/officialpriyam/cognix/issues/122)) ([b4e7f02](https://github.com/officialpriyam/cognix/commit/b4e7f022fa155ef70be2aee9228a4d1d2643bf10)) by @officialpriyam
 
 ### Bug Fixes
 
@@ -223,91 +267,91 @@
 
 ### Features
 
-- **workflow:** Add HTTP and Template nodes with LLM structured output supportWorkflow node ([#117](https://github.com/officialpriyam/cognix/issues/117)) ([10ec438](https://github.com/officialpriyam/cognix/commit/10ec438f13849f0745e7fab652cdd7cef8e97ab6)) by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot
-- **workflow:** add HTTP node configuration and execution support ([7d2f65f](https://github.com/officialpriyam/cognix/commit/7d2f65fe4f0fdaae58ca2a69abb04abee3111c60)) by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam
+- **workflow:** Add HTTP and Template nodes with LLM structured output supportWorkflow node ([#117](https://github.com/officialpriyam/cognix/issues/117)) ([10ec438](https://github.com/officialpriyam/cognix/commit/10ec438f13849f0745e7fab652cdd7cef8e97ab6)) by @officialpriyam
+- **workflow:** add HTTP node configuration and execution support ([7d2f65f](https://github.com/officialpriyam/cognix/commit/7d2f65fe4f0fdaae58ca2a69abb04abee3111c60)) by @officialpriyam
 
 ### Bug Fixes
 
-- add POST endpoint for MCP client saving with session validation ([fa005aa](https://github.com/officialpriyam/cognix/commit/fa005aaecbf1f8d9279f5b4ce5ba85343e18202b)) by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam
-- split theme system into base themes and style variants ([61ebd07](https://github.com/officialpriyam/cognix/commit/61ebd0745bcfd7a84ba3ad65c3f52b7050b5131a)) by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam
-- update ToolMessagePart to use isExecuting state instead of isExpanded ([752f8f0](https://github.com/officialpriyam/cognix/commit/752f8f06e319119569e9ee7c04d621ab1c43ca54)) by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam
+- add POST endpoint for MCP client saving with session validation ([fa005aa](https://github.com/officialpriyam/cognix/commit/fa005aaecbf1f8d9279f5b4ce5ba85343e18202b)) by @officialpriyam
+- split theme system into base themes and style variants ([61ebd07](https://github.com/officialpriyam/cognix/commit/61ebd0745bcfd7a84ba3ad65c3f52b7050b5131a)) by @officialpriyam
+- update ToolMessagePart to use isExecuting state instead of isExpanded ([752f8f0](https://github.com/officialpriyam/cognix/commit/752f8f06e319119569e9ee7c04d621ab1c43ca54)) by @officialpriyam
 
 ## [1.10.0](https://github.com/officialpriyam/cognix/compare/v1.9.0...v1.10.0) (2025-06-27)
 
 ### Features
 
-- **releases:** add debug logging to the add authors and update release step ([#105](https://github.com/officialpriyam/cognix/issues/105)) ([c855a6a](https://github.com/officialpriyam/cognix/commit/c855a6a94c49dfd93c9a8d1d0932aeda36bd6c7e)) by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam
-- workflow beta ([#100](https://github.com/officialpriyam/cognix/issues/100)) ([2f5ada2](https://github.com/officialpriyam/cognix/commit/2f5ada2a66e8e3cd249094be9d28983e4331d3a1)) by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot
+- **releases:** add debug logging to the add authors and update release step ([#105](https://github.com/officialpriyam/cognix/issues/105)) ([c855a6a](https://github.com/officialpriyam/cognix/commit/c855a6a94c49dfd93c9a8d1d0932aeda36bd6c7e)) by @officialpriyam
+- workflow beta ([#100](https://github.com/officialpriyam/cognix/issues/100)) ([2f5ada2](https://github.com/officialpriyam/cognix/commit/2f5ada2a66e8e3cd249094be9d28983e4331d3a1)) by @officialpriyam
 
 ### Bug Fixes
 
-- update tool selection logic in McpServerSelector to maintain current selections ([4103c1b](https://github.com/officialpriyam/cognix/commit/4103c1b828c3e5b513679a3fb9d72bd37301f99d)) by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam
-- **workflow:** MPC Tool Response Structure And Workflow ([#113](https://github.com/officialpriyam/cognix/issues/113)) ([836ffd7](https://github.com/officialpriyam/cognix/commit/836ffd7ef5858210bdce44d18ca82a1c8f0fc87f)) by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot
+- update tool selection logic in McpServerSelector to maintain current selections ([4103c1b](https://github.com/officialpriyam/cognix/commit/4103c1b828c3e5b513679a3fb9d72bd37301f99d)) by @officialpriyam
+- **workflow:** MPC Tool Response Structure And Workflow ([#113](https://github.com/officialpriyam/cognix/issues/113)) ([836ffd7](https://github.com/officialpriyam/cognix/commit/836ffd7ef5858210bdce44d18ca82a1c8f0fc87f)) by @officialpriyam
 
 ## [1.9.0](https://github.com/officialpriyam/cognix/compare/v1.8.0...v1.9.0) (2025-06-16)
 
 ### Features
 
-- credit contributors in releases and changlogs ([#104](https://github.com/officialpriyam/cognix/issues/104)) ([e0e4443](https://github.com/officialpriyam/cognix/commit/e0e444382209a36f03b6e898f26ebd805032c306)) by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam
+- credit contributors in releases and changlogs ([#104](https://github.com/officialpriyam/cognix/issues/104)) ([e0e4443](https://github.com/officialpriyam/cognix/commit/e0e444382209a36f03b6e898f26ebd805032c306)) by @officialpriyam
 
 ### Bug Fixes
 
-- increase maxTokens for title generation in chat actions issue [#102](https://github.com/officialpriyam/cognix/issues/102) ([bea2588](https://github.com/officialpriyam/cognix/commit/bea2588e24cf649133e8ce5f3b6391265b604f06)) by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam
-- temporary chat initial model ([0393f7a](https://github.com/officialpriyam/cognix/commit/0393f7a190463faf58cbfbca1c21d349a9ff05dc)) by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam
-- update adding-openAI-like-providers.md ([#101](https://github.com/officialpriyam/cognix/issues/101)) ([2bb94e7](https://github.com/officialpriyam/cognix/commit/2bb94e7df63a105e33c1d51271751c7b89fead23)) by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam
-- update config file path in release workflow ([7209cbe](https://github.com/officialpriyam/cognix/commit/7209cbeb89bd65b14aee66a40ed1abb5c5f2e018)) by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam
+- increase maxTokens for title generation in chat actions issue [#102](https://github.com/officialpriyam/cognix/issues/102) ([bea2588](https://github.com/officialpriyam/cognix/commit/bea2588e24cf649133e8ce5f3b6391265b604f06)) by @officialpriyam
+- temporary chat initial model ([0393f7a](https://github.com/officialpriyam/cognix/commit/0393f7a190463faf58cbfbca1c21d349a9ff05dc)) by @officialpriyam
+- update adding-openAI-like-providers.md ([#101](https://github.com/officialpriyam/cognix/issues/101)) ([2bb94e7](https://github.com/officialpriyam/cognix/commit/2bb94e7df63a105e33c1d51271751c7b89fead23)) by @officialpriyam
+- update config file path in release workflow ([7209cbe](https://github.com/officialpriyam/cognix/commit/7209cbeb89bd65b14aee66a40ed1abb5c5f2e018)) by @officialpriyam
 
 ## [1.8.0](https://github.com/officialpriyam/cognix/compare/v1.7.0...v1.8.0) (2025-06-11)
 
 ### Features
 
-- add openAI compatible provider support ([#92](https://github.com/officialpriyam/cognix/issues/92)) ([6682c9a](https://github.com/officialpriyam/cognix/commit/6682c9a320aff9d91912489661d27ae9bb0f4440)) by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam
+- add openAI compatible provider support ([#92](https://github.com/officialpriyam/cognix/issues/92)) ([6682c9a](https://github.com/officialpriyam/cognix/commit/6682c9a320aff9d91912489661d27ae9bb0f4440)) by @officialpriyam
 
 ### Bug Fixes
 
-- Enhance component styles and configurations ([a7284f1](https://github.com/officialpriyam/cognix/commit/a7284f12ca02ee29f7da4d57e4fe6e8c6ecb2dfc)) by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam
+- Enhance component styles and configurations ([a7284f1](https://github.com/officialpriyam/cognix/commit/a7284f12ca02ee29f7da4d57e4fe6e8c6ecb2dfc)) by @officialpriyam
 
 ## [1.7.0](https://github.com/officialpriyam/cognix/compare/v1.6.2...v1.7.0) (2025-06-06)
 
 ### Features
 
-- Per User Custom instructions ([#86](https://github.com/officialpriyam/cognix/issues/86)) ([d45c968](https://github.com/officialpriyam/cognix/commit/d45c9684adfb0d9b163c83f3bb63310eef572279)) by @vineetu by @vineetu by @vineetu by @vineetu by @vineetu by @vineetu by @vineetu by @vineetu by @vineetu by @vineetu by @vineetu by @vineetu by @vineetu by @vineetu by @vineetu by @vineetu by @vineetu by @vineetu
+- Per User Custom instructions ([#86](https://github.com/officialpriyam/cognix/issues/86)) ([d45c968](https://github.com/officialpriyam/cognix/commit/d45c9684adfb0d9b163c83f3bb63310eef572279)) by @officialpriyam
 
 ## [1.6.2](https://github.com/officialpriyam/cognix/compare/v1.6.1...v1.6.2) (2025-06-04)
 
 ### Bug Fixes
 
-- enhance error handling in chat bot component ([1519799](https://github.com/officialpriyam/cognix/commit/15197996ba1f175db002b06e3eac2765cfae1518)) by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam
-- improve session error handling in authentication ([eb15b55](https://github.com/officialpriyam/cognix/commit/eb15b550facf5368f990d58b4b521bf15aecbf72)) by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam
-- support OpenAI real-time chat project instructions ([2ebbb5e](https://github.com/officialpriyam/cognix/commit/2ebbb5e68105ef6706340a6cfbcf10b4d481274a)) by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam
-- unify SSE and streamable config as RemoteConfig ([#85](https://github.com/officialpriyam/cognix/issues/85)) ([66524a0](https://github.com/officialpriyam/cognix/commit/66524a0398bd49230fcdec73130f1eb574e97477)) by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot
+- enhance error handling in chat bot component ([1519799](https://github.com/officialpriyam/cognix/commit/15197996ba1f175db002b06e3eac2765cfae1518)) by @officialpriyam
+- improve session error handling in authentication ([eb15b55](https://github.com/officialpriyam/cognix/commit/eb15b550facf5368f990d58b4b521bf15aecbf72)) by @officialpriyam
+- support OpenAI real-time chat project instructions ([2ebbb5e](https://github.com/officialpriyam/cognix/commit/2ebbb5e68105ef6706340a6cfbcf10b4d481274a)) by @officialpriyam
+- unify SSE and streamable config as RemoteConfig ([#85](https://github.com/officialpriyam/cognix/issues/85)) ([66524a0](https://github.com/officialpriyam/cognix/commit/66524a0398bd49230fcdec73130f1eb574e97477)) by @officialpriyam
 
 ## [1.6.1](https://github.com/officialpriyam/cognix/compare/v1.6.0...v1.6.1) (2025-06-02)
 
 ### Bug Fixes
 
-- speech ux ([baa849f](https://github.com/officialpriyam/cognix/commit/baa849ff2b6b147ec685c6847834385652fc3191)) by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam
+- speech ux ([baa849f](https://github.com/officialpriyam/cognix/commit/baa849ff2b6b147ec685c6847834385652fc3191)) by @officialpriyam
 
 ## [1.6.0](https://github.com/officialpriyam/cognix/compare/v1.5.2...v1.6.0) (2025-06-01)
 
 ### Features
 
-- add husky for formatting and checking commits ([#71](https://github.com/officialpriyam/cognix/issues/71)) ([a379cd3](https://github.com/officialpriyam/cognix/commit/a379cd3e869b5caab5bcaf3b03f5607021f988ef)) by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam
-- add Spanish, French, Japanese, and Chinese language support with UI improvements ([#74](https://github.com/officialpriyam/cognix/issues/74)) ([e34d43d](https://github.com/officialpriyam/cognix/commit/e34d43df78767518f0379a434f8ffb1808b17e17)) by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot
-- implement cold start-like auto connection for MCP server and simplify status ([#73](https://github.com/officialpriyam/cognix/issues/73)) ([987c442](https://github.com/officialpriyam/cognix/commit/987c4425504d6772e0aefe08b4e1911e4cb285c1)) by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot by @cgoing-bot
+- add husky for formatting and checking commits ([#71](https://github.com/officialpriyam/cognix/issues/71)) ([a379cd3](https://github.com/officialpriyam/cognix/commit/a379cd3e869b5caab5bcaf3b03f5607021f988ef)) by @officialpriyam
+- add Spanish, French, Japanese, and Chinese language support with UI improvements ([#74](https://github.com/officialpriyam/cognix/issues/74)) ([e34d43d](https://github.com/officialpriyam/cognix/commit/e34d43df78767518f0379a434f8ffb1808b17e17)) by @officialpriyam
+- implement cold start-like auto connection for MCP server and simplify status ([#73](https://github.com/officialpriyam/cognix/issues/73)) ([987c442](https://github.com/officialpriyam/cognix/commit/987c4425504d6772e0aefe08b4e1911e4cb285c1)) by @officialpriyam
 
 ## [1.5.2](https://github.com/officialpriyam/cognix/compare/v1.5.1...v1.5.2) (2025-06-01)
 
 ### Features
 
-- Add support for Streamable HTTP Transport [#56](https://github.com/officialpriyam/cognix/issues/56) ([8783943](https://github.com/officialpriyam/cognix/commit/878394337e3b490ec2d17bcc302f38c695108d73)) by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam
-- implement speech system prompt and update voice chat options for enhanced user interaction ([5a33626](https://github.com/officialpriyam/cognix/commit/5a336260899ab542407c3c26925a147c1a9bba11)) by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam
-- update MCP server UI and translations for improved user experience ([1e2fd31](https://github.com/officialpriyam/cognix/commit/1e2fd31f8804669fbcf55a4c54ccf0194a7e797c)) by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam
+- Add support for Streamable HTTP Transport [#56](https://github.com/officialpriyam/cognix/issues/56) ([8783943](https://github.com/officialpriyam/cognix/commit/878394337e3b490ec2d17bcc302f38c695108d73)) by @officialpriyam
+- implement speech system prompt and update voice chat options for enhanced user interaction ([5a33626](https://github.com/officialpriyam/cognix/commit/5a336260899ab542407c3c26925a147c1a9bba11)) by @officialpriyam
+- update MCP server UI and translations for improved user experience ([1e2fd31](https://github.com/officialpriyam/cognix/commit/1e2fd31f8804669fbcf55a4c54ccf0194a7e797c)) by @officialpriyam
 
 ### Bug Fixes
 
-- enhance mobile UI experience with responsive design adjustments ([2eee8ba](https://github.com/officialpriyam/cognix/commit/2eee8bab078207841f4d30ce7708885c7268302e)) by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam
-- UI improvements for mobile experience ([#66](https://github.com/officialpriyam/cognix/issues/66)) ([b4349ab](https://github.com/officialpriyam/cognix/commit/b4349abf75de69f65a44735de2e0988c6d9d42d8)) by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam by @officialpriyam
+- enhance mobile UI experience with responsive design adjustments ([2eee8ba](https://github.com/officialpriyam/cognix/commit/2eee8bab078207841f4d30ce7708885c7268302e)) by @officialpriyam
+- UI improvements for mobile experience ([#66](https://github.com/officialpriyam/cognix/issues/66)) ([b4349ab](https://github.com/officialpriyam/cognix/commit/b4349abf75de69f65a44735de2e0988c6d9d42d8)) by @officialpriyam
 
 ### Miscellaneous Chores
 
