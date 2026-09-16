@@ -1,0 +1,36 @@
+# Render Blueprint for the Cognix web app.
+#
+# apps/desktop is deliberately excluded from every step:
+#  - install uses `pnpm install --filter web...`, so the Electron desktop
+#    workspace (apps/desktop) and its heavy native deps are never installed.
+#  - build/start target only the `web` workspace (`pnpm --filter web ...`),
+#    so desktop is never built, packaged, or served.
+# Nothing here references apps/desktop; do not add it without also adding
+# its system dependencies and a separate (non-web) service type.
+services:
+  - type: web
+    name: cognix-web
+    runtime: node
+    # --filter web... = the `web` workspace plus everything it depends on.
+    # desktop is not a dependency of web, so it is skipped entirely.
+    # NODE_ENV=development is scoped to the install step only: pnpm skips
+    # devDependencies under production env, but `next build` needs
+    # typescript/tailwindcss/eslint (all direct devDeps of apps/web).
+    buildCommand: NODE_ENV=development pnpm install --filter web... && pnpm --filter web build
+    startCommand: pnpm --filter web start
+    # No healthCheckPath on purpose: Render falls back to a TCP check on $PORT.
+    # (`next start` binds $PORT automatically.) A path-based check would need a
+    # public route returning 200 for logged-out users, which does not exist.
+    envVars:
+      # No NODE_VERSION pin on purpose: omitted so Render uses its current
+      # default Node (i.e. always latest). Requires >=20 per package.json engines.
+      - key: BETTER_AUTH_SECRET
+        sync: false
+      - key: BETTER_AUTH_URL
+        sync: false # must be the public Render URL, e.g. https://cognix-web.onrender.com
+      - key: NEXT_PUBLIC_BASE_URL
+        sync: false # same public URL as BETTER_AUTH_URL
+      - key: POSTGRES_URL
+        sync: false # Supabase session-pooler URL (port 5432); app auto-migrates on boot
+    # All other keys (provider API keys, EXA_API_KEY, REDIS_URL, S3_*, etc.)
+    # are optional/feature-gated: add them in the Render dashboard as needed.
