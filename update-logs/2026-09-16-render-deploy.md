@@ -50,3 +50,19 @@
   (covers the truncated-stack variant where the throw is request-time).
 - “No open HTTP ports … continuing to scan”: normal during boot; confirm the service reaches
   **Live**. If the deploy timed out instead, that — not the lines above — is the killer.
+
+## 2026-09-16 — root-caused + fixed the `Unexpected end of JSON input` deploy errors
+- **Root cause (reproduced locally):** `openaiCompatibleModelsSafeParse`
+  (`apps/web/src/lib/ai/create-openai-compatiable.ts`) does `JSON.parse(providers)` whenever
+  the input `isString(...)`. On Render, `OPENAI_COMPATIBLE_DATA` is **set-but-empty**, so every
+  route importing the model registry (`chat`, `models`, `embeddings`, `inngest`, `export`,
+  `agent`, `temporary`, `tools`, `user/*`, `openai-realtime`, `voice/*`, `workflow`, `export`
+  page, `chat` page — all via shared chunk `3437`) logged this error at module-evaluation time.
+  Locally the var is unset → default `[]` → no parse → silent, which is why it never reproduced
+  until all 37 closure env vars were emptied in a probe.
+- **Fix:** treat empty/blank input as “not configured” and return `[]` before parsing
+  (plus the earlier `request.json()` → 400 hardening on the text-sources route).
+- Verified: emptied-env probe no longer logs the error; `tsc --noEmit` clean; transpile clean.
+- **Still do on Render:** delete the empty `OPENAI_COMPATIBLE_DATA` var (or set it to `[]`) —
+  belt-and-braces alongside the code fix. The `e2b` “critical dependency” warning is benign
+  (upstream dynamic require; build succeeds).

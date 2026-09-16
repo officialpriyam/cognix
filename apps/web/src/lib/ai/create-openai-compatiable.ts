@@ -122,6 +122,11 @@ export const openaiCompatibleModelsSafeParse = (
   providers: string | OpenAICompatibleProvider[] = [],
 ) => {
   try {
+    // An env var that is set-but-empty (or blank) means "not configured",
+    // not "invalid JSON" — skip parsing so we don't log a scary error for
+    // every route that imports the model registry.
+    if (!providers) return [];
+    if (isString(providers) && providers.trim().length === 0) return [];
     const value = isString(providers) ? JSON.parse(providers) : providers;
     return z.array(OpenAICompatibleProviderSchema).parse(value);
   } catch (error) {
