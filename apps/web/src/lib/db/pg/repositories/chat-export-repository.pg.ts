@@ -7,6 +7,7 @@ import {
   ChatExportWithUser,
 } from "app-types/chat-export";
 import { pgDb } from "../db.pg";
+import { isUuid } from "../uuid";
 import {
   ChatExportCommentTable,
   ChatExportTable,
@@ -126,6 +127,8 @@ export const pgChatExportRepository: ChatExportRepository = {
     })) as ChatExportSummary[];
   },
   checkAccess: async (id, userId) => {
+    // Fail closed on malformed ids: Postgres throws 22P02 on non-UUID input.
+    if (!isUuid(id)) return false;
     const result = await pgDb
       .select({
         exporterId: ChatExportTable.exporterId,

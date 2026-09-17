@@ -1,5 +1,6 @@
 import { Agent, AgentRepository, AgentSummary } from "app-types/agent";
 import { pgDb as db } from "../db.pg";
+import { isUuid } from "../uuid";
 import { AgentTable, BookmarkTable, UserTable } from "../schema.pg";
 import { and, desc, eq, inArray, ne, or, sql } from "drizzle-orm";
 import { generateUUID } from "lib/utils";
@@ -277,6 +278,8 @@ export const pgAgentRepository: AgentRepository = {
     destructive = false,
     activeOrganizationId,
   ) {
+    // Fail closed on malformed ids: Postgres throws 22P02 on non-UUID input.
+    if (!isUuid(agentId)) return false;
     const [agent] = await db
       .select({
         visibility: AgentTable.visibility,

@@ -1,5 +1,6 @@
 import { Skill, SkillRepository, SkillSummary } from "app-types/skill";
 import { pgDb as db } from "../db.pg";
+import { isUuid } from "../uuid";
 import { SkillTable, UserTable } from "../schema.pg";
 import { and, desc, eq, ne, or, sql } from "drizzle-orm";
 import { generateUUID } from "lib/utils";
@@ -215,6 +216,8 @@ export const pgSkillRepository: SkillRepository = {
     destructive = false,
     activeOrganizationId,
   ) {
+    // Fail closed on malformed ids: Postgres throws 22P02 on non-UUID input.
+    if (!isUuid(skillId)) return false;
     const [skill] = await db
       .select({
         visibility: SkillTable.visibility,

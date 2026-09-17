@@ -1,5 +1,6 @@
 import { and, desc, eq, inArray, not, or, sql } from "drizzle-orm";
 import { pgDb } from "../db.pg";
+import { isUuid } from "../uuid";
 import {
   UserTable,
   WorkflowEdgeTable,
@@ -139,6 +140,9 @@ export const pgWorkflowRepository: WorkflowRepository = {
   },
 
   async checkAccess(workflowId, userId, readOnly = true, activeOrganizationId) {
+    // Fail closed on malformed ids (typos, emoji slugs): Postgres throws
+    // 22P02 on non-UUID input, which surfaces as a 500.
+    if (!isUuid(workflowId)) return false;
     const [workflow] = await pgDb
       .select({
         visibility: WorkflowTable.visibility,

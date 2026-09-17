@@ -2,6 +2,7 @@ import { ChatMessage, ChatRepository, ChatThread } from "app-types/chat";
 import { UserPreferences } from "app-types/user";
 
 import { pgDb as db } from "../db.pg";
+import { isUuid } from "../uuid";
 import { ChatMessageTable, ChatThreadTable, UserTable } from "../schema.pg";
 
 import { and, desc, eq, gte, inArray, isNull, lt, sql } from "drizzle-orm";
@@ -397,6 +398,8 @@ export const pgChatRepository: ChatRepository = {
   },
 
   checkAccess: async (id: string, userId: string): Promise<boolean> => {
+    // Fail closed on malformed ids: Postgres throws 22P02 on non-UUID input.
+    if (!isUuid(id)) return false;
     const [result] = await db
       .select({
         userId: ChatThreadTable.userId,

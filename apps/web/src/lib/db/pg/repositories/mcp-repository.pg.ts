@@ -1,4 +1,5 @@
 import { pgDb as db } from "../db.pg";
+import { isUuid } from "../uuid";
 import { McpServerTable, UserTable } from "../schema.pg";
 import { and, eq, or, desc } from "drizzle-orm";
 import { generateUUID } from "lib/utils";
@@ -132,6 +133,8 @@ export const pgMcpRepository: MCPRepository = {
     destructive = false,
     activeOrganizationId?: string | null,
   ) {
+    // Fail closed on malformed ids: Postgres throws 22P02 on non-UUID input.
+    if (!isUuid(id)) return false;
     const [server] = await db
       .select({
         userId: McpServerTable.userId,
