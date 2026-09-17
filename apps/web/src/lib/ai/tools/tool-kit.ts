@@ -3,6 +3,7 @@ import { createBarChartTool } from "./visualization/create-bar-chart";
 import { createLineChartTool } from "./visualization/create-line-chart";
 import { createTableTool } from "./visualization/create-table";
 import { exaSearchTool, exaContentsTool } from "./web/web-search";
+import { browsePageTool } from "./web/browse-page";
 import { AppDefaultToolkit, DefaultToolName } from ".";
 import { Tool } from "ai";
 import { httpFetchTool } from "./http/fetch";
@@ -29,6 +30,7 @@ export const APP_DEFAULT_TOOL_KIT: Record<
   [AppDefaultToolkit.WebSearch]: {
     [DefaultToolName.WebSearch]: exaSearchTool,
     [DefaultToolName.WebContent]: exaContentsTool,
+    [DefaultToolName.BrowsePage]: browsePageTool,
   },
   [AppDefaultToolkit.Http]: {
     [DefaultToolName.Http]: httpFetchTool,

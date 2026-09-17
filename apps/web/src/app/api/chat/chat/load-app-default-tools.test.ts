@@ -83,4 +83,14 @@ describe("loadAppDefaultTools", () => {
     for (const tool of CODE_TOOLS) expect(names).not.toContain(tool);
     expect(names).toContain(DefaultToolName.WebSearch);
   });
+
+  it("resolves the browse-page reader from the WebSearch toolkit", () => {
+    const names = load({
+      allowedAppDefaultToolkit: [AppDefaultToolkit.WebSearch],
+    });
+
+    expect(names).toContain(DefaultToolName.BrowsePage);
+    expect(names).toContain(DefaultToolName.WebSearch);
+    expect(names).toContain(DefaultToolName.WebContent);
+  });
 });

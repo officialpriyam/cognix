@@ -44,6 +44,11 @@ export function DefaultToolIcon({
     if (name === DefaultToolName.WebContent) {
       return <GlobeIcon className={cn("size-3.5 text-blue-400", className)} />;
     }
+    if (name === DefaultToolName.BrowsePage) {
+      return (
+        <GlobeIcon className={cn("size-3.5 text-emerald-400", className)} />
+      );
+    }
     if (name === DefaultToolName.Http) {
       return (
         <HardDriveUploadIcon
