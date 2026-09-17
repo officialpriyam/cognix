@@ -1,6 +1,21 @@
-import { ImagineStudio } from "@/components/imagine/imagine-studio";
+import dynamic from "next/dynamic";
 import { getSession } from "auth/server";
 import { redirect } from "next/navigation";
+
+const ImagineStudio = dynamic(
+  () =>
+    import("@/components/imagine/imagine-studio").then(
+      (mod) => mod.ImagineStudio,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="p-8 text-center text-muted-foreground">
+        Loading Imagine…
+      </div>
+    ),
+  },
+);
 
 export default async function ImaginePage() {
   const session = await getSession();
