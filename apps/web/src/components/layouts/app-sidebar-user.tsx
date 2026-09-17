@@ -4,7 +4,8 @@ import { appStore } from "@/app/store";
 import { useThemeStyle } from "@/hooks/use-theme-style";
 import { getLocaleAction } from "@/i18n/get-locale";
 import { BasicUser } from "app-types/user";
-import { BillingMenuItem, WorkspaceMenuSection } from "@/components/gate";
+import { FreeBillingMenuItem } from "@/components/billing/free-billing-menu-item";
+import { OrgMenuSection } from "@/components/organization/org-menu-section";
 import { IS_CLOUD_EDITION } from "@/lib/edition";
 import { authClient } from "auth/client";
 import { BASE_THEMES, COOKIE_KEY_LOCALE, SUPPORTED_LOCALES } from "lib/const";
@@ -205,8 +206,8 @@ export function AppSidebarUserInner(props: {
                   <span>{t("joinDiscord")}</span>
                 </DropdownMenuItem>
               )}
-              <BillingMenuItem />
-              <WorkspaceMenuSection />
+              <FreeBillingMenuItem />
+              <OrgMenuSection />
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={logout} className="cursor-pointer">
                 <LogOutIcon className="size-4 text-foreground" />

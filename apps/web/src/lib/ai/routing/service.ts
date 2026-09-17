@@ -28,6 +28,7 @@ type PolicyContext = {
   organizationId?: string;
   memberId?: string;
   automaticRoutingEnabled: boolean;
+  browserAutomationEnabled: boolean;
   policy: OrganizationRoutingPolicy;
 };
 
@@ -111,7 +112,11 @@ async function getPolicyContext(input: {
   userId: string;
 }): Promise<PolicyContext> {
   if (!input.organizationId) {
-    return { automaticRoutingEnabled: true, policy: {} };
+    return {
+      automaticRoutingEnabled: true,
+      browserAutomationEnabled: true,
+      policy: {},
+    };
   }
 
   const cacheKey = `${input.organizationId}:${input.userId}`;
@@ -151,6 +156,7 @@ async function getPolicyContext(input: {
     organizationId: input.organizationId,
     memberId: member.id,
     automaticRoutingEnabled: policyRow?.automaticRoutingEnabled ?? true,
+    browserAutomationEnabled: policyRow?.browserAutomationEnabled ?? true,
     policy: {
       allowedRegions: policyRow?.allowedRegions,
       maxInputPriceMicrosPerMillion: policyRow?.maxInputPriceMicrosPerMillion,
@@ -159,6 +165,26 @@ async function getPolicyContext(input: {
   };
   writeCache(policyContextCache, cacheKey, context);
   return context;
+}
+
+/**
+ * Whether members of the organization may use the browse (page-reader) tool.
+ * Defaults true (no org, missing row, or non-member). Fail-open is deliberate:
+ * tool availability must not hard-fail on policy lookup trouble — membership
+ * itself is still enforced by the routing layer.
+ */
+export async function isBrowserAutomationEnabled(input: {
+  organizationId?: string | null;
+  userId: string;
+}): Promise<boolean> {
+  if (!input.organizationId) return true;
+  try {
+    const context = await getPolicyContext(input);
+    return context.browserAutomationEnabled;
+  } catch (error) {
+    logger.warn("Browser-automation check failed open:", error);
+    return true;
+  }
 }
 
 async function getCandidates(input: {

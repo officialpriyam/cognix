@@ -197,6 +197,8 @@ export const loadAppDefaultTools = (opt?: {
   billingCustomerId?: string | null;
   billingEntityId?: string;
   projectId?: string;
+  /** Tool ids to drop from the resolved set (e.g. org-disabled tools). */
+  disabledDefaultTools?: string[];
 }) =>
   safe(APP_DEFAULT_TOOL_KIT)
     .map((tools) => {
@@ -278,6 +280,16 @@ export const loadAppDefaultTools = (opt?: {
         }
       }
 
+      return updatedTools;
+    })
+    .map((loadedTools) => {
+      // Organization-level kills (e.g. browser automation disabled for the
+      // active org) apply last so they win over mentions and toolkit pins.
+      if (!opt?.disabledDefaultTools?.length) return loadedTools;
+      const updatedTools = { ...loadedTools };
+      for (const name of opt.disabledDefaultTools) {
+        delete updatedTools[name];
+      }
       return updatedTools;
     })
     .ifFail((e) => {

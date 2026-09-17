@@ -22,6 +22,7 @@ import {
   estimateCostMicros,
   extractRouteSignals,
   finalizeMemberBudget,
+  isBrowserAutomationEnabled,
   isRoutingSchemaUnavailableError,
   releaseMemberBudget,
   reserveMemberBudget,
@@ -97,7 +98,11 @@ import {
 import { createRequestTimer } from "lib/ai/request-timer";
 import { collectSandboxAssets } from "lib/ai/sandbox-assets";
 import { aiTelemetry } from "lib/ai/telemetry";
-import { ImageToolName, PublishPageToolName } from "lib/ai/tools";
+import {
+  DefaultToolName,
+  ImageToolName,
+  PublishPageToolName,
+} from "lib/ai/tools";
 import { createImageTool } from "lib/ai/tools/image";
 import { createPublishPageTool } from "lib/ai/tools/publish/publish-page-tool";
 import { serverFileStorage } from "lib/file-storage";
@@ -388,6 +393,16 @@ export async function POST(request: Request) {
       }
     }
 
+    // Organization-level browse (page-reader) kill switch. Resolved once per
+    // message (policy context is TTL-cached) and closed over by the stream
+    // executor below.
+    const browserAutomationDisabled = activeOrganizationId
+      ? !(await isBrowserAutomationEnabled({
+          organizationId: activeOrganizationId,
+          userId: session.user.id,
+        }))
+      : false;
+
     if (chatModel?.provider === "Local Models") {
       try {
         await requireFeature("local_models");
@@ -660,6 +675,9 @@ export async function POST(request: Request) {
                 billingCustomerId: customerId,
                 billingEntityId: entityId,
                 projectId: thread?.projectId, // Pass projectId for RAG-enabled project chats
+                disabledDefaultTools: browserAutomationDisabled
+                  ? [DefaultToolName.BrowsePage]
+                  : undefined,
               }),
             )
             .orElse({}),

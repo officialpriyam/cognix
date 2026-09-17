@@ -848,6 +848,9 @@ export const OrganizationAiPolicyTable = pgTable("organization_ai_policy", {
   automaticRoutingEnabled: boolean("automatic_routing_enabled")
     .notNull()
     .default(true),
+  browserAutomationEnabled: boolean("browser_automation_enabled")
+    .notNull()
+    .default(true),
   maxInputPriceMicrosPerMillion: bigint("max_input_price_micros_per_million", {
     mode: "number",
   }),
