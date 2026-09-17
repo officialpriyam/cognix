@@ -308,7 +308,7 @@ function ConnectAppsStep({
       <div className="text-center space-y-3">
         <div className="flex items-center justify-center gap-2 mb-1">
           <Image
-            src="/images/logo-3d.webp"
+            src="/images/logo.png"
             alt="cognix"
             width={40}
             height={40}

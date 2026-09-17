@@ -137,7 +137,7 @@ export function AutomationOverviewStep({
           <div className="w-[78px]" aria-hidden="true" />
           <div className="flex items-center justify-center gap-2">
             <Image
-              src="/images/logo-3d.webp"
+              src="/images/logo.png"
               alt=""
               width={36}
               height={36}
