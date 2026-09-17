@@ -1,5 +1,10 @@
 "use client";
 import { SidebarMenuAction, SidebarMenuButton, useSidebar } from "ui/sidebar";
+import {
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+} from "ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "ui/tooltip";
 import { SidebarMenu, SidebarMenuItem } from "ui/sidebar";
 import { SidebarGroupContent } from "ui/sidebar";
@@ -12,7 +17,16 @@ import { useTranslations } from "next-intl";
 import { MCPIcon } from "ui/mcp-icon";
 import { WriteIcon } from "ui/write-icon";
 import { FolderSearchIcon, PlusIcon, Waypoints } from "lucide-react";
-import { useState } from "react";
+import {
+  BookmarkIcon,
+  BotIcon,
+  BrainIcon,
+  FileArchiveIcon,
+  LibraryIcon,
+  MessageSquareQuoteIcon,
+  WrenchIcon,
+} from "lucide-react";
+import { useCallback, useState } from "react";
 import { ProjectDialog } from "../projects/project-dialog";
 import { getIsUserAdmin } from "lib/user/utils";
 import { BasicUser } from "app-types/user";
@@ -24,6 +38,48 @@ export function AppSidebarMenus({ user }: { user?: BasicUser }) {
   const t = useTranslations("");
   const { setOpenMobile } = useSidebar();
   const [addProjectDialogOpen, setAddProjectDialogOpen] = useState(false);
+  const [expandedWorkspace, setExpandedWorkspace] = useState(false);
+  const toggleWorkspace = useCallback(() => {
+    setExpandedWorkspace((prev) => !prev);
+  }, []);
+
+  const workspaceLinks = [
+    {
+      href: "/agents",
+      label: "Agent Marketplace",
+      icon: BotIcon,
+    },
+    {
+      href: "/agent/new",
+      label: "Create Agent",
+      icon: PlusIcon,
+    },
+    {
+      href: "/workspace/prompts",
+      label: "Prompts",
+      icon: MessageSquareQuoteIcon,
+    },
+    {
+      href: "/workspace/memories",
+      label: "Memories",
+      icon: BrainIcon,
+    },
+    {
+      href: "/workspace/bookmarks",
+      label: "Bookmarks",
+      icon: BookmarkIcon,
+    },
+    {
+      href: "/workspace/files",
+      label: "Files",
+      icon: FileArchiveIcon,
+    },
+    {
+      href: "/workspace/skills",
+      label: "Skills",
+      icon: WrenchIcon,
+    },
+  ];
 
   return (
     <SidebarGroup>
@@ -88,6 +144,56 @@ export function AppSidebarMenus({ user }: { user?: BasicUser }) {
               </Link>
             </SidebarMenuItem>
           </Tooltip>
+        </SidebarMenu>
+        <SidebarMenu className="group/workspace">
+          <Tooltip>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={toggleWorkspace}
+                className="icon-motion-pop font-semibold"
+              >
+                <LibraryIcon className="size-4" />
+                Workspace
+              </SidebarMenuButton>
+              <SidebarMenuAction
+                className="group-hover/workspace:opacity-100 opacity-0 transition-opacity"
+                onClick={() => router.push("/agent/new")}
+              >
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <PlusIcon className="size-4" />
+                  </TooltipTrigger>
+                  <TooltipContent side="right" align="center">
+                    Create agent
+                  </TooltipContent>
+                </Tooltip>
+              </SidebarMenuAction>
+            </SidebarMenuItem>
+          </Tooltip>
+          {expandedWorkspace && (
+            <SidebarMenuSub>
+              {workspaceLinks.map((item) => {
+                const ItemIcon = item.icon;
+                return (
+                  <SidebarMenuSubItem key={item.href}>
+                    <SidebarMenuSubButton
+                      asChild
+                      isActive={pathname === item.href}
+                      className="icon-motion-slide"
+                    >
+                      <Link
+                        href={item.href}
+                        onClick={() => setOpenMobile(false)}
+                      >
+                        <ItemIcon className="size-4" />
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                );
+              })}
+            </SidebarMenuSub>
+          )}
         </SidebarMenu>
         {getIsUserAdmin(user) && <AppSidebarAdmin />}
         <SidebarMenu className="group/project">
