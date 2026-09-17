@@ -1,6 +1,8 @@
 import { trackUsage } from "@/lib/gate";
 import { FilePart, ModelMessage, ToolResultPart, tool as createTool } from "ai";
 import { generateImageWithGemini } from "lib/ai/image/generate-image";
+import { generateQwenImage } from "lib/ai/image/qwen";
+import type { QwenImageModelId } from "lib/ai/image/qwen-models";
 import { serverFileStorage } from "lib/file-storage";
 import { toAny } from "lib/utils";
 import logger from "logger";
@@ -38,10 +40,84 @@ export const createImageTool = (
         .describe(
           "Image generation mode: 'create' for new images, 'edit' for modifying existing images, 'composite' for combining multiple images",
         ),
+      model: z
+        .enum([
+          "gemini-2.5-flash-image",
+          "qwen-image-3.0-pro",
+          "wan2.7-image",
+          "wan2.6-t2i",
+        ])
+        .optional()
+        .default("gemini-2.5-flash-image")
+        .describe(
+          "Image model: Gemini flash-image by default, or a Qwen/Wan model (requires DASHSCOPE_API_KEY)",
+        ),
     }),
-    execute: async ({ mode }, options) => {
+    execute: async ({ mode, model = "gemini-2.5-flash-image" }, options) => {
       const { messages, abortSignal, toolCallId } = options;
       try {
+        // Qwen/Wan models take a plain text prompt (no multimodal context),
+        // so derive it from the latest user text instead of message assembly.
+        if (model !== "gemini-2.5-flash-image") {
+          const prompt = [...messages]
+            .reverse()
+            .filter((m) => m.role === "user")
+            .flatMap((m) =>
+              typeof m.content === "string"
+                ? [m.content]
+                : m.content
+                    .filter((part) => part.type === "text")
+                    .map((part) => (part as { text?: string }).text ?? ""),
+            )
+            .find((text) => text.trim());
+          if (!prompt?.trim()) {
+            throw new Error(
+              "Describe the image to generate so the Qwen model has a prompt to work from.",
+            );
+          }
+          logger.info(`[Image Tool] Generating image with ${model}`);
+          // Narrowed by the branch above: anything but Gemini is a Qwen id.
+          const images = await generateQwenImage({
+            prompt,
+            model: model as QwenImageModelId,
+          });
+          // Reuse the shared upload + return flow below (no usage to track:
+          // Qwen bills the workspace key, not per-call tokens here).
+          const qwenResult = { images, usage: undefined };
+          const resultImages = await safe(qwenResult.images)
+            .map((list) => {
+              return Promise.all(
+                list.map(async (image) => {
+                  const uploadedImage = await serverFileStorage.upload(
+                    Buffer.from(image.base64, "base64"),
+                    {
+                      contentType: image.mimeType,
+                      filename: `ai-generated-${Date.now()}.png`,
+                      userId: billingCustomerId ?? undefined,
+                      uploadType: "ai-generated",
+                    },
+                  );
+                  return {
+                    url: uploadedImage.sourceUrl,
+                    mimeType: image.mimeType,
+                  };
+                }),
+              );
+            })
+            .ifFail(() => {
+              throw new Error(
+                "Image generation was successful, but file upload failed. Please check your file upload configuration and try again.",
+              );
+            })
+            .unwrap();
+          return {
+            images: resultImages,
+            mode,
+            model,
+            guide:
+              "The image has been successfully generated and is now displayed above. If you need any edits, modifications, or adjustments to the image, please let me know.",
+          };
+        }
         let hasFoundImage = false;
 
         // Get latest 6 messages and extract only the most recent image for editing context
@@ -144,7 +220,7 @@ export const createImageTool = (
         return {
           images: resultImages,
           mode,
-          model: "gemini-2.5-flash-image",
+          model,
           guide:
             resultImages.length > 0
               ? "The image has been successfully generated and is now displayed above. If you need any edits, modifications, or adjustments to the image, please let me know."

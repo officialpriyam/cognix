@@ -22,6 +22,7 @@ import {
   BotIcon,
   BrainIcon,
   FileArchiveIcon,
+  ImageIcon,
   LibraryIcon,
   MessageSquareQuoteIcon,
   WrenchIcon,
@@ -140,6 +141,18 @@ export function AppSidebarMenus({ user }: { user?: BasicUser }) {
                 <SidebarMenuButton className="icon-motion-slide font-semibold">
                   <Waypoints className="size-4" />
                   {t("Layout.workflow")}
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+          </Tooltip>
+        </SidebarMenu>
+        <SidebarMenu>
+          <Tooltip>
+            <SidebarMenuItem>
+              <Link href="/imagine" onClick={() => setOpenMobile(false)}>
+                <SidebarMenuButton className="icon-motion-pop font-semibold">
+                  <ImageIcon className="size-4" />
+                  Imagine
                 </SidebarMenuButton>
               </Link>
             </SidebarMenuItem>
