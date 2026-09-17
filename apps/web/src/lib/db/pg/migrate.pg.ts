@@ -2,7 +2,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { existsSync } from "node:fs";
 import { join } from "path";
-import { pgClient } from "lib/db/pg/db.pg";
+import postgres from "postgres";
 import * as schema from "./schema.pg";
 
 // The migrations folder lives in apps/web. Depending on the entry point the
@@ -19,14 +19,17 @@ export const runMigrate = async () => {
 
   const start = Date.now();
   // Migrations run DDL/backfills that can legitimately exceed the request
-  // statement_timeout, so run them on a reserved connection with the
-  // query timeouts disabled instead of the shared request client.
-  const reserved = await pgClient.reserve();
+  // statement_timeout, so run them on a dedicated short-lived client without
+  // query timeouts. This must be a separate client (not pgClient.reserve()):
+  // drizzle() writes to client.options.parsers, which reserved connections
+  // don't expose at runtime.
+  const migrationClient = postgres(process.env.POSTGRES_URL!, {
+    prepare: false,
+    max: 1,
+    connect_timeout: 10,
+  });
   try {
-    await reserved.unsafe(
-      "SET statement_timeout = 0; SET lock_timeout = 0; SET idle_in_transaction_session_timeout = 0",
-    );
-    await migrate(drizzle(reserved, { schema }), {
+    await migrate(drizzle(migrationClient, { schema }), {
       migrationsFolder: resolveMigrationsFolder(),
     }).catch((err) => {
       console.error(
@@ -36,7 +39,7 @@ export const runMigrate = async () => {
       throw err;
     });
   } finally {
-    reserved.release();
+    await migrationClient.end();
   }
   const end = Date.now();
 
