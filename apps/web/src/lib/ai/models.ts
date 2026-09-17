@@ -554,6 +554,15 @@ export async function getModelInstance(
     return getTensorXModel(modelData.model);
   }
 
+  // Fail fast with an actionable server-log message instead of a cryptic
+  // provider 401 mid-stream (e.g. a stale thread pinned to OpenRouter after
+  // the key was removed).
+  if (modelData.provider === "openrouter" && !process.env.OPENROUTER_API_KEY) {
+    throw new Error(
+      "OPENROUTER_API_KEY is not configured on the server, so OpenRouter models are unavailable.",
+    );
+  }
+
   // SPECIAL CASE: Local Models provider (doesn't exist in allModels)
   if (modelData.provider === "Local Models") {
     if (!userId) {

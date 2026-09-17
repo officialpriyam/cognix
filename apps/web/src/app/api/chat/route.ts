@@ -1127,7 +1127,9 @@ export async function POST(request: Request) {
             logger.error(
               `AI SDK stream error [${
                 error instanceof Error ? error.name : "UnknownError"
-              }]${isTimeout ? " (timeout scope: total/step/chunk/tool)" : ""}`,
+              }] (${chatModel?.provider}/${chatModel?.model})${
+                isTimeout ? " (timeout scope: total/step/chunk/tool)" : ""
+              }`,
               error,
             );
           },
