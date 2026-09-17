@@ -34,6 +34,19 @@ const groq = createGroq({
   baseURL: process.env.GROQ_BASE_URL || "https://api.groq.com/openai/v1",
   apiKey: process.env.GROQ_API_KEY,
 });
+// OpenRouter (OpenAI-compatible). Free-tier models are addressed by their full
+// slugs (e.g. "z-ai/glm-5.2:free"); "openrouter/free" is OpenRouter's own
+// router over the free pool. Referer/title headers are OpenRouter convention.
+const openrouter = createOpenAICompatible({
+  name: "openrouter",
+  baseURL: "https://openrouter.ai/api/v1",
+  apiKey: process.env.OPENROUTER_API_KEY,
+  headers: {
+    "HTTP-Referer":
+      process.env.NEXT_PUBLIC_BASE_URL ?? "https://cognix.iampriyam.me",
+    "X-Title": "Cognix",
+  },
+});
 
 const staticModels = {
   // Navigator (Moonshot AI Kimi K2.5 via AI Gateway) - Primary model
@@ -51,7 +64,16 @@ const staticModels = {
   },
   google: {
     "gemini-2.5-flash": "google/gemini-2.5-flash",
+    "gemini-2.5-flash-lite": "google/gemini-2.5-flash-lite",
+    "gemini-2.5-pro": "google/gemini-2.5-pro",
+    "gemini-3-flash-preview": "google/gemini-3-flash-preview",
     "gemini-3.1-pro-preview": "google/gemini-3.1-pro-preview",
+    "gemini-3.1-flash-lite": "google/gemini-3.1-flash-lite",
+    "gemini-3.5-flash": "google/gemini-3.5-flash",
+    "gemini-3.5-flash-lite": "google/gemini-3.5-flash-lite",
+    "gemini-3.6-flash": "google/gemini-3.6-flash",
+    "gemini-3.7-flash": "google/gemini-3.7-flash",
+    "gemini-3.8-flash": "google/gemini-3.8-flash",
     // embedding (not visible in UI)
     "gemini-embedding-001": "google/gemini-embedding-001",
     // image (not visible in UI)
@@ -105,6 +127,36 @@ const staticModels = {
   groq: {
     "gpt-oss-120b": groq("openai/gpt-oss-120b"),
   },
+  // OpenRouter free-tier models (hidden unless OPENROUTER_API_KEY is set).
+  // Pool rotates over time; snapshot of the :free list + the openrouter/free
+  // router. Tool/image flags mirror each model's advertised capabilities.
+  openrouter: {
+    "glm-5.2": openrouter("z-ai/glm-5.2:free"),
+    "north-mini-code": openrouter("cohere/north-mini-code:free"),
+    "dots-3-note": openrouter("dots-studio/dots-3-note-preview:free"),
+    "gemma-4-26b": openrouter("google/gemma-4-26b-a4b-it:free"),
+    "gemma-4-31b": openrouter("google/gemma-4-31b-it:free"),
+    "ling-3-flash-fin": openrouter("inclusionai/ling-3.0-flash-fin:free"),
+    "ling-3-flash-sante": openrouter("inclusionai/ling-3.0-flash-sante:free"),
+    "ling-3-flash-vl": openrouter("inclusionai/ling-3.0-flash-vl:free"),
+    "lfm-2.5-2.6b": openrouter("liquid/lfm-2.5-2.6b:free"),
+    "nex-n2.5-mini": openrouter("nex-agi/nex-n2.5-mini:free"),
+    "nex-n2.5-pro": openrouter("nex-agi/nex-n2.5-pro:free"),
+    "nemotron-3-nano-omni": openrouter(
+      "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+    ),
+    "nemotron-3-super": openrouter("nvidia/nemotron-3-super-120b-a12b:free"),
+    "nemotron-3-ultra": openrouter("nvidia/nemotron-3-ultra-550b-a55b:free"),
+    "nemotron-3.5-lightning": openrouter("nvidia/nemotron-3.5-lightning:free"),
+    "nemotron-3.5-content-safety": openrouter(
+      "nvidia/nemotron-3.5-content-safety:free",
+    ),
+    "free-router": openrouter("openrouter/free"),
+    "laguna-s-2.1": openrouter("poolside/laguna-s-2.1:free"),
+    "laguna-xs-2.1": openrouter("poolside/laguna-xs-2.1:free"),
+    inkling: openrouter("thinkingmachines/inkling:free"),
+    "inkling-small": openrouter("thinkingmachines/inkling-small:free"),
+  },
 };
 
 // Models that should not be visible in the UI (embedding and image generation models)
@@ -125,13 +177,25 @@ const staticUnsupportedModels = new Set([
   staticModels.ollama["gemma3:1b"],
   staticModels.ollama["gemma3:4b"],
   staticModels.ollama["gemma3:12b"],
+  // OpenRouter free models that don't advertise tool calling
+  staticModels.openrouter["glm-5.2"],
+  staticModels.openrouter["nemotron-3.5-content-safety"],
 ]);
 
 // List of model IDs that support image input (now strings from AI Gateway)
 const staticSupportImageInputModelIds = new Set([
-  // Google models
+  // Google models (all multimodal)
   staticModels.google["gemini-2.5-flash"],
+  staticModels.google["gemini-2.5-flash-lite"],
+  staticModels.google["gemini-2.5-pro"],
+  staticModels.google["gemini-3-flash-preview"],
   staticModels.google["gemini-3.1-pro-preview"],
+  staticModels.google["gemini-3.1-flash-lite"],
+  staticModels.google["gemini-3.5-flash"],
+  staticModels.google["gemini-3.5-flash-lite"],
+  staticModels.google["gemini-3.6-flash"],
+  staticModels.google["gemini-3.7-flash"],
+  staticModels.google["gemini-3.8-flash"],
   // Anthropic models
   staticModels.anthropic["claude-sonnet-5"],
   staticModels.anthropic["claude-opus-4.8"],
@@ -149,6 +213,18 @@ const staticSupportImageInputModelIds = new Set([
   staticModels.xai["grok-4.3"],
   // Alibaba models (Qwen 3.7 Plus supports vision input)
   staticModels.alibaba["qwen3.7-plus"],
+  // OpenRouter free models with image input
+  staticModels.openrouter["dots-3-note"],
+  staticModels.openrouter["gemma-4-26b"],
+  staticModels.openrouter["gemma-4-31b"],
+  staticModels.openrouter["ling-3-flash-vl"],
+  staticModels.openrouter["nex-n2.5-mini"],
+  staticModels.openrouter["nex-n2.5-pro"],
+  staticModels.openrouter["nemotron-3-nano-omni"],
+  staticModels.openrouter["nemotron-3.5-content-safety"],
+  staticModels.openrouter["free-router"],
+  staticModels.openrouter["inkling"],
+  staticModels.openrouter["inkling-small"],
 ]);
 
 const staticFilePartSupportByModel = new Map<
@@ -181,7 +257,43 @@ registerFileSupport(
   GEMINI_FILE_MIME_TYPES,
 );
 registerFileSupport(
+  staticModels.google["gemini-2.5-flash-lite"],
+  GEMINI_FILE_MIME_TYPES,
+);
+registerFileSupport(
+  staticModels.google["gemini-2.5-pro"],
+  GEMINI_FILE_MIME_TYPES,
+);
+registerFileSupport(
+  staticModels.google["gemini-3-flash-preview"],
+  GEMINI_FILE_MIME_TYPES,
+);
+registerFileSupport(
   staticModels.google["gemini-3.1-pro-preview"],
+  GEMINI_FILE_MIME_TYPES,
+);
+registerFileSupport(
+  staticModels.google["gemini-3.1-flash-lite"],
+  GEMINI_FILE_MIME_TYPES,
+);
+registerFileSupport(
+  staticModels.google["gemini-3.5-flash"],
+  GEMINI_FILE_MIME_TYPES,
+);
+registerFileSupport(
+  staticModels.google["gemini-3.5-flash-lite"],
+  GEMINI_FILE_MIME_TYPES,
+);
+registerFileSupport(
+  staticModels.google["gemini-3.6-flash"],
+  GEMINI_FILE_MIME_TYPES,
+);
+registerFileSupport(
+  staticModels.google["gemini-3.7-flash"],
+  GEMINI_FILE_MIME_TYPES,
+);
+registerFileSupport(
+  staticModels.google["gemini-3.8-flash"],
   GEMINI_FILE_MIME_TYPES,
 );
 
@@ -217,6 +329,26 @@ registerFileSupport(
   DEFAULT_FILE_PART_MIME_TYPES,
 );
 
+// OpenRouter vision-capable free models
+for (const name of [
+  "dots-3-note",
+  "gemma-4-26b",
+  "gemma-4-31b",
+  "ling-3-flash-vl",
+  "nex-n2.5-mini",
+  "nex-n2.5-pro",
+  "nemotron-3-nano-omni",
+  "nemotron-3.5-content-safety",
+  "free-router",
+  "inkling",
+  "inkling-small",
+] as const) {
+  registerFileSupport(
+    staticModels.openrouter[name],
+    DEFAULT_FILE_PART_MIME_TYPES,
+  );
+}
+
 const openaiCompatibleProviders = openaiCompatibleModelsSafeParse(
   process.env.OPENAI_COMPATIBLE_DATA,
 );
@@ -244,12 +376,14 @@ export const isToolCallUnsupportedModel = (model: LanguageModel | string) => {
 };
 
 const isImageInputUnsupportedModel = (model: LanguageModel | string) => {
-  // For string models (AI Gateway), check if it's in the supported image models set
+  // For string models (AI Gateway), check membership directly.
   if (typeof model === "string") {
     return !staticSupportImageInputModelIds.has(model);
   }
-  // For SDK instances, assume not supported unless it's in the set
-  return true;
+  // SDK instances span mixed provider SDK generations whose types don't all
+  // satisfy this `ai` version's LanguageModel, so compare by identity instead
+  // of Set.has (whose parameter is bound to the inferred element union).
+  return !Array.from(staticSupportImageInputModelIds).some((m) => m === model);
 };
 
 export const getFilePartSupportedMimeTypes = (model: LanguageModel) => {
@@ -323,6 +457,9 @@ function checkProviderAPIKey(provider: keyof typeof staticModels) {
       break;
     case "groq":
       key = process.env.GROQ_API_KEY;
+      break;
+    case "openrouter":
+      key = process.env.OPENROUTER_API_KEY;
       break;
     case "ollama":
       // Ollama requires a base URL to be configured

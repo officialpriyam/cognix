@@ -32,5 +32,7 @@ services:
         sync: false # same public URL as BETTER_AUTH_URL
       - key: POSTGRES_URL
         sync: false # Supabase session-pooler URL (port 5432); app auto-migrates on boot
+      - key: OPENROUTER_API_KEY
+        sync: false # OpenRouter free-tier models; provider hidden when unset
     # All other keys (provider API keys, EXA_API_KEY, REDIS_URL, S3_*, etc.)
     # are optional/feature-gated: add them in the Render dashboard as needed.

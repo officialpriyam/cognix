@@ -112,6 +112,11 @@ export const GET = async () => {
     (p) => p.provider !== "ollama" && p.provider !== "groq",
   );
 
+  // Hide providers whose API key is not configured. Keyless providers are
+  // unusable, so showing them (even dimmed) only clutters the selector.
+  // (The "Add Local Models" placeholder is appended after this filter.)
+  filteredModels = filteredModels.filter((p) => p.hasAPIKey);
+
   // The static catalog is the source of truth for what the product ships. Any
   // org-enabled deployment whose provider isn't in it is a retired/legacy row
   // (e.g. the TensorX/Meta-Llama deployment left over from an earlier lineup)
