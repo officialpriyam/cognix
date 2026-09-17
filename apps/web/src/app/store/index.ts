@@ -51,6 +51,8 @@ export interface AppState {
   openShortcutsPopup: boolean;
   openChatPreferences: boolean;
   openUserSettings: boolean;
+  /** Which section the settings drawer should land on (menu-set per open). */
+  userSettingsSection: "profile" | "usage" | null;
   openOrgSettings: boolean;
   openWorkflowBuilder: boolean;
   openSalesAgentBuilder: boolean;
@@ -92,6 +94,7 @@ const initialState: AppState = {
   toolChoice: "auto",
   allowedMcpServers: undefined,
   openUserSettings: false,
+  userSettingsSection: null,
   openOrgSettings: false,
   openWorkflowBuilder: false,
   openSalesAgentBuilder: false,

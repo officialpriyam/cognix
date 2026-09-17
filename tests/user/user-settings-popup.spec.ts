@@ -1,5 +1,8 @@
 import { test, expect } from "@playwright/test";
-import { ensureSidebarOpen } from "../helpers/sidebar-helper";
+import {
+  ensureSidebarOpen,
+  openUserSettingsFromSidebar,
+} from "../helpers/sidebar-helper";
 
 // Use regular user auth state for user settings tests
 test.use({ storageState: "tests/.auth/regular-user.json" });
@@ -19,14 +22,13 @@ test.describe("User Settings Popup", () => {
     // Wait for dropdown menu to appear
     await page.waitForTimeout(500);
 
-    // Try to click settings option - use text selector as fallback
+    // Open User Settings via the submenu (Profile opens the drawer)
     try {
-      const settingsOption = page.getByTestId("user-settings-menu-item");
-      await settingsOption.waitFor({ state: "visible", timeout: 2000 });
-      await settingsOption.click();
+      await openUserSettingsFromSidebar(page);
     } catch {
-      // Fallback to text selector
-      await page.getByText("User Settings").click();
+      // Fallback to text selectors
+      await page.getByText("User Settings").hover();
+      await page.getByRole("menuitem", { name: "Profile" }).click();
     }
 
     // Wait for drawer to open
@@ -55,8 +57,8 @@ test.describe("User Settings Popup", () => {
     const userMenuButton = page.getByTestId("sidebar-user-button");
     await userMenuButton.click();
 
-    const settingsOption = page.getByTestId("user-settings-menu-item");
-    await settingsOption.click();
+    // Open user settings via the submenu
+    await openUserSettingsFromSidebar(page);
 
     // Wait for drawer to open
     await page.waitForSelector("[data-testid='user-detail-content']");
@@ -90,8 +92,8 @@ test.describe("User Settings Popup", () => {
     const userMenuButton = page.getByTestId("sidebar-user-button");
     await userMenuButton.click();
 
-    const settingsOption = page.getByTestId("user-settings-menu-item");
-    await settingsOption.click();
+    // Open user settings via the submenu
+    await openUserSettingsFromSidebar(page);
 
     // Wait for settings to load
     await page.waitForSelector("[data-testid='user-detail-content']");
@@ -128,8 +130,8 @@ test.describe("User Settings Popup", () => {
     const userMenuButton = page.getByTestId("sidebar-user-button");
     await userMenuButton.click();
 
-    const settingsOption = page.getByTestId("user-settings-menu-item");
-    await settingsOption.click();
+    // Open user settings via the submenu
+    await openUserSettingsFromSidebar(page);
 
     // Wait for drawer
     const drawer = page.getByRole("dialog", { name: "User Settings" });

@@ -14,6 +14,7 @@ import {
   ChevronRight,
   ChevronsUpDown,
   Command,
+  ChartColumn,
   Languages,
   LogOutIcon,
   Mail,
@@ -23,6 +24,7 @@ import {
   Settings,
   Settings2,
   Sun,
+  User,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
@@ -125,23 +127,66 @@ export function AppSidebarUserInner(props: {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
 
-              <DropdownMenuItem
-                className="cursor-pointer"
-                onClick={() => appStoreMutate({ openChatPreferences: true })}
-              >
-                <Settings2 className="size-4 text-foreground" />
-                <span>{t("chatPreferences")}</span>
-              </DropdownMenuItem>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger
+                  data-testid="user-settings-submenu-trigger"
+                  className="cursor-pointer"
+                >
+                  <Settings className="mr-2 size-4" />
+                  <span>User Settings</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                  <DropdownMenuSubContent className="w-56">
+                    <DropdownMenuItem
+                      onClick={() =>
+                        appStoreMutate({
+                          openUserSettings: true,
+                          userSettingsSection: "profile",
+                        })
+                      }
+                      className="cursor-pointer"
+                      data-testid="user-settings-menu-item"
+                    >
+                      <User className="size-4 text-foreground" />
+                      <span>Profile</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() =>
+                        appStoreMutate({
+                          openUserSettings: true,
+                          userSettingsSection: "usage",
+                        })
+                      }
+                      className="cursor-pointer"
+                      data-testid="user-settings-usage-item"
+                    >
+                      <ChartColumn className="size-4 text-foreground" />
+                      <span>Usage</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="cursor-pointer"
+                      onClick={() =>
+                        appStoreMutate({ openChatPreferences: true })
+                      }
+                    >
+                      <Settings2 className="size-4 text-foreground" />
+                      <span>{t("chatPreferences")}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="cursor-pointer"
+                      onClick={() =>
+                        appStoreMutate({ openShortcutsPopup: true })
+                      }
+                    >
+                      <Command className="size-4 text-foreground" />
+                      <span>{t("keyboardShortcuts")}</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuPortal>
+              </DropdownMenuSub>
               <SelectTheme />
               <SelectLanguage />
               <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="cursor-pointer"
-                onClick={() => appStoreMutate({ openShortcutsPopup: true })}
-              >
-                <Command className="size-4 text-foreground" />
-                <span>{t("keyboardShortcuts")}</span>
-              </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
                   window.open("mailto:info@cognix.iampriyam.me", "_blank");
@@ -161,16 +206,6 @@ export function AppSidebarUserInner(props: {
                 </DropdownMenuItem>
               )}
               <BillingMenuItem />
-              <DropdownMenuSeparator />
-
-              <DropdownMenuItem
-                onClick={() => appStoreMutate({ openUserSettings: true })}
-                className="cursor-pointer"
-                data-testid="user-settings-menu-item"
-              >
-                <Settings className="size-4 text-foreground" />
-                <span>User Settings</span>
-              </DropdownMenuItem>
               <WorkspaceMenuSection />
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={logout} className="cursor-pointer">

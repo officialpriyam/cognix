@@ -52,3 +52,20 @@ export async function ensureSidebarOpen(page: Page) {
     throw new Error("Could not open sidebar");
   }
 }
+
+/**
+ * Clicks through to the user settings drawer from an already-open sidebar
+ * user menu. User Settings is a submenu: hover its trigger first, then click
+ * the item (Profile opens the drawer at the top; "usage" scrolls to stats).
+ */
+export async function openUserSettingsFromSidebar(
+  page: Page,
+  item: "profile" | "usage" = "profile",
+) {
+  await page.getByTestId("user-settings-submenu-trigger").hover();
+  const testId =
+    item === "usage" ? "user-settings-usage-item" : "user-settings-menu-item";
+  const settingsOption = page.getByTestId(testId);
+  await settingsOption.waitFor({ state: "visible", timeout: 5000 });
+  await settingsOption.click();
+}

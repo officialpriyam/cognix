@@ -1,5 +1,8 @@
 import { test, expect } from "@playwright/test";
-import { ensureSidebarOpen } from "../helpers/sidebar-helper";
+import {
+  ensureSidebarOpen,
+  openUserSettingsFromSidebar,
+} from "../helpers/sidebar-helper";
 
 test.describe("User Name Synchronization", () => {
   test.use({ storageState: "tests/.auth/regular-user.json" });
@@ -28,9 +31,8 @@ test.describe("User Name Synchronization", () => {
       .textContent();
     expect(originalName).toBeTruthy();
 
-    // Click on User Settings directly
-    const settingsOption = page.getByTestId("user-settings-menu-item");
-    await settingsOption.click();
+    // Open User Settings via the submenu
+    await openUserSettingsFromSidebar(page);
 
     // Wait for settings dialog to open
     await page.waitForSelector("[data-testid='user-name-input']", {
@@ -64,7 +66,7 @@ test.describe("User Name Synchronization", () => {
     expect(updatedName).toBe(newName);
 
     // Restore original name
-    await page.getByTestId("user-settings-menu-item").click();
+    await openUserSettingsFromSidebar(page);
     await page.waitForSelector("[data-testid='user-name-input']", {
       state: "visible",
       timeout: 5000,
@@ -107,9 +109,8 @@ test.describe("User Name Synchronization", () => {
       .textContent();
     expect(originalName).toBeTruthy();
 
-    // Click on User Settings directly
-    const settingsOption = page.getByTestId("user-settings-menu-item");
-    await settingsOption.click();
+    // Open User Settings via the submenu
+    await openUserSettingsFromSidebar(page);
 
     // Wait for settings dialog to open
     await page.waitForSelector("[data-testid='user-name-input']", {
@@ -143,7 +144,7 @@ test.describe("User Name Synchronization", () => {
     expect(updatedName).toBe(newAdminName);
 
     // Restore original name
-    await page.getByTestId("user-settings-menu-item").click();
+    await openUserSettingsFromSidebar(page);
     await page.waitForSelector("[data-testid='user-name-input']", {
       state: "visible",
       timeout: 5000,

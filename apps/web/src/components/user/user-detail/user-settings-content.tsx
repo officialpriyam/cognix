@@ -1,7 +1,9 @@
 "use client";
 
 import type { BasicUserWithLastLogin } from "app-types/user";
+import { appStore } from "@/app/store";
 import { fetcher } from "lib/utils";
+import { useEffect, useRef } from "react";
 import useSWR from "swr";
 import { UserDetail } from "./user-detail";
 import { UserDetailContentSkeleton } from "./user-detail-content-skeleton";
@@ -39,6 +41,14 @@ export function UserSettingsContent({
     "/api/user/settings-context",
     fetcher,
   );
+  const section = appStore((state) => state.userSettingsSection);
+  const statsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (section === "usage" && data?.user) {
+      statsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [section, data?.user]);
 
   if (!data?.user) {
     return <UserDetailContentSkeleton />;
@@ -51,10 +61,12 @@ export function UserSettingsContent({
       currentUserId={data.currentUserId}
       userAccountInfo={data.userAccountInfo}
       userStatsSlot={
-        <UserStatisticsCard
-          stats={{ ...data.stats, period: "Last 30 Days" }}
-          view={view}
-        />
+        <div ref={statsRef} className="scroll-mt-4">
+          <UserStatisticsCard
+            stats={{ ...data.stats, period: "Last 30 Days" }}
+            view={view}
+          />
+        </div>
       }
     />
   );
