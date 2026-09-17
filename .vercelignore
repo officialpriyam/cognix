@@ -1,0 +1,4 @@
+# Keep the Electron desktop workspace out of Vercel uploads.
+# The web app is deployed from apps/web (Root Directory); desktop is never
+# installed, built, or served there — same as render.yaml's --filter web....
+apps/desktop
