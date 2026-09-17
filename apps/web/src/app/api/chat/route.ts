@@ -149,9 +149,10 @@ const logger = globalLogger.withDefaults({
 // Reasoning models spend most of a turn emitting tokens the user never sees, so
 // a single step can legitimately run for minutes before it completes. Sized for
 // that: the AI SDK budgets below still finish inside this with room to persist a
-// terminal state. Per-route override — the project-level default cannot exceed
-// 800s, but a function may go higher in code.
-export const maxDuration = 600;
+// terminal state. Capped at 300s: Vercel Hobby rejects anything higher at build
+// time ("maxDuration between 1 and 300"), and long-lived hosts (Render) ignore
+// this export entirely.
+export const maxDuration = 300;
 
 function chatErrorResponse(
   code: string,

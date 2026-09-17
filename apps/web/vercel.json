@@ -4,12 +4,12 @@
   "installCommand": "pnpm install --filter web...",
   "buildCommand": "pnpm build",
   "functions": {
-    "app/api/chat/**/*.ts": { "maxDuration": 60 },
-    "app/api/agent/**/*.ts": { "maxDuration": 60 },
+    "app/api/chat/**/*.ts": { "maxDuration": 300 },
+    "app/api/agent/**/*.ts": { "maxDuration": 300 },
     "app/api/voice/**/*.ts": { "maxDuration": 60 },
-    "app/api/code-execution/**/*.ts": { "maxDuration": 60 },
-    "app/api/workflow/**/*.ts": { "maxDuration": 60 },
-    "app/api/export/**/*.ts": { "maxDuration": 60 },
-    "app/api/inngest/**/*.ts": { "maxDuration": 60 }
+    "app/api/code-execution/**/*.ts": { "maxDuration": 300 },
+    "app/api/workflow/**/*.ts": { "maxDuration": 300 },
+    "app/api/export/**/*.ts": { "maxDuration": 300 },
+    "app/api/inngest/**/*.ts": { "maxDuration": 300 }
   }
 }

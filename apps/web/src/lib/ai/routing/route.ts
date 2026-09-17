@@ -12,6 +12,10 @@ export function isCandidateEligible(
   policy: OrganizationRoutingPolicy = {},
 ): boolean {
   if (!candidate.active) return false;
+  // Free-tier deployments are manual-pick only: their rate limits (tens of
+  // requests per minute) can't absorb automatic-routing volume, and zero
+  // prices would always win budget comparisons.
+  if (candidate.isFree) return false;
   // A zero value is not a usable free-price marker in this catalog. It means
   // the controlled deployment price has not been configured yet.
   if (

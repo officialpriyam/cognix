@@ -789,6 +789,10 @@ export const ModelDeploymentTable = pgTable(
     contextTokens: integer("context_tokens").notNull().default(0),
     supportsTools: boolean("supports_tools").notNull().default(false),
     supportsVision: boolean("supports_vision").notNull().default(false),
+    // True for $0-priced tiers (e.g. OpenRouter :free). A zero price alone
+    // means "not configured yet" and is excluded from routing; isFree marks a
+    // zero price as intentional so free deployments stay usable.
+    isFree: boolean("is_free").notNull().default(false),
     active: boolean("active").notNull().default(true),
     createdAt: timestamp("created_at")
       .notNull()

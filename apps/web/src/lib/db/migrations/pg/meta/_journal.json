@@ -351,6 +351,13 @@
       "when": 1785900100000,
       "tag": "0048_out_of_band_schema_baseline",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1789631405307,
+      "tag": "0049_openrouter_free_models",
+      "breakpoints": true
     }
   ]
 }

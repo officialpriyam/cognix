@@ -285,6 +285,7 @@ async function getCandidates(input: {
       supportsTools: deployment.supportsTools,
       supportsVision: deployment.supportsVision,
       active: deployment.active,
+      isFree: deployment.isFree,
       profiles: (profilesByModel.get(modelName) ?? []).map((profile) => ({
         taskKey:
           profile.taskKey as RoutingCandidate["profiles"][number]["taskKey"],
@@ -410,8 +411,11 @@ export async function validateManualModel(input: {
   );
   if (
     !match ||
-    match.inputPriceMicrosPerMillion <= 0 ||
-    match.outputPriceMicrosPerMillion <= 0 ||
+    // A zero price means "not configured" unless the deployment is flagged
+    // as a free tier, in which case $0 is intentional and usable.
+    ((match.inputPriceMicrosPerMillion <= 0 ||
+      match.outputPriceMicrosPerMillion <= 0) &&
+      !match.isFree) ||
     match.dataRetention === "unknown" ||
     (policy.allowedDeploymentIds &&
       !policy.allowedDeploymentIds.has(match.deploymentId))
@@ -442,8 +446,11 @@ export async function getAvailableOrganizationModels(input: {
     models: candidates
       .filter(
         (candidate) =>
-          candidate.inputPriceMicrosPerMillion > 0 &&
-          candidate.outputPriceMicrosPerMillion > 0 &&
+          // Zero prices are admitted only for flagged free tiers; otherwise
+          // zero means the deployment price hasn't been configured yet.
+          (candidate.isFree ||
+            (candidate.inputPriceMicrosPerMillion > 0 &&
+              candidate.outputPriceMicrosPerMillion > 0)) &&
           candidate.dataRetention !== "unknown" &&
           (!policy.allowedDeploymentIds ||
             policy.allowedDeploymentIds.has(candidate.deploymentId)),

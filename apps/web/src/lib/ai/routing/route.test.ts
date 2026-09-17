@@ -19,6 +19,7 @@ const candidate = (
   supportsTools: true,
   supportsVision: true,
   active: true,
+  isFree: false,
   profiles: [
     {
       taskKey: "coding",
@@ -69,6 +70,27 @@ describe("selectDeterministicRoute", () => {
         candidate("missing-price", 100, {
           inputPriceMicrosPerMillion: 0,
           outputPriceMicrosPerMillion: 0,
+        }),
+        candidate("priced", 50),
+      ],
+      signals: {
+        taskKey: "coding",
+        requiresTools: false,
+        requiresVision: false,
+        minimumContextTokens: 0,
+      },
+    });
+
+    expect(route.candidate.deploymentId).toBe("priced");
+  });
+
+  it("keeps free-tier deployments out of automatic routing", () => {
+    const route = selectDeterministicRoute({
+      candidates: [
+        candidate("free-tier", 100, {
+          inputPriceMicrosPerMillion: 0,
+          outputPriceMicrosPerMillion: 0,
+          isFree: true,
         }),
         candidate("priced", 50),
       ],

@@ -41,6 +41,9 @@ export type RoutingCandidate = {
   supportsTools: boolean;
   supportsVision: boolean;
   active: boolean;
+  // True when the $0 price is intentional (free tier), as opposed to a
+  // deployment whose price simply hasn't been configured yet.
+  isFree: boolean;
   profiles: RoutingProfile[];
 };
 
