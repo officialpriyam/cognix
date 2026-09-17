@@ -1,12 +1,14 @@
 import {
-  GitHubConfigSchema,
-  GoogleConfigSchema,
-  MicrosoftConfigSchema,
-  GitHubConfig,
-  GoogleConfig,
-  MicrosoftConfig,
   AuthConfig,
   AuthConfigSchema,
+  DiscordConfig,
+  DiscordConfigSchema,
+  GitHubConfig,
+  GitHubConfigSchema,
+  GoogleConfig,
+  GoogleConfigSchema,
+  MicrosoftConfig,
+  MicrosoftConfigSchema,
 } from "app-types/authentication";
 // Conditionally import React taint
 let experimental_taintUniqueValue: any = () => {};
@@ -24,11 +26,28 @@ import { parseEnvBoolean } from "../utils";
 
 function parseSocialAuthConfigs() {
   const configs: {
+    discord?: DiscordConfig;
     github?: GitHubConfig;
     google?: GoogleConfig;
     microsoft?: MicrosoftConfig;
   } = {};
   const disableSignUp = parseEnvBoolean(process.env.DISABLE_SIGN_UP);
+
+  if (process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET) {
+    const discordResult = DiscordConfigSchema.safeParse({
+      clientId: process.env.DISCORD_CLIENT_ID,
+      clientSecret: process.env.DISCORD_CLIENT_SECRET,
+      disableSignUp,
+    });
+    if (discordResult.success) {
+      configs.discord = discordResult.data;
+      experimental_taintUniqueValue(
+        "Do not pass DISCORD_CLIENT_SECRET to the client",
+        configs,
+        configs.discord.clientSecret,
+      );
+    }
+  }
 
   if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
     const githubResult = GitHubConfigSchema.safeParse({

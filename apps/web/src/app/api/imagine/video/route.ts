@@ -18,7 +18,7 @@ import z from "zod";
 const createSchema = z.object({
   prompt: z.string().min(1).max(4000),
   model: z.enum(QWEN_VIDEO_MODEL_IDS).optional(),
-  imageUrl: z.string().url().optional(),
+  imageUrl: z.string().optional(),
   resolution: z.enum(QWEN_VIDEO_RESOLUTIONS).optional(),
   ratio: z.enum(QWEN_VIDEO_RATIOS).optional(),
   duration: z
@@ -31,11 +31,36 @@ const createSchema = z.object({
     .optional(),
 });
 
+/** Accept http(s) URLs as-is; move uploaded data-URL first frames into
+ * permanent storage so DashScope can fetch them. */
+async function resolveFirstFrame(
+  imageUrl: string | undefined,
+  userId: string,
+): Promise<string | undefined> {
+  if (!imageUrl?.trim()) return undefined;
+  const value = imageUrl.trim();
+  if (/^https?:\/\//i.test(value)) return value;
+  const match = /^data:(image\/[\w.+-]+);base64,(.+)$/i.exec(value);
+  if (!match) {
+    throw new Error("First frame must be an image URL or an uploaded image");
+  }
+  const uploaded = await serverFileStorage.upload(
+    Buffer.from(match[2], "base64"),
+    {
+      contentType: match[1],
+      filename: `imagine-first-frame-${Date.now()}.png`,
+      userId,
+      uploadType: "ai-generated",
+    },
+  );
+  return uploaded.sourceUrl;
+}
+
 /**
  * POST /api/imagine/video — submit a text/image-to-video task, returns a
  * task id immediately. Generation takes minutes; the client polls GET.
  */
-export const POST = withAuth(async (request: Request, _session) => {
+export const POST = withAuth(async (request: Request, session) => {
   try {
     if (!isQwenConfigured()) {
       return NextResponse.json(
@@ -50,7 +75,14 @@ export const POST = withAuth(async (request: Request, _session) => {
         { status: 400 },
       );
     }
-    const { taskId } = await submitQwenVideoTask(parsed.data);
+    const imageUrl = await resolveFirstFrame(
+      parsed.data.imageUrl,
+      session.user.id,
+    );
+    const { taskId } = await submitQwenVideoTask({
+      ...parsed.data,
+      imageUrl,
+    });
     return NextResponse.json({ taskId, status: "pending" });
   } catch (error) {
     console.error("Imagine video submission failed:", error);

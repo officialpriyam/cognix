@@ -1,8 +1,11 @@
 import { trackUsage } from "@/lib/gate";
 import { FilePart, ModelMessage, ToolResultPart, tool as createTool } from "ai";
 import { generateImageWithGemini } from "lib/ai/image/generate-image";
-import { generateQwenImage } from "lib/ai/image/qwen";
-import type { QwenImageModelId } from "lib/ai/image/qwen-models";
+import { type QwenGeneratedImage, generateQwenImage } from "lib/ai/image/qwen";
+import {
+  QWEN_IMAGE_MODEL_IDS,
+  type QwenImageModelId,
+} from "lib/ai/image/qwen-models";
 import { serverFileStorage } from "lib/file-storage";
 import { toAny } from "lib/utils";
 import logger from "logger";
@@ -20,15 +23,41 @@ export type ImageToolResult = {
   model: string;
 };
 
+/** Upload generated buffers to permanent storage and return public URLs. */
+async function uploadGeneratedImages(
+  images: QwenGeneratedImage[],
+  userId: string | undefined,
+): Promise<{ url: string; mimeType?: string }[]> {
+  return Promise.all(
+    images.map(async (image) => {
+      const uploadedImage = await serverFileStorage.upload(
+        Buffer.from(image.base64, "base64"),
+        {
+          contentType: image.mimeType,
+          filename: `ai-generated-${Date.now()}.png`,
+          userId,
+          uploadType: "ai-generated",
+        },
+      );
+      return {
+        url: uploadedImage.sourceUrl,
+        mimeType: image.mimeType,
+      };
+    }),
+  );
+}
+
 /**
- * Factory function to create image generation tool with userId and threadId bound
- * Image generation tool using Google Gemini 2.5 Flash Image via AI Gateway
- * Automatically tracks token usage through Autumn billing system
+ * Factory function to create image generation tool with userId and threadId bound.
+ * Uses Google Gemini 2.5 Flash Image via AI Gateway unless a Qwen/Wan model is
+ * requested (the selector in the prompt bar or the model itself picks it).
+ * Automatically tracks token usage through Autumn billing system.
  */
 export const createImageTool = (
   billingCustomerId?: string | null,
   threadId?: string,
   billingEntityId?: string,
+  requestedModel?: string,
 ) =>
   createTool({
     description: `Generate, edit, or composite images based on the conversation context. This tool automatically analyzes recent messages to create images without requiring explicit input parameters. It includes all user-uploaded images from the recent conversation and only the most recent AI-generated image to avoid confusion. Use the 'mode' parameter to specify the operation type: 'create' for new images, 'edit' for modifying existing images, or 'composite' for combining multiple images. Use this when the user requests image creation, modification, or visual content generation.`,
@@ -41,12 +70,7 @@ export const createImageTool = (
           "Image generation mode: 'create' for new images, 'edit' for modifying existing images, 'composite' for combining multiple images",
         ),
       model: z
-        .enum([
-          "gemini-2.5-flash-image",
-          "qwen-image-3.0-pro",
-          "wan2.7-image",
-          "wan2.6-t2i",
-        ])
+        .enum(["gemini-2.5-flash-image", ...QWEN_IMAGE_MODEL_IDS])
         .optional()
         .default("gemini-2.5-flash-image")
         .describe(
@@ -55,6 +79,16 @@ export const createImageTool = (
     }),
     execute: async ({ mode, model = "gemini-2.5-flash-image" }, options) => {
       const { messages, abortSignal, toolCallId } = options;
+      // The prompt-bar selector (or agent preset) pins the backend; only the
+      // model itself may override it when both request different backends.
+      if (
+        requestedModel &&
+        requestedModel !== model &&
+        (QWEN_IMAGE_MODEL_IDS as readonly string[]).includes(requestedModel) ===
+          (QWEN_IMAGE_MODEL_IDS as readonly string[]).includes(model)
+      ) {
+        model = requestedModel as (typeof QWEN_IMAGE_MODEL_IDS)[number];
+      }
       try {
         // Qwen/Wan models take a plain text prompt (no multimodal context),
         // so derive it from the latest user text instead of message assembly.
@@ -81,29 +115,12 @@ export const createImageTool = (
             prompt,
             model: model as QwenImageModelId,
           });
-          // Reuse the shared upload + return flow below (no usage to track:
-          // Qwen bills the workspace key, not per-call tokens here).
-          const qwenResult = { images, usage: undefined };
-          const resultImages = await safe(qwenResult.images)
-            .map((list) => {
-              return Promise.all(
-                list.map(async (image) => {
-                  const uploadedImage = await serverFileStorage.upload(
-                    Buffer.from(image.base64, "base64"),
-                    {
-                      contentType: image.mimeType,
-                      filename: `ai-generated-${Date.now()}.png`,
-                      userId: billingCustomerId ?? undefined,
-                      uploadType: "ai-generated",
-                    },
-                  );
-                  return {
-                    url: uploadedImage.sourceUrl,
-                    mimeType: image.mimeType,
-                  };
-                }),
-              );
-            })
+          // No usage to track: Qwen bills the workspace key, not per-call
+          // tokens here.
+          const resultImages = await safe(images)
+            .map((list) =>
+              uploadGeneratedImages(list, billingCustomerId ?? undefined),
+            )
             .ifFail(() => {
               throw new Error(
                 "Image generation was successful, but file upload failed. Please check your file upload configuration and try again.",

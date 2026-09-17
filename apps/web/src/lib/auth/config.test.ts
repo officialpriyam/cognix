@@ -19,6 +19,8 @@ describe("Auth Config", () => {
     vi.unstubAllEnvs();
 
     // Delete all auth-related environment variables
+    delete process.env.DISCORD_CLIENT_ID;
+    delete process.env.DISCORD_CLIENT_SECRET;
     delete process.env.GITHUB_CLIENT_ID;
     delete process.env.GITHUB_CLIENT_SECRET;
     delete process.env.GOOGLE_CLIENT_ID;
@@ -47,6 +49,7 @@ describe("Auth Config", () => {
         emailAndPasswordEnabled: true,
         signUpEnabled: true,
         socialAuthenticationProviders: {
+          discord: undefined,
           github: undefined,
           google: undefined,
           microsoft: undefined,
@@ -243,6 +246,7 @@ describe("Auth Config", () => {
         emailAndPasswordEnabled: true,
         signUpEnabled: true,
         socialAuthenticationProviders: {
+          discord: undefined,
           github: undefined,
           google: undefined,
           microsoft: undefined,

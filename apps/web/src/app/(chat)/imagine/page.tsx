@@ -9,18 +9,7 @@ export default async function ImaginePage() {
     redirect("/sign-in");
   }
 
-  if (!process.env.DASHSCOPE_API_KEY?.trim()) {
-    return (
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-2 p-4 md:p-8">
-        <h1 className="text-2xl font-semibold tracking-tight">Imagine</h1>
-        <p className="text-sm text-muted-foreground">
-          Image and video generation is not configured yet. Set
-          DASHSCOPE_API_KEY on the server to enable Qwen image and Wan video
-          models.
-        </p>
-      </div>
-    );
-  }
-
+  // No hard gate: Gemini Flash Image works via the AI Gateway by default;
+  // Qwen/Wan models surface a clear error when DASHSCOPE_API_KEY is missing.
   return <ImagineStudioLoader />;
 }

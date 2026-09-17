@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  QWEN_IMAGE_RATIOS,
+  QWEN_IMAGE_MODELS,
   QWEN_VIDEO_DURATIONS,
   QWEN_VIDEO_MODELS,
   QWEN_VIDEO_RATIOS,
@@ -21,25 +21,27 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Card, CardContent } from "ui/card";
-import { Input } from "ui/input";
-import { Label } from "ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "ui/select";
 import { Skeleton } from "ui/skeleton";
 
 type Mode = "image" | "video";
+
+/** Ratio keys the image endpoint accepts (per-model pixels are server-side). */
+const IMAGE_RATIOS: Record<string, string> = {
+  "1:1": "1:1",
+  "16:9": "16:9",
+  "9:16": "9:16",
+  "4:3": "4:3",
+  "3:4": "3:4",
+};
 
 interface GalleryImage {
   kind: "image";
   id: string;
   url: string;
+  mimeType?: string;
   prompt: string;
+  model: string;
+  ratio: string;
 }
 
 interface GalleryVideo {
@@ -47,6 +49,8 @@ interface GalleryVideo {
   id: string;
   taskId: string;
   prompt: string;
+  model: string;
+  ratio: string;
   status: "pending" | "running" | "succeeded" | "failed";
   videoUrl?: string;
   message?: string;
@@ -166,7 +170,9 @@ async function readError(
 export function ImagineStudio() {
   const [mode, setMode] = useState<Mode>("image");
   const [prompt, setPrompt] = useState("");
-  const [quality, setQuality] = useState<"speed" | "quality">("quality");
+  const [imageModel, setImageModel] = useState<string>(
+    "gemini-2.5-flash-image",
+  );
   const [videoModel, setVideoModel] = useState<string>(QWEN_VIDEO_MODELS[0].id);
   const [ratio, setRatio] = useState<string>("1:1");
   const [resolution, setResolution] = useState<string>(
@@ -180,6 +186,7 @@ export function ImagineStudio() {
   const [items, setItems] = useState<GalleryItem[]>([]);
   const pollers = useRef(new Map<string, ReturnType<typeof setInterval>>());
   const recognitionRef = useRef<{ stop: () => void } | null>(null);
+  const resultsRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(
     () => () => {
@@ -189,9 +196,6 @@ export function ImagineStudio() {
     },
     [],
   );
-
-  const imageModel =
-    quality === "speed" ? "wan2.7-image" : "qwen-image-3.0-pro";
 
   const toggleMic = () => {
     if (listening) {
@@ -305,17 +309,23 @@ export function ImagineStudio() {
       const body = (await response.json()) as {
         images: { url: string; mimeType?: string }[];
       };
-      setItems((current) => [
-        ...body.images.map(
-          (image): GalleryImage => ({
-            kind: "image",
-            id: `${Date.now()}-${image.url.slice(-12)}`,
-            url: image.url,
-            prompt: trimmed,
-          }),
-        ),
-        ...current,
-      ]);
+      const generated: GalleryImage[] = body.images.map(
+        (image): GalleryImage => ({
+          kind: "image",
+          id: `${Date.now()}-${image.url.slice(-12)}`,
+          url: image.url,
+          mimeType: image.mimeType,
+          prompt: trimmed,
+          model: imageModel,
+          ratio,
+        }),
+      );
+      // Chat-like flow: the new result page appears right below the prompt
+      // bar and the view scrolls to it, like sending a message in chat.
+      setItems((current) => [...generated, ...current]);
+      requestAnimationFrame(() =>
+        resultsRef.current?.scrollIntoView({ behavior: "smooth" }),
+      );
       setPrompt("");
     } catch (error) {
       toast.error(
@@ -346,16 +356,23 @@ export function ImagineStudio() {
       if (!response.ok)
         throw new Error(await readError(response, "Submission failed"));
       const body = (await response.json()) as { taskId: string };
+      // Chat-like flow: a pending page for this task opens immediately under
+      // the prompt bar and fills in with the video as soon as it is ready.
       setItems((current) => [
         {
           kind: "video",
           id: body.taskId,
           taskId: body.taskId,
           prompt: trimmed,
+          model: videoModel,
+          ratio,
           status: "pending",
         },
         ...current,
       ]);
+      requestAnimationFrame(() =>
+        resultsRef.current?.scrollIntoView({ behavior: "smooth" }),
+      );
       pollVideo(body.taskId);
       setPrompt("");
       toast.success("Video task submitted — polling for the result");
@@ -370,6 +387,19 @@ export function ImagineStudio() {
 
   const presets = mode === "image" ? IMAGE_PRESETS : VIDEO_PRESETS;
   const canSend = Boolean(prompt.trim()) && !busy;
+  const currentModel = mode === "image" ? imageModel : videoModel;
+  const setCurrentModel = mode === "image" ? setImageModel : setVideoModel;
+  const modelOptions =
+    mode === "image"
+      ? [
+          { id: "gemini-2.5-flash-image", label: "Gemini 2.5 Flash Image" },
+          ...QWEN_IMAGE_MODELS.map((m) => ({ id: m.id, label: m.label })),
+        ]
+      : QWEN_VIDEO_MODELS;
+  const ratioOptions =
+    mode === "image"
+      ? Object.keys(IMAGE_RATIOS)
+      : (QWEN_VIDEO_RATIOS as readonly string[]);
 
   return (
     <div className="mx-auto flex min-h-full w-full max-w-4xl flex-col px-4 pt-14 md:pt-20">
@@ -433,10 +463,7 @@ export function ImagineStudio() {
                   onClick={() => setAspectOpen(false)}
                 />
                 <div className="absolute bottom-full z-20 mb-2 flex w-44 flex-col gap-1 rounded-2xl border bg-popover p-2 shadow-xl">
-                  {(mode === "image"
-                    ? Object.keys(QWEN_IMAGE_RATIOS)
-                    : (QWEN_VIDEO_RATIOS as readonly string[])
-                  ).map((value) => (
+                  {ratioOptions.map((value) => (
                     <button
                       key={value}
                       type="button"
@@ -501,38 +528,20 @@ export function ImagineStudio() {
             )}
           </div>
 
-          {mode === "image" ? (
-            <div className="flex items-center rounded-full bg-muted p-1">
-              {(["speed", "quality"] as const).map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setQuality(value)}
-                  className={cn(
-                    "rounded-full px-3 py-1.5 text-xs font-medium capitalize transition-colors",
-                    quality === value
-                      ? "bg-background text-foreground shadow"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {value === "quality" ? "Quality 2.0" : "Speed"}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <Select value={videoModel} onValueChange={setVideoModel}>
-              <SelectTrigger className="h-8 w-44 rounded-full text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {QWEN_VIDEO_MODELS.map((model) => (
-                  <SelectItem key={model.id} value={model.id}>
-                    {model.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+          <select
+            value={currentModel}
+            onChange={(event) => setCurrentModel(event.target.value)}
+            className="h-8 cursor-pointer rounded-full bg-muted px-3 text-xs font-medium text-muted-foreground outline-none transition-colors hover:text-foreground"
+            aria-label="Generation model"
+          >
+            {modelOptions.map((model) => (
+              <option key={model.id} value={model.id}>
+                {mode === "image" && model.id === "gemini-2.5-flash-image"
+                  ? "Gemini 2.5 Flash Image"
+                  : model.label}
+              </option>
+            ))}
+          </select>
 
           <div className="ml-auto flex items-center gap-1">
             <button
@@ -564,98 +573,138 @@ export function ImagineStudio() {
 
         {mode === "video" && (
           <div className="mt-3">
-            <Label htmlFor="imagine-first-frame" className="sr-only">
-              First-frame image URL
-            </Label>
-            <Input
+            <label
+              htmlFor="imagine-first-frame"
+              className="mb-1 block text-xs text-muted-foreground"
+            >
+              First frame (optional — animates from this image)
+            </label>
+            <input
               id="imagine-first-frame"
-              placeholder="First-frame image URL (optional — animates from the image)"
-              value={imageUrl}
-              onChange={(event) => setImageUrl(event.target.value)}
-              className="h-9 rounded-xl text-xs"
+              type="file"
+              accept="image/*"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = () => {
+                  setImageUrl(String(reader.result));
+                  toast.success("First frame attached");
+                };
+                reader.readAsDataURL(file);
+              }}
+              className="block w-full cursor-pointer rounded-xl border border-dashed text-xs text-muted-foreground file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-xs file:font-medium"
             />
+            {imageUrl && (
+              <div className="mt-2 flex items-center gap-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={imageUrl}
+                  alt="First frame preview"
+                  className="size-10 rounded-md object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => setImageUrl("")}
+                  className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                >
+                  Remove
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      <div className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-3">
-        {presets.map((preset) => {
-          const PresetIcon = preset.icon;
-          return (
-            <button
-              key={preset.label}
-              type="button"
-              onClick={() => setPrompt(preset.prompt)}
-              className="group relative aspect-[3/4] overflow-hidden rounded-2xl bg-gradient-to-br text-left transition-transform hover:scale-[1.02]"
-              style={{}}
-            >
-              <span
-                aria-hidden
-                className={cn(
-                  "absolute inset-0 bg-gradient-to-br",
-                  preset.gradient,
-                )}
-              />
-              <span className="absolute inset-0 flex items-center justify-center">
-                <PresetIcon className="size-10 text-white/70 transition-transform group-hover:scale-110" />
-              </span>
-              <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-3 pt-8 text-sm font-medium text-white">
-                {preset.label}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
       {items.length > 0 && (
-        <div className="mt-8 grid gap-3 pb-10 md:grid-cols-2">
-          {items.map((item) =>
-            item.kind === "image" ? (
-              <Card key={item.id} className="overflow-hidden">
-                <img
-                  src={item.url}
-                  alt={item.prompt}
-                  className="aspect-square w-full object-cover"
-                  loading="lazy"
-                />
-                <CardContent className="pt-3">
-                  <p className="line-clamp-2 text-xs text-muted-foreground">
-                    {item.prompt}
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card key={item.id} className="overflow-hidden">
-                <CardContent className="flex min-h-48 flex-col gap-2 pt-4">
-                  {item.status === "succeeded" && item.videoUrl ? (
-                    <video
-                      src={item.videoUrl}
-                      controls
-                      playsInline
-                      preload="metadata"
-                      className="aspect-video w-full rounded-md bg-black"
+        <div ref={resultsRef} className="mt-8 flex flex-col gap-4 pb-10">
+          {items.map((item) => (
+            <div
+              key={item.id}
+              className="overflow-hidden rounded-3xl border bg-card shadow-sm"
+            >
+              <div className="flex flex-col gap-2 p-4">
+                {item.kind === "image" ? (
+                  <a href={item.url} target="_blank" rel="noreferrer">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={item.url}
+                      alt={item.prompt}
+                      className={cn(
+                        "w-full rounded-2xl bg-muted object-cover",
+                        item.ratio === "9:16" || item.ratio === "3:4"
+                          ? "max-h-[70vh]"
+                          : "",
+                      )}
+                      loading="lazy"
                     />
-                  ) : item.status === "failed" ? (
-                    <p className="text-sm text-destructive">
-                      {item.message || "Video generation failed"}
+                  </a>
+                ) : item.status === "succeeded" && item.videoUrl ? (
+                  <video
+                    src={item.videoUrl}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    className="aspect-video w-full rounded-2xl bg-black"
+                  />
+                ) : item.status === "failed" ? (
+                  <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-2xl bg-muted text-sm text-destructive">
+                    <Clapperboard className="size-6 opacity-60" />
+                    {item.message || "Video generation failed"}
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    <Skeleton className="aspect-video w-full rounded-2xl" />
+                    <p className="text-xs text-muted-foreground">
+                      {item.status === "running"
+                        ? "Rendering video…"
+                        : "Video queued — polling for the result…"}
                     </p>
-                  ) : (
-                    <div className="flex flex-col gap-2">
-                      <Skeleton className="aspect-video w-full" />
-                      <p className="text-xs text-muted-foreground">
-                        {item.status === "running"
-                          ? "Rendering video…"
-                          : "Video queued — polling for the result…"}
-                      </p>
-                    </div>
-                  )}
-                  <p className="line-clamp-2 text-xs text-muted-foreground">
+                  </div>
+                )}
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-1 text-xs text-muted-foreground">
+                  <span className="rounded-full bg-muted px-2 py-0.5 font-medium text-foreground">
+                    {item.kind === "image" ? item.model : item.model}
+                  </span>
+                  <span>{item.ratio}</span>
+                  <span className="line-clamp-1 flex-1 basis-full text-muted-foreground/80 sm:basis-auto">
                     {item.prompt}
-                  </p>
-                </CardContent>
-              </Card>
-            ),
-          )}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {items.length === 0 && (
+        <div className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-3">
+          {presets.map((preset) => {
+            const PresetIcon = preset.icon;
+            return (
+              <button
+                key={preset.label}
+                type="button"
+                onClick={() => setPrompt(preset.prompt)}
+                className="group relative aspect-[3/4] overflow-hidden rounded-2xl bg-gradient-to-br text-left transition-transform hover:scale-[1.02]"
+                style={{}}
+              >
+                <span
+                  aria-hidden
+                  className={cn(
+                    "absolute inset-0 bg-gradient-to-br",
+                    preset.gradient,
+                  )}
+                />
+                <span className="absolute inset-0 flex items-center justify-center">
+                  <PresetIcon className="size-10 text-white/70 transition-transform group-hover:scale-110" />
+                </span>
+                <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-3 pt-8 text-sm font-medium text-white">
+                  {preset.label}
+                </span>
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

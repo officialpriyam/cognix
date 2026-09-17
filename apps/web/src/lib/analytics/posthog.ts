@@ -22,13 +22,13 @@ import * as backend from "./client";
 
 // Auth Events
 export interface UserSignedInProps {
-  method: "email" | "google" | "github" | "microsoft";
+  method: "email" | "discord" | "google" | "github" | "microsoft";
   userId: string;
   email?: string;
 }
 
 export interface UserSignedUpProps {
-  method: "email" | "google" | "github" | "microsoft";
+  method: "email" | "discord" | "google" | "github" | "microsoft";
   userId: string;
   email?: string;
   isFirstUser?: boolean;

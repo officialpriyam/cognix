@@ -935,7 +935,12 @@ export async function POST(request: Request) {
         const IMAGE_TOOL: Record<string, Tool> =
           useImageTool && toolChoice !== "none"
             ? {
-                [ImageToolName]: createImageTool(customerId, id, entityId),
+                [ImageToolName]: createImageTool(
+                  customerId,
+                  id,
+                  entityId,
+                  imageTool?.model,
+                ),
               }
             : {};
         // Expose loadSkill only when the Auto catalog is non-empty — the model

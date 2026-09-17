@@ -2,6 +2,7 @@ import { z } from "zod";
 import { envBooleanSchema } from "./util";
 
 export const SocialAuthenticationProviderSchema = z.enum([
+  "discord",
   "github",
   "google",
   "microsoft",
@@ -10,6 +11,12 @@ export const SocialAuthenticationProviderSchema = z.enum([
 export type SocialAuthenticationProvider = z.infer<
   typeof SocialAuthenticationProviderSchema
 >;
+
+export const DiscordConfigSchema = z.object({
+  clientId: z.string().min(1),
+  clientSecret: z.string().min(1),
+  disableSignUp: z.boolean().optional(),
+});
 
 export const GitHubConfigSchema = z.object({
   clientId: z.string().min(1),
@@ -33,6 +40,7 @@ export const MicrosoftConfigSchema = z.object({
 });
 
 export const SocialAuthenticationConfigSchema = z.object({
+  discord: DiscordConfigSchema.optional(),
   github: GitHubConfigSchema.optional(),
   google: GoogleConfigSchema.optional(),
   microsoft: MicrosoftConfigSchema.optional(),
@@ -44,6 +52,7 @@ export const AuthConfigSchema = z.object({
   socialAuthenticationProviders: SocialAuthenticationConfigSchema,
 });
 
+export type DiscordConfig = z.infer<typeof DiscordConfigSchema>;
 export type GitHubConfig = z.infer<typeof GitHubConfigSchema>;
 export type GoogleConfig = z.infer<typeof GoogleConfigSchema>;
 export type MicrosoftConfig = z.infer<typeof MicrosoftConfigSchema>;

@@ -22,6 +22,7 @@ import { Loader } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { safe } from "ts-safe";
+import { DiscordIcon } from "ui/discord-icon";
 import { GithubIcon } from "ui/github-icon";
 import { GoogleIcon } from "ui/google-icon";
 import { MicrosoftIcon } from "ui/microsoft-icon";
@@ -194,6 +195,16 @@ export default function SignIn({
                   >
                     <GoogleIcon className="size-4 fill-foreground" />
                     Google
+                  </Button>
+                )}
+                {socialAuthenticationProviders.includes("discord") && (
+                  <Button
+                    variant="outline"
+                    onClick={() => handleSocialSignIn("discord")}
+                    className="flex-1 w-full icon-motion-slide"
+                  >
+                    <DiscordIcon className="size-4" />
+                    Discord
                   </Button>
                 )}
                 {socialAuthenticationProviders.includes("github") && (

@@ -1,9 +1,10 @@
-import { Button } from "../ui/button";
 import { SocialAuthenticationProvider } from "app-types/authentication";
-import { GoogleIcon } from "ui/google-icon";
-import { GithubIcon } from "ui/github-icon";
-import { MicrosoftIcon } from "ui/microsoft-icon";
 import { cn } from "lib/utils";
+import { DiscordIcon } from "ui/discord-icon";
+import { GithubIcon } from "ui/github-icon";
+import { GoogleIcon } from "ui/google-icon";
+import { MicrosoftIcon } from "ui/microsoft-icon";
+import { Button } from "../ui/button";
 
 export default function SocialProviders({
   socialAuthenticationProviders,
@@ -25,6 +26,17 @@ export default function SocialProviders({
         >
           <GoogleIcon className="size-4 fill-foreground" />
           Google
+        </Button>
+      )}
+      {socialAuthenticationProviders.includes("discord") && (
+        <Button
+          variant="outline"
+          onClick={() => onSocialProviderClick("discord")}
+          className="flex-1 w-full icon-motion-slide"
+          data-testid="discord-signup-button"
+        >
+          <DiscordIcon className="size-4" />
+          Discord
         </Button>
       )}
       {socialAuthenticationProviders.includes("github") && (

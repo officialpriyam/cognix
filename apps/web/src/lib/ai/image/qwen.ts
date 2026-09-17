@@ -1,6 +1,5 @@
 import logger from "logger";
 import {
-  QWEN_IMAGE_RATIOS,
   QWEN_VIDEO_DURATIONS,
   QWEN_VIDEO_RATIOS,
   QWEN_VIDEO_RESOLUTIONS,
@@ -67,7 +66,13 @@ export interface QwenGeneratedImage {
   mimeType: string;
 }
 
+/** Models answering synchronously via the multimodal-generation endpoint. */
 const IMAGE_MODELS_SYNC = new Set(["qwen-image-3.0-pro"]);
+/** Wan 2.7 async image models (image-generation endpoint, messages payload). */
+const IMAGE_MODELS_MESSAGES_ASYNC = new Set([
+  "wan2.7-image",
+  "wan2.7-image-pro",
+]);
 
 /**
  * Text-to-image. Qwen-Image models answer synchronously; Wan models only
@@ -86,8 +91,6 @@ export async function generateQwenImage(input: {
   if (!prompt) throw new Error("An image prompt is required");
 
   if (IMAGE_MODELS_SYNC.has(model)) {
-    const size =
-      QWEN_IMAGE_RATIOS[input.ratio || "1:1"] ?? QWEN_IMAGE_RATIOS["1:1"];
     const response = await fetch(
       `${baseUrl()}/api/v1/services/aigc/multimodal-generation/generation`,
       {
@@ -102,15 +105,14 @@ export async function generateQwenImage(input: {
           parameters: {
             prompt_extend: true,
             watermark: false,
-            size,
-            n: 1,
+            size: qwenImageSize(input.ratio || "1:1"),
           },
         }),
         signal: input.signal,
       },
     );
     const body = await parseJsonResponse(response, "image generation");
-    const images = extractSyncImages(body);
+    const images = extractChoiceImages(body);
     if (images.length === 0) {
       throw new Error("Qwen returned no images for this prompt");
     }
@@ -118,12 +120,32 @@ export async function generateQwenImage(input: {
   }
 
   // Wan image models: async task, then poll like video.
-  const taskId = await submitImageTask(apiKey, model, prompt);
+  const taskId = await submitImageTask(apiKey, model, prompt, input.ratio);
   const urls = await pollImageTask(apiKey, taskId, input.signal);
   return downloadImages(urls.map((url) => ({ url, mimeType: "image/png" })));
 }
 
-function extractSyncImages(body: any): { url: string; mimeType: string }[] {
+/** qwen-image-3.0 accepts 512*512–2048*2048 total pixels. */
+function qwenImageSize(ratio: string): string {
+  switch (ratio) {
+    case "16:9":
+      return "1664*928";
+    case "9:16":
+      return "928*1664";
+    case "4:3":
+      return "1472*1104";
+    case "3:4":
+      return "1104*1472";
+    default:
+      return "1328*1328";
+  }
+}
+
+/** Extract image URLs from a multimodal `choices[].message.content[]` body. */
+function extractChoiceImages(body: any): {
+  url: string;
+  mimeType: string;
+}[] {
   const out: { url: string; mimeType: string }[] = [];
   const choices = body?.output?.choices ?? [];
   for (const choice of choices) {
@@ -141,9 +163,13 @@ async function submitImageTask(
   apiKey: string,
   model: string,
   prompt: string,
+  ratio?: string,
 ): Promise<string> {
+  const useMessagesEndpoint = IMAGE_MODELS_MESSAGES_ASYNC.has(model);
   const response = await fetch(
-    `${baseUrl()}/api/v1/services/aigc/image-generation/generation`,
+    useMessagesEndpoint
+      ? `${baseUrl()}/api/v1/services/aigc/image-generation/generation`
+      : `${baseUrl()}/api/v1/services/aigc/text2image/image-synthesis`,
     {
       method: "POST",
       headers: {
@@ -151,11 +177,25 @@ async function submitImageTask(
         Authorization: `Bearer ${apiKey}`,
         "X-DashScope-Async": "enable",
       },
-      body: JSON.stringify({
-        model,
-        input: { prompt },
-        parameters: { size: "2K", n: 1, prompt_extend: true },
-      }),
+      body: JSON.stringify(
+        useMessagesEndpoint
+          ? {
+              model,
+              input: {
+                messages: [{ role: "user", content: [{ text: prompt }] }],
+              },
+              parameters: { n: 1, size: "2K" },
+            }
+          : {
+              model,
+              input: { prompt },
+              parameters: {
+                n: 1,
+                size: wanLegacyImageSize(ratio || "1:1"),
+                prompt_extend: true,
+              },
+            },
+      ),
     },
   );
   const body = await parseJsonResponse(response, "image task submission");
@@ -164,16 +204,38 @@ async function submitImageTask(
   return taskId as string;
 }
 
+/** wan2.6-t2i takes pixel sizes within 1280*1280–1440*1440 (per docs). */
+function wanLegacyImageSize(ratio: string): string {
+  switch (ratio) {
+    case "16:9":
+      return "1440*816";
+    case "9:16":
+      return "816*1440";
+    case "4:3":
+      return "1440*1080";
+    case "3:4":
+      return "1080*1440";
+    default:
+      return "1280*1280";
+  }
+}
+
 async function pollImageTask(
   apiKey: string,
   taskId: string,
   signal?: AbortSignal,
 ): Promise<string[]> {
   const body = await pollTask(apiKey, taskId, "image task", signal);
-  const results = body?.output?.results ?? [];
-  const urls = results
-    .map((r: any) => r?.url)
-    .filter((url: unknown): url is string => typeof url === "string" && !!url);
+  // Newer image endpoints answer with choices[].message.content[].image;
+  // the legacy text2image endpoint answers with output.results[].url.
+  const urls = [
+    ...extractChoiceImages(body).map((image) => image.url),
+    ...((body?.output?.results ?? []) as unknown[])
+      .map((r: any) => r?.url)
+      .filter(
+        (url: unknown): url is string => typeof url === "string" && !!url,
+      ),
+  ];
   if (urls.length === 0) {
     throw new Error("Qwen image task finished without image URLs");
   }
@@ -184,21 +246,48 @@ async function pollImageTask(
 // Video (always async tasks)
 // ---------------------------------------------------------------------------
 
-/** wan2.6 and earlier take pixel sizes; derive one from ratio+resolution. */
+/**
+ * wan2.6 and earlier take fixed pixel sizes; arbitrary computed sizes like
+ * 405*720 are rejected by the API, so snap to the documented presets.
+ */
 function legacyVideoSize(ratio: string, resolution: string): string {
-  const height =
-    resolution === "1080P" ? 1080 : resolution === "480P" ? 480 : 720;
-  const width =
-    ratio === "16:9"
-      ? Math.round((height * 16) / 9)
-      : ratio === "9:16"
-        ? Math.round((height * 9) / 16)
-        : ratio === "4:3"
-          ? Math.round((height * 4) / 3)
-          : ratio === "3:4"
-            ? Math.round((height * 3) / 4)
-            : height;
-  return `${Math.min(width, 1440)}*${Math.min(height, 1440)}`;
+  if (resolution === "480P") {
+    switch (ratio) {
+      case "9:16":
+      case "3:4":
+        return "480*832";
+      case "1:1":
+        return "624*624";
+      case "4:3":
+        return "832*624";
+      default:
+        return "832*480";
+    }
+  }
+  if (resolution === "1080P") {
+    switch (ratio) {
+      case "9:16":
+      case "3:4":
+        return "1080*1920";
+      case "1:1":
+        return "1440*1440";
+      case "4:3":
+        return "1920*1440";
+      default:
+        return "1920*1080";
+    }
+  }
+  switch (ratio) {
+    case "9:16":
+    case "3:4":
+      return "720*1280";
+    case "1:1":
+      return "960*960";
+    case "4:3":
+      return "1280*960";
+    default:
+      return "1280*720";
+  }
 }
 
 export async function submitQwenVideoTask(input: {
