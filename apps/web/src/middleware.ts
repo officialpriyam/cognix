@@ -154,6 +154,12 @@ export async function middleware(request: NextRequest) {
     return next();
   }
 
+  // OAuth token revocation for first-party apps (desktop logout). The token
+  // in the body is the credential (RFC 7009 style) — no session cookie.
+  if (pathname === "/api/oauth/revoke") {
+    return next();
+  }
+
   // The endpoint validates a same-origin diagnostic cookie and a strict body
   // schema. It must remain reachable before authentication so sign-in loads
   // can report their client lifecycle.

@@ -16,7 +16,8 @@ node_modules/
 test-results/
 playwright-report/
 .env.test
-
+desktop
+desktop/*
 # next.js (any workspace)
 .next/
 out/

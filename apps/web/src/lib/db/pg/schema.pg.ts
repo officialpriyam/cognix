@@ -348,6 +348,91 @@ export type OrganizationEntity = typeof OrganizationTable.$inferSelect;
 export type MemberEntity = typeof MemberTable.$inferSelect;
 export type InvitationEntity = typeof InvitationTable.$inferSelect;
 
+// better-auth oidc-provider tables (OAuth clients + tokens for first-party
+// apps like the Cognix desktop client). Column-for-column with the plugin
+// schema; userId is uuid to match UserTable.id.
+export const OAuthApplicationTable = pgTable(
+  "oauth_application",
+  {
+    id: text("id").primaryKey().notNull(),
+    clientId: text("client_id").notNull().unique(),
+    clientSecret: text("client_secret"),
+    type: text("type").notNull(),
+    name: text("name").notNull(),
+    icon: text("icon"),
+    metadata: text("metadata"),
+    disabled: boolean("disabled").notNull().default(false),
+    redirectUrls: text("redirect_urls").notNull(),
+    userId: uuid("user_id").references(() => UserTable.id, {
+      onDelete: "cascade",
+    }),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [index("oauth_application_user_id_idx").on(table.userId)],
+);
+
+export const OAuthAccessTokenTable = pgTable(
+  "oauth_access_token",
+  {
+    id: text("id").primaryKey().notNull(),
+    accessToken: text("access_token").notNull().unique(),
+    refreshToken: text("refresh_token").notNull().unique(),
+    accessTokenExpiresAt: timestamp("access_token_expires_at").notNull(),
+    refreshTokenExpiresAt: timestamp("refresh_token_expires_at").notNull(),
+    clientId: text("client_id")
+      .notNull()
+      .references(() => OAuthApplicationTable.clientId, {
+        onDelete: "cascade",
+      }),
+    userId: uuid("user_id").references(() => UserTable.id, {
+      onDelete: "cascade",
+    }),
+    scopes: text("scopes").notNull(),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("oauth_access_token_client_id_idx").on(table.clientId),
+    index("oauth_access_token_user_id_idx").on(table.userId),
+  ],
+);
+
+export const OAuthConsentTable = pgTable(
+  "oauth_consent",
+  {
+    id: text("id").primaryKey().notNull(),
+    clientId: text("client_id")
+      .notNull()
+      .references(() => OAuthApplicationTable.clientId, {
+        onDelete: "cascade",
+      }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => UserTable.id, { onDelete: "cascade" }),
+    scopes: text("scopes").notNull(),
+    consentGiven: boolean("consent_given").notNull(),
+    createdAt: timestamp("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("oauth_consent_client_id_idx").on(table.clientId),
+    index("oauth_consent_user_id_idx").on(table.userId),
+  ],
+);
+
 export const AccountTable = pgTable("account", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   accountId: text("account_id").notNull(),

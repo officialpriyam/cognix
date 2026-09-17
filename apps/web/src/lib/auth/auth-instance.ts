@@ -6,6 +6,7 @@ import { APIError } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
 import {
   admin as adminPlugin,
+  oidcProvider,
   organization as organizationPlugin,
 } from "better-auth/plugins";
 import { eq, inArray, sql } from "drizzle-orm";
@@ -15,6 +16,9 @@ import {
   InvitationTable,
   MemberAiPolicyTable,
   MemberTable,
+  OAuthAccessTokenTable,
+  OAuthApplicationTable,
+  OAuthConsentTable,
   OrganizationTable,
   SessionTable,
   UserTable,
@@ -282,6 +286,29 @@ const options = {
         },
       },
     }),
+    // "Log in with Cognix" for first-party apps (desktop client). Trusted
+    // public client + PKCE, consent skipped: the authorize URL the app opens
+    // is /oauth2/authorize, tokens come from /oauth2/token.
+    // id_tokens are HS256-signed with the client secret below, so it must be
+    // stable across restarts: explicit env first, BETTER_AUTH_SECRET fallback.
+    oidcProvider({
+      loginPage: "/sign-in",
+      trustedClients: [
+        {
+          clientId: process.env.COGNIX_DESKTOP_CLIENT_ID || "cognix-desktop",
+          clientSecret:
+            process.env.COGNIX_DESKTOP_CLIENT_SECRET ||
+            process.env.BETTER_AUTH_SECRET ||
+            "cognix-desktop-insecure-dev-secret",
+          name: "Cognix Desktop",
+          type: "public",
+          redirectUrls: ["cognix://oauth/callback"],
+          disabled: false,
+          skipConsent: true,
+          metadata: { firstParty: true },
+        },
+      ],
+    }),
     nextCookies(),
   ],
   baseURL: process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_BASE_URL,
@@ -303,6 +330,9 @@ const options = {
       organization: OrganizationTable,
       member: MemberTable,
       invitation: InvitationTable,
+      oauthApplication: OAuthApplicationTable,
+      oauthAccessToken: OAuthAccessTokenTable,
+      oauthConsent: OAuthConsentTable,
     },
   }),
   databaseHooks: {
