@@ -6,6 +6,7 @@ import { getSession } from "auth/server";
 
 export type OnboardingStep =
   | "automation_overview"
+  | "about_you"
   | "connect_rube"
   | "connect_tools"
   | "done";
@@ -15,6 +16,8 @@ export type UserPreferences = {
   profession?: string; // User's job or profession
   responseStyleExample?: string; // Example of preferred response style
   botName?: string; // Name of the bot
+  referralSource?: string; // How the user found us (onboarding)
+  termsAcceptedAt?: string; // ISO timestamp when terms + privacy were accepted
 
   // Local models configuration (Ollama / LM Studio / OpenAI-compatible)
   localModels?: {
@@ -121,6 +124,8 @@ export const UserPreferencesZodSchema = z.object({
   profession: z.string().optional(),
   responseStyleExample: z.string().optional(),
   botName: z.string().optional(),
+  referralSource: z.string().optional(),
+  termsAcceptedAt: z.string().optional(),
   localModels: z
     .object({
       enabled: z.boolean(),
@@ -142,6 +147,7 @@ export const UserPreferencesZodSchema = z.object({
     .object({
       step: z.enum([
         "automation_overview",
+        "about_you",
         "connect_rube",
         "connect_tools",
         "done",

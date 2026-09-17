@@ -5,6 +5,7 @@ import Image from "next/image";
 import { toast } from "sonner";
 import { Loader2, ArrowRight, Plug } from "lucide-react";
 import { Button } from "ui/button";
+import { Input } from "ui/input";
 import { cn } from "lib/utils";
 import type { ComposioToolkit } from "@/hooks/queries/use-composio-connections";
 import type { OnboardingStep } from "app-types/user";
@@ -398,6 +399,159 @@ function ConnectAppsStep({
   );
 }
 
+// ─── About-you step ───────────────────────────────────────────────────────────
+
+const aboutYouCopy = {
+  de: {
+    heading: "Erzähl uns kurz von dir",
+    description: "Damit wir Cognix besser auf dich zuschneiden können.",
+    professionLabel: "Was machst du beruflich? (optional)",
+    professionPlaceholder: "z. B. Marketing Manager",
+    referralLabel: "Wie hast du von uns erfahren?",
+    options: [
+      { value: "search", label: "Suchmaschine" },
+      { value: "social", label: "Soziale Medien" },
+      { value: "friend", label: "Freund:in oder Kolleg:in" },
+      { value: "github", label: "GitHub" },
+      { value: "blog", label: "Blog oder Artikel" },
+      { value: "ads", label: "Werbung" },
+      { value: "other", label: "Sonstiges" },
+    ],
+    continue: "Weiter",
+    skip: "Erstmal Überspringen",
+    saveError: "Speichern hat nicht geklappt",
+  },
+  en: {
+    heading: "Tell us a bit about yourself",
+    description: "So we can tailor Cognix to how you work.",
+    professionLabel: "What do you do? (optional)",
+    professionPlaceholder: "e.g. Marketing Manager",
+    referralLabel: "How did you hear about us?",
+    options: [
+      { value: "search", label: "Search engine" },
+      { value: "social", label: "Social media" },
+      { value: "friend", label: "Friend or colleague" },
+      { value: "github", label: "GitHub" },
+      { value: "blog", label: "Blog or article" },
+      { value: "ads", label: "Advertisement" },
+      { value: "other", label: "Other" },
+    ],
+    continue: "Continue",
+    skip: "Skip for now",
+    saveError: "Could not save",
+  },
+} satisfies Record<
+  OnboardingLanguage,
+  {
+    heading: string;
+    description: string;
+    professionLabel: string;
+    professionPlaceholder: string;
+    referralLabel: string;
+    options: { value: string; label: string }[];
+    continue: string;
+    skip: string;
+    saveError: string;
+  }
+>;
+
+function AboutYouStep({
+  language,
+  onDone,
+}: {
+  language: OnboardingLanguage;
+  onDone: () => void;
+}) {
+  const copy = aboutYouCopy[language];
+  const [profession, setProfession] = useState("");
+  const [referralSource, setReferralSource] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const save = async (withReferral: boolean) => {
+    setIsSaving(true);
+    try {
+      const current = await fetch("/api/user/preferences").then((r) =>
+        r.json(),
+      );
+      await fetch("/api/user/preferences", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...current,
+          ...(profession.trim() ? { profession: profession.trim() } : {}),
+          ...(withReferral && referralSource ? { referralSource } : {}),
+          onboarding: {
+            ...(current?.onboarding ?? {}),
+            step: "connect_tools",
+          },
+        }),
+      });
+      onDone();
+    } catch {
+      toast.error(copy.saveError);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="w-full max-w-md flex flex-col gap-6">
+      <div className="text-center space-y-2">
+        <h2 className="text-2xl font-bold">{copy.heading}</h2>
+        <p className="text-muted-foreground text-sm">{copy.description}</p>
+      </div>
+      <div className="flex flex-col gap-2">
+        <span className="text-sm font-medium">{copy.professionLabel}</span>
+        <Input
+          value={profession}
+          onChange={(e) => setProfession(e.target.value)}
+          placeholder={copy.professionPlaceholder}
+          maxLength={120}
+        />
+      </div>
+      <div className="flex flex-col gap-2">
+        <span className="text-sm font-medium">{copy.referralLabel}</span>
+        <div className="flex flex-wrap gap-2">
+          {copy.options.map((option) => (
+            <Button
+              key={option.value}
+              type="button"
+              variant={referralSource === option.value ? "default" : "outline"}
+              size="sm"
+              className="rounded-full"
+              onClick={() => setReferralSource(option.value)}
+            >
+              {option.label}
+            </Button>
+          ))}
+        </div>
+      </div>
+      <div className="flex gap-3 pt-2">
+        <Button
+          variant="ghost"
+          className="flex-1 text-muted-foreground"
+          onClick={() => save(false)}
+          disabled={isSaving}
+        >
+          {copy.skip}
+        </Button>
+        <Button
+          className="flex-1"
+          onClick={() => save(true)}
+          disabled={isSaving || !referralSource}
+        >
+          {isSaving ? (
+            <Loader2 className="size-4 animate-spin mr-2" />
+          ) : (
+            <ArrowRight className="size-4 mr-2" />
+          )}
+          {copy.continue}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Wizard ──────────────────────────────────────────────────────────────
 
 async function setOnboardingStep(step: OnboardingStep) {
@@ -425,12 +579,16 @@ export function OnboardingWizard({ initialStep }: Props) {
 
   const handleAutomationContinue = useCallback(async () => {
     try {
-      await setOnboardingStep("connect_tools");
-      setStep("connect_tools");
+      await setOnboardingStep("about_you");
+      setStep("about_you");
     } catch {
       toast.error(connectAppsCopy[language].continueError);
     }
   }, [language]);
+
+  const handleAboutYouDone = useCallback(() => {
+    setStep("connect_tools");
+  }, []);
 
   const handlePickPath = useCallback(async (href: string) => {
     try {
@@ -451,6 +609,10 @@ export function OnboardingWizard({ initialStep }: Props) {
         onPickPath={handlePickPath}
       />
     );
+  }
+
+  if (step === "about_you") {
+    return <AboutYouStep language={language} onDone={handleAboutYouDone} />;
   }
 
   return (

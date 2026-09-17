@@ -161,7 +161,7 @@ export default function SignIn({
                 />
               </div>
               <Button
-                className="w-full"
+                className="w-full icon-motion-pop"
                 onClick={emailAndPasswordSignIn}
                 disabled={loading}
                 data-testid="signin-submit-button"
@@ -190,7 +190,7 @@ export default function SignIn({
                   <Button
                     variant="outline"
                     onClick={() => handleSocialSignIn("google")}
-                    className="flex-1 w-full"
+                    className="flex-1 w-full icon-motion-slide"
                   >
                     <GoogleIcon className="size-4 fill-foreground" />
                     Google
@@ -200,7 +200,7 @@ export default function SignIn({
                   <Button
                     variant="outline"
                     onClick={() => handleSocialSignIn("github")}
-                    className="flex-1 w-full"
+                    className="flex-1 w-full icon-motion-slide"
                   >
                     <GithubIcon className="size-4 fill-foreground" />
                     GitHub
@@ -210,7 +210,7 @@ export default function SignIn({
                   <Button
                     variant="outline"
                     onClick={() => handleSocialSignIn("microsoft")}
-                    className="flex-1 w-full"
+                    className="flex-1 w-full icon-motion-slide"
                   >
                     <MicrosoftIcon className="size-4 fill-foreground" />
                     Microsoft

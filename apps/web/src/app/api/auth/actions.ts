@@ -19,7 +19,14 @@ export async function signUpAction(data: {
   email: string;
   name: string;
   password: string;
+  termsAccepted: boolean;
 }): Promise<SignUpActionResponse> {
+  if (!data.termsAccepted) {
+    return {
+      success: false,
+      message: "You must accept the Terms of Service and Privacy Policy.",
+    };
+  }
   const { success, data: parsedData } = UserZodSchema.safeParse(data);
   if (!success) {
     return {
@@ -36,6 +43,16 @@ export async function signUpAction(data: {
       },
       headers: await headers(),
     });
+    try {
+      const current =
+        (await userRepository.getPreferences(user.id)) ?? undefined;
+      await userRepository.updatePreferences(user.id, {
+        ...(typeof current === "object" && current !== null ? current : {}),
+        termsAcceptedAt: new Date().toISOString(),
+      });
+    } catch {
+      // Non-fatal: the account exists; acceptance was still enforced above.
+    }
     return {
       user,
       success: true,

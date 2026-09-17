@@ -2,6 +2,7 @@
 
 import { existsByEmailAction, signUpAction } from "@/app/api/auth/actions";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Card,
   CardContent,
@@ -12,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useObjectState } from "@/hooks/use-object-state";
+import Link from "next/link";
 import { analytics } from "@/lib/analytics/posthog";
 import { UserZodSchema } from "app-types/user";
 import { authClient } from "auth/client";
@@ -38,6 +40,7 @@ export default function EmailSignUp({
     email: "",
     name: "",
     password: "",
+    termsAccepted: false,
   });
 
   const steps = [
@@ -81,6 +84,11 @@ export default function EmailSignUp({
   };
 
   const successPasswordStep = async () => {
+    // Terms + Privacy must be accepted before an account can be created.
+    if (!formData.termsAccepted) {
+      toast.error(t("Auth.SignUp.termsRequired"));
+      return;
+    }
     // client side validation
     const { success: passwordSuccess, error: passwordError } =
       UserZodSchema.shape.password.safeParse(formData.password);
@@ -96,6 +104,7 @@ export default function EmailSignUp({
         email: formData.email,
         name: formData.name,
         password: formData.password,
+        termsAccepted: formData.termsAccepted,
       }),
     ).unwrap();
     if (success) {
@@ -218,6 +227,41 @@ export default function EmailSignUp({
                 onChange={(e) => setFormData({ password: e.target.value })}
                 required
               />
+              <div className="flex items-start gap-2 pt-1">
+                <Checkbox
+                  id="terms"
+                  checked={formData.termsAccepted}
+                  disabled={isLoading}
+                  onCheckedChange={(checked) =>
+                    setFormData({ termsAccepted: checked === true })
+                  }
+                />
+                <Label
+                  htmlFor="terms"
+                  className="text-xs text-muted-foreground leading-relaxed cursor-pointer"
+                >
+                  {t("Auth.SignUp.acceptTermsPrefix")}{" "}
+                  <Link
+                    href="/terms"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-2 text-foreground"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {t("Auth.SignUp.termsOfService")}
+                  </Link>{" "}
+                  {t("Auth.SignUp.and")}{" "}
+                  <Link
+                    href="/privacy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-2 text-foreground"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {t("Auth.SignUp.privacyPolicy")}
+                  </Link>
+                </Label>
+              </div>
             </div>
           )}
           <p className="text-muted-foreground text-xs mb-6">

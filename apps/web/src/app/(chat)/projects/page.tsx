@@ -9,6 +9,8 @@ import { pgDb } from "@/lib/db/pg/db.pg";
 import { ProjectMemberTable, ProjectTable } from "@/lib/db/pg/schema.pg";
 import { ProjectDialog } from "@/components/projects/project-dialog";
 
+export const dynamic = "force-dynamic";
+
 export default async function ProjectsPage() {
   const session = await getSession();
   if (!session?.user?.id) redirect("/sign-in");

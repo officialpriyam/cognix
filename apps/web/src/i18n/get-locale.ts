@@ -32,5 +32,10 @@ export async function getLocaleAction() {
     locale = await getLocalFromHeader();
   }
 
-  return locale || SUPPORTED_LOCALES[0].code;
+  // Explicit English default (not positional): stays "en" even if
+  // SUPPORTED_LOCALES is reordered later.
+  const fallback =
+    SUPPORTED_LOCALES.find((v) => v.code === "en")?.code ??
+    SUPPORTED_LOCALES[0].code;
+  return locale || fallback;
 }

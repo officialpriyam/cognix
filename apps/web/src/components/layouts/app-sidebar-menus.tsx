@@ -47,7 +47,7 @@ export function AppSidebarMenus({ user }: { user?: BasicUser }) {
                   }
                 }}
               >
-                <SidebarMenuButton className="flex font-semibold group/new-chat bg-input/20 border border-border/40">
+                <SidebarMenuButton className="icon-motion-slide flex font-semibold group/new-chat bg-input/20 border border-border/40">
                   <WriteIcon className="size-4" />
                   {t("Layout.newChat")}
                   <div className="flex items-center gap-1 text-xs font-medium ml-auto opacity-0 group-hover/new-chat:opacity-100 transition-opacity">
@@ -69,7 +69,7 @@ export function AppSidebarMenus({ user }: { user?: BasicUser }) {
           <Tooltip>
             <SidebarMenuItem>
               <Link href="/mcp">
-                <SidebarMenuButton className="font-semibold">
+                <SidebarMenuButton className="icon-motion-pop font-semibold">
                   <MCPIcon className="size-4 fill-accent-foreground" />
                   {t("Layout.mcpConfiguration")}
                 </SidebarMenuButton>
@@ -81,7 +81,7 @@ export function AppSidebarMenus({ user }: { user?: BasicUser }) {
           <Tooltip>
             <SidebarMenuItem>
               <Link href="/workflow">
-                <SidebarMenuButton className="font-semibold">
+                <SidebarMenuButton className="icon-motion-slide font-semibold">
                   <Waypoints className="size-4" />
                   {t("Layout.workflow")}
                 </SidebarMenuButton>
@@ -94,7 +94,7 @@ export function AppSidebarMenus({ user }: { user?: BasicUser }) {
           <Tooltip>
             <SidebarMenuItem>
               <Link href="/projects" onClick={() => setOpenMobile(false)}>
-                <SidebarMenuButton className="font-semibold">
+                <SidebarMenuButton className="icon-motion-pop font-semibold">
                   <FolderSearchIcon className="size-4" />
                   Projects
                 </SidebarMenuButton>

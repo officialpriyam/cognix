@@ -1517,3 +1517,200 @@
     @apply transition-colors duration-300;
   }
 }
+
+/* --- Icon motion system: animated button/icon hovers --- */
+@media (prefers-reduced-motion: no-preference) {
+  button:not(:disabled),
+  [data-slot="button"]:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    transition-property: transform, box-shadow, background-color, color,
+      border-color, opacity;
+    transition-duration: 180ms;
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  button:hover:not(:disabled),
+  [data-slot="button"]:hover:not(:disabled),
+  [role="button"]:hover:not([aria-disabled="true"]) {
+    transform: translateY(-1px);
+  }
+
+  button:active:not(:disabled),
+  [data-slot="button"]:active:not(:disabled),
+  [role="button"]:active:not([aria-disabled="true"]) {
+    transform: translateY(0) scale(0.98);
+  }
+
+  button:hover svg:not(.animate-spin):not(.no-icon-motion),
+  [data-slot="button"]:hover svg:not(.animate-spin):not(.no-icon-motion),
+  [role="button"]:hover svg:not(.animate-spin):not(.no-icon-motion) {
+    animation: icon-lift 420ms cubic-bezier(0.22, 1, 0.36, 1);
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+
+  .icon-motion-slide:hover svg:not(.animate-spin):not(.no-icon-motion),
+  button.icon-motion-slide:hover svg:not(.animate-spin):not(.no-icon-motion),
+  [data-slot="button"].icon-motion-slide:hover
+    svg:not(.animate-spin):not(.no-icon-motion),
+  [role="button"].icon-motion-slide:hover
+    svg:not(.animate-spin):not(.no-icon-motion) {
+    animation: icon-slide 460ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .icon-motion-pop:hover svg:not(.animate-spin):not(.no-icon-motion),
+  button.icon-motion-pop:hover svg:not(.animate-spin):not(.no-icon-motion),
+  [data-slot="button"].icon-motion-pop:hover
+    svg:not(.animate-spin):not(.no-icon-motion),
+  [role="button"].icon-motion-pop:hover
+    svg:not(.animate-spin):not(.no-icon-motion) {
+    animation: icon-pop 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .icon-motion-tilt:hover svg:not(.animate-spin):not(.no-icon-motion),
+  button.icon-motion-tilt:hover svg:not(.animate-spin):not(.no-icon-motion),
+  [data-slot="button"].icon-motion-tilt:hover
+    svg:not(.animate-spin):not(.no-icon-motion),
+  [role="button"].icon-motion-tilt:hover
+    svg:not(.animate-spin):not(.no-icon-motion) {
+    animation: icon-tilt 520ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .icon-motion-orbit:hover svg:not(.animate-spin):not(.no-icon-motion),
+  button.icon-motion-orbit:hover svg:not(.animate-spin):not(.no-icon-motion),
+  [data-slot="button"].icon-motion-orbit:hover
+    svg:not(.animate-spin):not(.no-icon-motion),
+  [role="button"].icon-motion-orbit:hover
+    svg:not(.animate-spin):not(.no-icon-motion) {
+    animation: icon-orbit 640ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .icon-motion-send:hover svg:not(.animate-spin):not(.no-icon-motion),
+  button.icon-motion-send:hover svg:not(.animate-spin):not(.no-icon-motion),
+  [data-slot="button"].icon-motion-send:hover
+    svg:not(.animate-spin):not(.no-icon-motion),
+  [role="button"].icon-motion-send:hover
+    svg:not(.animate-spin):not(.no-icon-motion) {
+    animation: icon-send-flight 520ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .thinking-pulse {
+    animation: thinking-pulse 1.35s ease-in-out infinite;
+  }
+
+  .vibrate-on-hover:hover {
+    animation: soft-vibrate 360ms linear;
+  }
+}
+
+@keyframes icon-lift {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  40% {
+    transform: translateY(-2.5px) scale(1.08);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes icon-slide {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  45% {
+    transform: translateX(3px);
+    opacity: 0.65;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes icon-pop {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.22);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes icon-tilt {
+  0% {
+    transform: rotate(0deg);
+  }
+  40% {
+    transform: rotate(-10deg) scale(1.06);
+  }
+  70% {
+    transform: rotate(6deg) scale(1.02);
+  }
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+@keyframes icon-orbit {
+  0% {
+    transform: rotate(0deg) translateX(0);
+  }
+  50% {
+    transform: rotate(180deg) translateX(1.5px);
+  }
+  100% {
+    transform: rotate(360deg) translateX(0);
+  }
+}
+
+@keyframes icon-send-flight {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  45% {
+    transform: translate(3px, -3px) scale(1.12);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes soft-vibrate {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-1px);
+  }
+  40% {
+    transform: translateX(1px);
+  }
+  60% {
+    transform: translateX(-0.5px);
+  }
+  80% {
+    transform: translateX(0.5px);
+  }
+}
+
+@keyframes thinking-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 28%, transparent);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 8px color-mix(in oklab, var(--primary) 0%, transparent);
+    transform: scale(1.18);
+  }
+}

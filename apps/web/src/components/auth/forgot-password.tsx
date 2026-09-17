@@ -90,7 +90,7 @@ export default function ForgotPassword() {
                 />
               </div>
               <Button
-                className="w-full"
+                className="w-full icon-motion-pop"
                 onClick={requestReset}
                 disabled={loading}
                 data-testid="forgot-password-submit-button"

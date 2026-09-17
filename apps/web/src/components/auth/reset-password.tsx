@@ -132,7 +132,7 @@ export default function ResetPassword() {
                 />
               </div>
               <Button
-                className="w-full"
+                className="w-full icon-motion-pop"
                 onClick={submit}
                 disabled={loading}
                 data-testid="reset-password-submit-button"

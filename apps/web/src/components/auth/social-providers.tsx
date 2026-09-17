@@ -20,7 +20,7 @@ export default function SocialProviders({
         <Button
           variant="outline"
           onClick={() => onSocialProviderClick("google")}
-          className="flex-1 w-full"
+          className="flex-1 w-full icon-motion-slide"
           data-testid="google-signup-button"
         >
           <GoogleIcon className="size-4 fill-foreground" />
@@ -31,7 +31,7 @@ export default function SocialProviders({
         <Button
           variant="outline"
           onClick={() => onSocialProviderClick("github")}
-          className="flex-1 w-full"
+          className="flex-1 w-full icon-motion-slide"
           data-testid="github-signup-button"
         >
           <GithubIcon className="size-4 fill-foreground" />
@@ -42,7 +42,7 @@ export default function SocialProviders({
         <Button
           variant="outline"
           onClick={() => onSocialProviderClick("microsoft")}
-          className="flex-1 w-full"
+          className="flex-1 w-full icon-motion-slide"
           data-testid="microsoft-signup-button"
         >
           <MicrosoftIcon className="size-4 fill-foreground" />

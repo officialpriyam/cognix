@@ -206,7 +206,12 @@
       "emailAlreadyExists": "Email already exists",
       "nameRequired": "Name is required",
       "passwordRequired": "Password is required",
-      "createAccount": "Create account"
+      "createAccount": "Create account",
+      "acceptTermsPrefix": "I accept the",
+      "termsOfService": "Terms of Service",
+      "and": "and",
+      "privacyPolicy": "Privacy Policy",
+      "termsRequired": "Please accept the Terms of Service and Privacy Policy to create an account"
     },
     "Intro": {
       "description": "Welcome to cognix. Sign in to experience a new way of working."
