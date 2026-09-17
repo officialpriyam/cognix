@@ -209,6 +209,10 @@ export const config = {
     // so it must not bounce anonymous visitors to /sign-in. The lookahead
     // anchors at the path start, so this exempts only top-level /p/* — every
     // /api/* route, including the publish and revoke endpoints, stays guarded.
-    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|api/auth|api/inngest|export|p/).*)",
+    // Root static files (manifest, service worker, PWA icons) are exempt too:
+    // browsers fetch them without session cookies, so gating them returns the
+    // sign-in HTML instead of the file (manifest then fails to parse, the
+    // service worker fails to install).
+    "/((?!_next/static|_next/image|favicon.ico|manifest.json|sw.js|apple-touch-icon.png|icon-.*\\.png|sitemap.xml|robots.txt|api/auth|api/inngest|export|p/).*)",
   ],
 };
