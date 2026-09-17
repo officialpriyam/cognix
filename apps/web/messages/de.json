@@ -275,6 +275,7 @@
         "webSearch": "Web durchsuchen",
         "http": "HTTP-Anfrage",
         "code": "Code-Ausführung",
+        "browserAutomation": "Browser-Automatisierung",
         "document": "Dokumentenanalyse",
         "tabular": "Tabellarische Überprüfung"
       }

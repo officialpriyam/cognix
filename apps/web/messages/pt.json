@@ -254,6 +254,7 @@
         "webSearch": "Pesquisar na web",
         "http": "Requisição HTTP",
         "code": "Execução de código",
+        "browserAutomation": "Automação do navegador",
         "document": "Análise de documentos",
         "tabular": "Revisão tabular"
       }

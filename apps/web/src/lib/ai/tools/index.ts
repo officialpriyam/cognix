@@ -6,6 +6,7 @@ export enum AppDefaultToolkit {
   KnowledgeBase = "knowledgeBase",
   Document = "document",
   Tabular = "tabular",
+  BrowserAutomation = "browserAutomation",
 }
 
 export enum DefaultToolName {

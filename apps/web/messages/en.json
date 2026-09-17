@@ -280,6 +280,7 @@
         "webSearch": "Search the Web",
         "http": "HTTP Request",
         "code": "Code Execution",
+        "browserAutomation": "Browser Automation",
         "document": "Document Analysis",
         "tabular": "Tabular Review"
       }

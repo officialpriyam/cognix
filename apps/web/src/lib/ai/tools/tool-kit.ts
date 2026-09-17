@@ -50,4 +50,7 @@ export const APP_DEFAULT_TOOL_KIT: Record<
   [AppDefaultToolkit.Tabular]: {
     [DefaultToolName.CreateTabularReview]: createTabularReviewTool,
   },
+  [AppDefaultToolkit.BrowserAutomation]: {
+    [DefaultToolName.BrowsePage]: browsePageTool,
+  },
 };

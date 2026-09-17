@@ -1,0 +1,63 @@
+name: Release Desktop App
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build-desktop:
+    name: Build and Upload Desktop Installer
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build web app
+        run: pnpm --filter web build
+        working-directory: apps/desktop
+
+      - name: Build Windows installer
+        run: pnpm dist:win
+        working-directory: apps/desktop
+
+      - name: Upload installer
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./apps/desktop/out/*.exe
+          asset_name: Cognix-Setup-${{ github.event.release.tag_name }}.exe
+          asset_content_type: application/octet-stream
+
+      - name: Upload MSI installer
+        if: always()
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./apps/desktop/out/*.msi
+          asset_name: Cognix-Setup-${{ github.event.release.tag_name }}.msi
+          asset_content_type: application/octet-stream
