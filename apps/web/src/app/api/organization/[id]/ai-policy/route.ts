@@ -12,7 +12,7 @@ import {
 } from "lib/db/pg/schema.pg";
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import z from "zod";
+import { aiPolicyPutSchema } from "./validations";
 
 const MANAGER_ROLES = new Set(["owner", "admin"]);
 
@@ -152,42 +152,6 @@ export const GET = withAuth(
     }
   },
 );
-
-const priceField = z.number().int().min(0).max(1_000_000_000_000).nullable();
-
-export const aiPolicyPutSchema = z.object({
-  automaticRoutingEnabled: z.boolean().optional(),
-  browserAutomationEnabled: z.boolean().optional(),
-  maxInputPriceMicrosPerMillion: priceField.optional(),
-  maxOutputPriceMicrosPerMillion: priceField.optional(),
-  maxEstimatedRequestMicros: priceField.optional(),
-  allowedRegions: z
-    .array(z.string().min(1).max(32))
-    .max(20)
-    .nullable()
-    .optional(),
-  deployments: z
-    .array(
-      z.object({
-        deploymentId: z.string().uuid(),
-        enabled: z.boolean(),
-        inOverride: priceField.optional(),
-        outOverride: priceField.optional(),
-      }),
-    )
-    .max(200)
-    .optional(),
-  members: z
-    .array(
-      z.object({
-        memberId: z.string(),
-        monthlyCapMicros: priceField.optional(),
-        hardStop: z.boolean().optional(),
-      }),
-    )
-    .max(500)
-    .optional(),
-});
 
 /**
  * PUT /api/organization/[id]/ai-policy

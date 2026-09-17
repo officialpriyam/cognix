@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-const { aiPolicyPutSchema } = await import("./route");
+const { aiPolicyPutSchema } = await import("./validations");
 
 describe("aiPolicyPutSchema", () => {
   it("accepts a full policy payload", () => {

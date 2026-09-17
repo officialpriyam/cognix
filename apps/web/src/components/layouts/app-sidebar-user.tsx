@@ -199,7 +199,7 @@ export function AppSidebarUserInner(props: {
               {!IS_CLOUD_EDITION && (
                 <DropdownMenuItem
                   onClick={() => {
-                    window.open("https://discord.gg/9dwdAYKBPp", "_blank");
+                    window.open("https://discord.gg/y2AcFxHgx", "_blank");
                   }}
                 >
                   <MessagesSquare className="size-4 text-foreground" />
