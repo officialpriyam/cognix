@@ -44,6 +44,33 @@ const ensureSupabaseConfigured = () => {
 /** Buckets already verified/created in this process — keeps the happy path free of extra API calls. */
 const ensuredBuckets = new Set<string>();
 
+/** Actual bucket visibility, cached per process (buckets rarely flip). */
+const bucketVisibilityCache = new Map<string, boolean>();
+
+/**
+ * Look up whether a bucket is public instead of guessing from its name.
+ * A hand-created private bucket used to receive public URLs that 404 in the
+ * browser — the classic "file is uploaded but I can't see it" failure.
+ */
+const isBucketPublic = async (bucketName: string): Promise<boolean> => {
+  const cached = bucketVisibilityCache.get(bucketName);
+  if (cached !== undefined) return cached;
+
+  const { data: buckets, error } = await supabase!.storage.listBuckets();
+  if (error) {
+    throw new Error(
+      `Could not look up visibility of bucket "${bucketName}": ${error.message}`,
+    );
+  }
+  const bucket = (buckets ?? []).find((b) => b.name === bucketName);
+  if (!bucket) {
+    throw new Error(`Bucket "${bucketName}" does not exist`);
+  }
+
+  bucketVisibilityCache.set(bucketName, bucket.public);
+  return bucket.public;
+};
+
 const isMissingBucketError = (message: string): boolean =>
   /nosuchbucket|bucket not found/i.test(message);
 
@@ -186,10 +213,17 @@ export const createSupabaseStorage = (): FileStorage => {
       }
       const { data } = upload;
 
-      // Get URL (Signed for private buckets, Public for others)
+      // Get URL (Public for public buckets, signed for private ones) — decided
+      // by the bucket's ACTUAL visibility, not its name.
       let sourceUrl: string;
-      if (bucketName === ATTACHMENT_BUCKET) {
-        // Private bucket: Generate signed URL (1 hour expiry for immediate use)
+      if (await isBucketPublic(bucketName)) {
+        // Public bucket: permanent public URL (safe to store in history)
+        const {
+          data: { publicUrl },
+        } = supabase!.storage.from(bucketName).getPublicUrl(data.path);
+        sourceUrl = publicUrl;
+      } else {
+        // Private bucket: short-lived signed URL
         const { data: signedData, error: signedError } = await supabase!.storage
           .from(bucketName)
           .createSignedUrl(data.path, 3600);
@@ -200,12 +234,6 @@ export const createSupabaseStorage = (): FileStorage => {
           );
         }
         sourceUrl = signedData.signedUrl;
-      } else {
-        // Public bucket: Get public URL
-        const {
-          data: { publicUrl },
-        } = supabase!.storage.from(bucketName).getPublicUrl(data.path);
-        sourceUrl = publicUrl;
       }
 
       const metadata: FileMetadata = {
@@ -310,10 +338,18 @@ export const createSupabaseStorage = (): FileStorage => {
         ensureSupabaseConfigured();
         const bucketName = getBucketName(key);
 
-        const {
-          data: { publicUrl },
-        } = supabase!.storage.from(bucketName).getPublicUrl(key);
-        return publicUrl;
+        if (await isBucketPublic(bucketName)) {
+          const {
+            data: { publicUrl },
+          } = supabase!.storage.from(bucketName).getPublicUrl(key);
+          return publicUrl;
+        }
+        // Private bucket: fall back to a short-lived signed URL.
+        const { data: signedData, error: signedError } = await supabase!.storage
+          .from(bucketName)
+          .createSignedUrl(key, 3600);
+        if (signedError) return null;
+        return signedData.signedUrl;
       } catch {
         return null;
       }
