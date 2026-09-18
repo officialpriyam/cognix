@@ -16,12 +16,15 @@ import {
   Mic,
   Mountain,
   Rocket,
+  RotateCcw,
   ShoppingBag,
   Sparkles,
+  Trash2,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Skeleton } from "ui/skeleton";
+import LetterGlitch from "ui/letter-glitch";
+import { TextShimmer } from "ui/text-shimmer";
 
 type Mode = "image" | "video";
 
@@ -34,23 +37,33 @@ const IMAGE_RATIOS: Record<string, string> = {
   "3:4": "3:4",
 };
 
+/** localStorage key for the Imagine history (persisted generation pages). */
+const HISTORY_KEY = "imagine-history-v1";
+/** Keep the persisted history bounded so localStorage never overflows. */
+const HISTORY_LIMIT = 60;
+
 interface GalleryImage {
   kind: "image";
   id: string;
-  url: string;
+  status: "generating" | "done" | "failed";
+  url?: string;
   mimeType?: string;
   prompt: string;
   model: string;
   ratio: string;
+  message?: string;
 }
 
 interface GalleryVideo {
   kind: "video";
   id: string;
-  taskId: string;
+  /** Absent until the task is submitted successfully. */
+  taskId?: string;
   prompt: string;
   model: string;
   ratio: string;
+  resolution?: string;
+  duration?: number;
   status: "pending" | "running" | "succeeded" | "failed";
   videoUrl?: string;
   message?: string;
@@ -155,6 +168,13 @@ const VIDEO_PRESETS: Preset[] = [
   },
 ];
 
+function createPageId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 async function readError(
   response: Response,
   fallback: string,
@@ -165,6 +185,30 @@ async function readError(
   } catch {
     return fallback;
   }
+}
+
+/** Repair stored history entries from older shapes / interrupted sessions. */
+function normalizeHistoryItem(item: GalleryItem): GalleryItem | null {
+  if (!item || (item.kind !== "image" && item.kind !== "video")) return null;
+  if (item.kind === "image") {
+    if (item.status === "generating") {
+      // The request that owned this page never finished (tab closed).
+      return { ...item, status: "failed", message: "Generation interrupted" };
+    }
+    // Entries from the pre-history shape carry no status — recover what we can.
+    const legacy = item as GalleryImage & { status?: string };
+    if (typeof legacy.status !== "string") {
+      return { ...legacy, status: legacy.url ? "done" : "failed" };
+    }
+    return item;
+  }
+  if (
+    (item.status === "pending" || item.status === "running") &&
+    !item.taskId
+  ) {
+    return { ...item, status: "failed", message: "Submission interrupted" };
+  }
+  return item;
 }
 
 export function ImagineStudio() {
@@ -184,18 +228,121 @@ export function ImagineStudio() {
   const [listening, setListening] = useState(false);
   const [busy, setBusy] = useState(false);
   const [items, setItems] = useState<GalleryItem[]>([]);
+  const [hydrated, setHydrated] = useState(false);
   const pollers = useRef(new Map<string, ReturnType<typeof setInterval>>());
   const recognitionRef = useRef<{ stop: () => void } | null>(null);
   const resultsRef = useRef<HTMLDivElement | null>(null);
 
+  // Restore the Imagine history so past generations (and still-running video
+  // tasks) survive reloads — the page list below the prompt bar IS the history.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(HISTORY_KEY);
+      if (raw) {
+        const stored = JSON.parse(raw) as GalleryItem[];
+        const cleaned = stored
+          .map(normalizeHistoryItem)
+          .filter((item): item is GalleryItem => item !== null)
+          .slice(0, HISTORY_LIMIT);
+        setItems(cleaned);
+      }
+    } catch {
+      // Corrupt or unavailable history — start fresh rather than crashing.
+    }
+    setHydrated(true);
+  }, []);
+
+  // Persist every change once hydration is done (so we never wipe history
+  // with the empty initial state).
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      localStorage.setItem(
+        HISTORY_KEY,
+        JSON.stringify(items.slice(0, HISTORY_LIMIT)),
+      );
+    } catch {
+      // Quota errors etc. are non-fatal; history just won't update.
+    }
+  }, [items, hydrated]);
+
+  const clearPollers = useCallback(() => {
+    for (const timer of pollers.current.values()) clearInterval(timer);
+    pollers.current.clear();
+  }, []);
+
   useEffect(
     () => () => {
-      for (const timer of pollers.current.values()) clearInterval(timer);
-      pollers.current.clear();
+      clearPollers();
       recognitionRef.current?.stop();
     },
-    [],
+    [clearPollers],
   );
+
+  const pollVideo = useCallback((taskId: string) => {
+    if (pollers.current.has(taskId)) return;
+    const timer = setInterval(async () => {
+      try {
+        const response = await fetch(
+          `/api/imagine/video?taskId=${encodeURIComponent(taskId)}`,
+        );
+        if (!response.ok)
+          throw new Error(await readError(response, "Poll failed"));
+        const body = (await response.json()) as {
+          status: GalleryVideo["status"];
+          videoUrl?: string;
+          message?: string;
+        };
+        if (body.status === "succeeded" || body.status === "failed") {
+          clearInterval(timer);
+          pollers.current.delete(taskId);
+        }
+        setItems((current) =>
+          current.map((item) =>
+            item.kind === "video" && item.taskId === taskId
+              ? {
+                  ...item,
+                  status: body.status,
+                  videoUrl: body.videoUrl ?? item.videoUrl,
+                  message: body.message,
+                }
+              : item,
+          ),
+        );
+      } catch (error) {
+        clearInterval(timer);
+        pollers.current.delete(taskId);
+        setItems((current) =>
+          current.map((item) =>
+            item.kind === "video" && item.taskId === taskId
+              ? {
+                  ...item,
+                  status: "failed",
+                  message:
+                    error instanceof Error ? error.message : "Poll failed",
+                }
+              : item,
+          ),
+        );
+      }
+    }, 5000);
+    pollers.current.set(taskId, timer);
+  }, []);
+
+  // Resume polling for video tasks that were still running when the page was
+  // last closed — their animation page keeps going until the result lands.
+  useEffect(() => {
+    if (!hydrated) return;
+    for (const item of items) {
+      if (
+        item.kind === "video" &&
+        (item.status === "pending" || item.status === "running") &&
+        item.taskId
+      ) {
+        pollVideo(item.taskId);
+      }
+    }
+  }, [hydrated, items, pollVideo]);
 
   const toggleMic = () => {
     if (listening) {
@@ -245,144 +392,178 @@ export function ImagineStudio() {
     }
   };
 
-  const pollVideo = (taskId: string) => {
-    const timer = setInterval(async () => {
-      try {
-        const response = await fetch(
-          `/api/imagine/video?taskId=${encodeURIComponent(taskId)}`,
-        );
-        if (!response.ok)
-          throw new Error(await readError(response, "Poll failed"));
-        const body = (await response.json()) as {
-          status: GalleryVideo["status"];
-          videoUrl?: string;
-          message?: string;
-        };
-        if (body.status === "succeeded" || body.status === "failed") {
-          clearInterval(timer);
-          pollers.current.delete(taskId);
-        }
-        setItems((current) =>
-          current.map((item) =>
-            item.kind === "video" && item.taskId === taskId
-              ? {
-                  ...item,
-                  status: body.status,
-                  videoUrl: body.videoUrl ?? item.videoUrl,
-                  message: body.message,
-                }
-              : item,
-          ),
-        );
-      } catch (error) {
-        clearInterval(timer);
-        pollers.current.delete(taskId);
-        setItems((current) =>
-          current.map((item) =>
-            item.kind === "video" && item.taskId === taskId
-              ? {
-                  ...item,
-                  status: "failed",
-                  message:
-                    error instanceof Error ? error.message : "Poll failed",
-                }
-              : item,
-          ),
-        );
-      }
-    }, 5000);
-    pollers.current.set(taskId, timer);
+  const scrollToResults = () => {
+    requestAnimationFrame(() =>
+      resultsRef.current?.scrollIntoView({ behavior: "smooth" }),
+    );
   };
 
   const generateImage = async () => {
     const trimmed = prompt.trim();
     if (!trimmed || busy) return;
     setBusy(true);
+    // Chat-like flow: the page opens immediately with the same generating
+    // animation chat shows for image generation, then fills in with the result.
+    const pageId = createPageId();
+    const requestedModel = imageModel;
+    const requestedRatio = ratio;
+    setItems((current) => [
+      {
+        kind: "image",
+        id: pageId,
+        status: "generating",
+        prompt: trimmed,
+        model: requestedModel,
+        ratio: requestedRatio,
+      },
+      ...current,
+    ]);
+    setPrompt("");
+    scrollToResults();
     try {
       const response = await fetch("/api/imagine/image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: trimmed, model: imageModel, ratio }),
+        body: JSON.stringify({
+          prompt: trimmed,
+          model: requestedModel,
+          ratio: requestedRatio,
+        }),
       });
       if (!response.ok)
         throw new Error(await readError(response, "Generation failed"));
       const body = (await response.json()) as {
         images: { url: string; mimeType?: string }[];
       };
-      const generated: GalleryImage[] = body.images.map(
-        (image): GalleryImage => ({
-          kind: "image",
-          id: `${Date.now()}-${image.url.slice(-12)}`,
-          url: image.url,
-          mimeType: image.mimeType,
-          prompt: trimmed,
-          model: imageModel,
-          ratio,
-        }),
+      if (!body.images?.length) {
+        throw new Error("No images were generated");
+      }
+      const [first, ...rest] = body.images;
+      setItems((current) =>
+        current.map((item) =>
+          item.kind === "image" && item.id === pageId
+            ? {
+                ...item,
+                status: "done",
+                url: first.url,
+                mimeType: first.mimeType,
+              }
+            : item,
+        ),
       );
-      // Chat-like flow: the new result page appears right below the prompt
-      // bar and the view scrolls to it, like sending a message in chat.
-      setItems((current) => [...generated, ...current]);
-      requestAnimationFrame(() =>
-        resultsRef.current?.scrollIntoView({ behavior: "smooth" }),
-      );
-      setPrompt("");
+      // Rare multi-image responses get their own pages below the first one.
+      if (rest.length > 0) {
+        setItems((current) => [
+          ...current.slice(0, current.findIndex((i) => i.id === pageId) + 1),
+          ...rest.map(
+            (image): GalleryItem => ({
+              kind: "image",
+              id: createPageId(),
+              status: "done",
+              url: image.url,
+              mimeType: image.mimeType,
+              prompt: trimmed,
+              model: requestedModel,
+              ratio: requestedRatio,
+            }),
+          ),
+          ...current.slice(current.findIndex((i) => i.id === pageId) + 1),
+        ]);
+      }
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Image generation failed",
+      const message =
+        error instanceof Error ? error.message : "Image generation failed";
+      setItems((current) =>
+        current.map((item) =>
+          item.kind === "image" && item.id === pageId
+            ? { ...item, status: "failed", message }
+            : item,
+        ),
       );
+      toast.error(message);
     } finally {
       setBusy(false);
     }
+  };
+
+  const retryImage = (image: GalleryImage) => {
+    setPrompt(image.prompt);
+    setImageModel(image.model);
+    setRatio(image.ratio);
+    setMode("image");
+    toast.info("Prompt restored — press send to try again");
   };
 
   const generateVideo = async () => {
     const trimmed = prompt.trim();
     if (!trimmed || busy) return;
     setBusy(true);
+    // Chat-like flow: the animation page opens while the task is submitted and
+    // stays until polling delivers the finished video.
+    const pageId = createPageId();
+    const requestedModel = videoModel;
+    const requestedRatio = ratio;
+    const requestedResolution = resolution;
+    const requestedDuration = duration;
+    setItems((current) => [
+      {
+        kind: "video",
+        id: pageId,
+        prompt: trimmed,
+        model: requestedModel,
+        ratio: requestedRatio,
+        resolution: requestedResolution,
+        duration: requestedDuration,
+        status: "pending",
+      },
+      ...current,
+    ]);
+    setPrompt("");
+    scrollToResults();
     try {
       const response = await fetch("/api/imagine/video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: trimmed,
-          model: videoModel,
-          resolution,
-          ratio,
-          duration,
+          model: requestedModel,
+          resolution: requestedResolution,
+          ratio: requestedRatio,
+          duration: requestedDuration,
           imageUrl: imageUrl.trim() || undefined,
         }),
       });
       if (!response.ok)
         throw new Error(await readError(response, "Submission failed"));
       const body = (await response.json()) as { taskId: string };
-      // Chat-like flow: a pending page for this task opens immediately under
-      // the prompt bar and fills in with the video as soon as it is ready.
-      setItems((current) => [
-        {
-          kind: "video",
-          id: body.taskId,
-          taskId: body.taskId,
-          prompt: trimmed,
-          model: videoModel,
-          ratio,
-          status: "pending",
-        },
-        ...current,
-      ]);
-      requestAnimationFrame(() =>
-        resultsRef.current?.scrollIntoView({ behavior: "smooth" }),
+      setItems((current) =>
+        current.map((item) =>
+          item.kind === "video" && item.id === pageId
+            ? { ...item, taskId: body.taskId }
+            : item,
+        ),
       );
       pollVideo(body.taskId);
-      setPrompt("");
-      toast.success("Video task submitted — polling for the result");
+      toast.success("Video task submitted — it will appear on this page");
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Video submission failed",
+      const message =
+        error instanceof Error ? error.message : "Video submission failed";
+      setItems((current) =>
+        current.map((item) =>
+          item.kind === "video" && item.id === pageId
+            ? { ...item, status: "failed", message }
+            : item,
+        ),
       );
+      toast.error(message);
     } finally {
       setBusy(false);
     }
+  };
+
+  const clearHistory = () => {
+    clearPollers();
+    setItems([]);
   };
 
   const presets = mode === "image" ? IMAGE_PRESETS : VIDEO_PRESETS;
@@ -618,6 +799,20 @@ export function ImagineStudio() {
 
       {items.length > 0 && (
         <div ref={resultsRef} className="mt-8 flex flex-col gap-4 pb-10">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              History
+            </span>
+            <button
+              type="button"
+              onClick={clearHistory}
+              className="flex items-center gap-1.5 rounded-full px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <Trash2 className="size-3.5" />
+              Clear
+            </button>
+          </div>
+
           {items.map((item) => (
             <div
               key={item.id}
@@ -625,20 +820,50 @@ export function ImagineStudio() {
             >
               <div className="flex flex-col gap-2 p-4">
                 {item.kind === "image" ? (
-                  <a href={item.url} target="_blank" rel="noreferrer">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={item.url}
-                      alt={item.prompt}
-                      className={cn(
-                        "w-full rounded-2xl bg-muted object-cover",
-                        item.ratio === "9:16" || item.ratio === "3:4"
-                          ? "max-h-[70vh]"
-                          : "",
-                      )}
-                      loading="lazy"
-                    />
-                  </a>
+                  item.status === "generating" ? (
+                    // Same generating animation chat shows for image tools.
+                    <div className="flex flex-col gap-4">
+                      <TextShimmer className="text-sm">
+                        Generating image...
+                      </TextShimmer>
+                      <div className="h-96 w-full overflow-hidden rounded-lg">
+                        <LetterGlitch />
+                      </div>
+                      <p className="text-center text-xs text-muted-foreground">
+                        Image generation may take up to 1 minute.
+                      </p>
+                    </div>
+                  ) : item.status === "failed" ? (
+                    <div className="flex aspect-video max-h-72 w-full flex-col items-center justify-center gap-3 rounded-2xl bg-muted p-4 text-sm">
+                      <ImageIcon className="size-6 opacity-60" />
+                      <span className="text-destructive">
+                        {item.message || "Image generation failed"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => retryImage(item)}
+                        className="flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-background"
+                      >
+                        <RotateCcw className="size-3.5" />
+                        Restore prompt
+                      </button>
+                    </div>
+                  ) : (
+                    <a href={item.url} target="_blank" rel="noreferrer">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={item.url}
+                        alt={item.prompt}
+                        className={cn(
+                          "w-full rounded-2xl bg-muted object-cover",
+                          item.ratio === "9:16" || item.ratio === "3:4"
+                            ? "max-h-[70vh]"
+                            : "",
+                        )}
+                        loading="lazy"
+                      />
+                    </a>
+                  )
                 ) : item.status === "succeeded" && item.videoUrl ? (
                   <video
                     src={item.videoUrl}
@@ -648,25 +873,40 @@ export function ImagineStudio() {
                     className="aspect-video w-full rounded-2xl bg-black"
                   />
                 ) : item.status === "failed" ? (
-                  <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-2xl bg-muted text-sm text-destructive">
+                  <div className="flex aspect-video max-h-72 w-full flex-col items-center justify-center gap-2 rounded-2xl bg-muted p-4 text-sm text-destructive">
                     <Clapperboard className="size-6 opacity-60" />
                     {item.message || "Video generation failed"}
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-2">
-                    <Skeleton className="aspect-video w-full rounded-2xl" />
-                    <p className="text-xs text-muted-foreground">
+                  // Pending / running: the chat generating animation stays up
+                  // until polling delivers the finished video.
+                  <div className="flex flex-col gap-4">
+                    <TextShimmer className="text-sm">
                       {item.status === "running"
-                        ? "Rendering video…"
-                        : "Video queued — polling for the result…"}
+                        ? "Rendering video..."
+                        : "Generating video..."}
+                    </TextShimmer>
+                    <div className="aspect-video w-full overflow-hidden rounded-lg">
+                      <LetterGlitch />
+                    </div>
+                    <p className="text-center text-xs text-muted-foreground">
+                      Video generation may take a few minutes — the result
+                      appears here automatically.
                     </p>
                   </div>
                 )}
+
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-1 text-xs text-muted-foreground">
                   <span className="rounded-full bg-muted px-2 py-0.5 font-medium text-foreground">
-                    {item.kind === "image" ? item.model : item.model}
+                    {item.model}
                   </span>
                   <span>{item.ratio}</span>
+                  {item.kind === "video" && item.resolution && (
+                    <span>{item.resolution}</span>
+                  )}
+                  {item.kind === "video" && item.duration && (
+                    <span>{item.duration}s</span>
+                  )}
                   <span className="line-clamp-1 flex-1 basis-full text-muted-foreground/80 sm:basis-auto">
                     {item.prompt}
                   </span>

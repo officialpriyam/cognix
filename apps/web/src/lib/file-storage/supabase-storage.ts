@@ -1,6 +1,8 @@
 import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import { FileNotFoundError } from "lib/errors";
+import { generateUUID } from "lib/utils";
+import logger from "logger";
 import type {
   FileMetadata,
   FileStorage,
@@ -11,17 +13,17 @@ import {
   sanitizeFilename,
   toBuffer,
 } from "./storage-utils";
-import { generateUUID } from "lib/utils";
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// Bucket names for different purposes
+// Bucket names for different purposes. Defaults mirror .env.example —
+// a mismatched hard-coded name here used to surface as "Bucket not found".
 const AVATAR_BUCKET = process.env.SUPABASE_AVATAR_BUCKET || "avatars";
 const ATTACHMENT_BUCKET =
   process.env.SUPABASE_ATTACHMENT_BUCKET || "attachments";
 const AI_GENERATED_BUCKET =
-  process.env.SUPABASE_AI_GENERATED_BUCKET || "Gemini Images";
+  process.env.SUPABASE_AI_GENERATED_BUCKET || "ai-generated";
 
 // Allow build without Supabase config (will fail at runtime if actually used)
 const supabase =
@@ -37,6 +39,46 @@ const ensureSupabaseConfigured = () => {
       "Supabase Storage is not configured. Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in your environment variables.",
     );
   }
+};
+
+/** Buckets already verified/created in this process — keeps the happy path free of extra API calls. */
+const ensuredBuckets = new Set<string>();
+
+const isMissingBucketError = (message: string): boolean =>
+  /nosuchbucket|bucket not found/i.test(message);
+
+/**
+ * Create the bucket when it is missing (fresh deployment, renamed env var,
+ * wrong default). Without this, the first AI generation after setup dies with
+ * a cryptic 404 "Bucket not found". Service-role key has create permission.
+ */
+const ensureBucket = async (bucketName: string): Promise<void> => {
+  if (ensuredBuckets.has(bucketName)) return;
+
+  const { data: buckets, error: listError } =
+    await supabase!.storage.listBuckets();
+  if (listError) {
+    throw new Error(
+      `Could not list storage buckets to verify "${bucketName}": ${listError.message}`,
+    );
+  }
+
+  const exists = (buckets ?? []).some((bucket) => bucket.name === bucketName);
+  if (!exists) {
+    logger.info(`Supabase bucket "${bucketName}" not found — creating it`);
+    // Attachments stay private (served via signed URLs); everything else public.
+    const { error: createError } = await supabase!.storage.createBucket(
+      bucketName,
+      { public: bucketName !== ATTACHMENT_BUCKET },
+    );
+    if (createError && !/already exists|duplicate/i.test(createError.message)) {
+      throw new Error(
+        `Failed to create storage bucket "${bucketName}": ${createError.message}`,
+      );
+    }
+  }
+
+  ensuredBuckets.add(bucketName);
 };
 
 const buildPathname = (
@@ -117,17 +159,32 @@ export const createSupabaseStorage = (): FileStorage => {
       // Determine which bucket to use based on uploadType and pathname
       const bucketName = getBucketName(pathname, options.uploadType);
 
-      // Upload to Supabase Storage
-      const { data, error } = await supabase!.storage
+      let upload = await supabase!.storage
         .from(bucketName)
         .upload(pathname, buffer, {
           contentType,
           upsert: false,
         });
 
-      if (error) {
-        throw new Error(`Supabase upload failed: ${error.message}`);
+      // Self-heal a missing bucket: create it and retry once so a fresh
+      // deployment (or a renamed SUPABASE_*_BUCKET env var) doesn't fail the
+      // whole generation with a bare "Bucket not found".
+      if (upload.error && isMissingBucketError(upload.error.message)) {
+        await ensureBucket(bucketName);
+        upload = await supabase!.storage
+          .from(bucketName)
+          .upload(pathname, buffer, {
+            contentType,
+            upsert: false,
+          });
       }
+
+      if (upload.error) {
+        throw new Error(
+          `Supabase upload failed (bucket "${bucketName}"): ${upload.error.message}`,
+        );
+      }
+      const { data } = upload;
 
       // Get URL (Signed for private buckets, Public for others)
       let sourceUrl: string;
