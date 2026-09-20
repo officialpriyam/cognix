@@ -384,11 +384,10 @@ export const OAuthAccessTokenTable = pgTable(
     refreshToken: text("refresh_token").notNull().unique(),
     accessTokenExpiresAt: timestamp("access_token_expires_at").notNull(),
     refreshTokenExpiresAt: timestamp("refresh_token_expires_at").notNull(),
-    clientId: text("client_id")
-      .notNull()
-      .references(() => OAuthApplicationTable.clientId, {
-        onDelete: "cascade",
-      }),
+    // NOTE: no FK to oauth_application on purpose. better-auth trusted
+    // clients (e.g. the desktop app) live in server config, never as table
+    // rows, so the FK rejects every token they are issued (HTTP 500).
+    clientId: text("client_id").notNull(),
     userId: uuid("user_id").references(() => UserTable.id, {
       onDelete: "cascade",
     }),
@@ -410,11 +409,9 @@ export const OAuthConsentTable = pgTable(
   "oauth_consent",
   {
     id: text("id").primaryKey().notNull(),
-    clientId: text("client_id")
-      .notNull()
-      .references(() => OAuthApplicationTable.clientId, {
-        onDelete: "cascade",
-      }),
+    // NOTE: no FK to oauth_application (see OAuthAccessTokenTable): trusted
+    // clients configured in code have no table row.
+    clientId: text("client_id").notNull(),
     userId: uuid("user_id")
       .notNull()
       .references(() => UserTable.id, { onDelete: "cascade" }),
