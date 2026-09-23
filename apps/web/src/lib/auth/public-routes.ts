@@ -15,6 +15,7 @@ const PUBLIC_AUTH_PATHS = new Set([
   "/sign-up/email",
   "/forgot-password",
   "/reset-password",
+  "/consent",
 ]);
 
 export function isPublicAuthPath(pathname: string): boolean {

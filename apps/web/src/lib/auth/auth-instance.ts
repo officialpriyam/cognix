@@ -293,6 +293,7 @@ const options = {
     // stable across restarts: explicit env first, BETTER_AUTH_SECRET fallback.
     oidcProvider({
       loginPage: "/sign-in",
+      consentPage: "/consent",
       trustedClients: [
         {
           clientId: process.env.COGNIX_DESKTOP_CLIENT_ID || "cognix-desktop",
@@ -304,7 +305,7 @@ const options = {
           type: "public",
           redirectUrls: ["cognix://oauth/callback"],
           disabled: false,
-          skipConsent: true,
+          skipConsent: false,
           metadata: { firstParty: true },
         },
       ],

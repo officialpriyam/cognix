@@ -9,6 +9,7 @@ describe("isPublicAuthPath", () => {
       "/sign-up/email",
       "/forgot-password",
       "/reset-password",
+      "/consent",
     ]) {
       expect(isPublicAuthPath(path)).toBe(true);
     }

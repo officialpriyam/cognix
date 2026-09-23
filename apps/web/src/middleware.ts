@@ -160,6 +160,17 @@ export async function middleware(request: NextRequest) {
     return next();
   }
 
+  // CognixOwn proxy for the desktop app. The desktop authenticates with its
+  // OIDC access token (Authorization: Bearer) and carries no session cookie,
+  // so the handler validates the token against /api/auth/oauth2/userinfo
+  // itself and enforces the per-user daily limit.
+  if (
+    pathname === "/api/cognixown/v1" ||
+    pathname.startsWith("/api/cognixown/v1/")
+  ) {
+    return next();
+  }
+
   // The endpoint validates a same-origin diagnostic cookie and a strict body
   // schema. It must remain reachable before authentication so sign-in loads
   // can report their client lifecycle.

@@ -114,3 +114,47 @@ describe("openrouter provider and extended gemini catalog", () => {
     }
   });
 });
+
+describe("CognixOwn provider", () => {
+  it("registers Qoder and Relay under the CognixOwn category", () => {
+    const { customModelProvider } = modelsModule;
+    const entry = customModelProvider.modelsInfo.find(
+      (item) => item.provider === "CognixOwn",
+    );
+    expect(entry).toBeDefined();
+    expect(entry?.models.map((item) => item.name).sort()).toEqual([
+      "Qoder",
+      "Relay",
+    ]);
+    // Instances resolve (never fall back to the default model).
+    expect(
+      customModelProvider.getModel({ provider: "CognixOwn", model: "Qoder" }),
+    ).toBeDefined();
+    expect(
+      customModelProvider.getModel({ provider: "CognixOwn", model: "Relay" }),
+    ).toBeDefined();
+  });
+
+  it("gates the CognixOwn provider on COGNIXOWN_API_KEY", async () => {
+    vi.resetModules();
+    try {
+      vi.stubEnv("COGNIXOWN_API_KEY", "");
+      const keyless = await import("./models");
+      const keylessEntry = keyless.customModelProvider.modelsInfo.find(
+        (item) => item.provider === "CognixOwn",
+      );
+      expect(keylessEntry?.hasAPIKey).toBe(false);
+
+      vi.resetModules();
+      vi.stubEnv("COGNIXOWN_API_KEY", "lm-studio-test-token");
+      const keyed = await import("./models");
+      const keyedEntry = keyed.customModelProvider.modelsInfo.find(
+        (item) => item.provider === "CognixOwn",
+      );
+      expect(keyedEntry?.hasAPIKey).toBe(true);
+    } finally {
+      vi.unstubAllEnvs();
+      vi.resetModules();
+    }
+  });
+});

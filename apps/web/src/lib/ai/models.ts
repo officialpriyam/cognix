@@ -26,6 +26,13 @@ import {
   XAI_FILE_MIME_TYPES,
 } from "./file-support";
 import { getTensorXModel } from "./providers/tensorx";
+import {
+  COGNIXOWN_QODER_ID,
+  COGNIXOWN_RELAY_ID,
+  getCognixOwnConfig,
+  normalizeCognixOwnBaseUrl,
+  recordCognixOwnUsage,
+} from "./providers/cognixown";
 
 const ollama = createOllama({
   baseURL: process.env.OLLAMA_BASE_URL || "http://localhost:11434/api",
@@ -46,6 +53,15 @@ const openrouter = createOpenAICompatible({
       process.env.NEXT_PUBLIC_BASE_URL ?? "https://cognix.iampriyam.me",
     "X-Title": "Cognix",
   },
+});
+// CognixOwn (self-hosted LM Studio, OpenAI-compatible). Display names are
+// "Qoder" (Qwen) and "Relay" (Gemma); the category label is "CognixOwn".
+// The Bearer token stays in server env (COGNIXOWN_API_KEY) — clients,
+// including the desktop app, go through the /api/cognixown/v1 proxy.
+const cognixown = createOpenAICompatible({
+  name: "cognixown",
+  baseURL: normalizeCognixOwnBaseUrl(process.env.COGNIXOWN_BASE_URL),
+  apiKey: process.env.COGNIXOWN_API_KEY || "not-configured",
 });
 
 const staticModels = {
@@ -156,6 +172,11 @@ const staticModels = {
     "laguna-xs-2.1": openrouter("poolside/laguna-xs-2.1:free"),
     inkling: openrouter("thinkingmachines/inkling:free"),
     "inkling-small": openrouter("thinkingmachines/inkling-small:free"),
+  },
+  // CognixOwn self-hosted models (hidden unless COGNIXOWN_API_KEY is set).
+  CognixOwn: {
+    Qoder: cognixown(COGNIXOWN_QODER_ID),
+    Relay: cognixown(COGNIXOWN_RELAY_ID),
   },
 };
 
@@ -461,6 +482,9 @@ function checkProviderAPIKey(provider: keyof typeof staticModels) {
     case "openrouter":
       key = process.env.OPENROUTER_API_KEY;
       break;
+    case "CognixOwn":
+      key = process.env.COGNIXOWN_API_KEY;
+      break;
     case "ollama":
       // Ollama requires a base URL to be configured
       key = process.env.OLLAMA_BASE_URL;
@@ -561,6 +585,25 @@ export async function getModelInstance(
     throw new Error(
       "OPENROUTER_API_KEY is not configured on the server, so OpenRouter models are unavailable.",
     );
+  }
+
+  // CognixOwn shares one upstream key across all users, so every web chat
+  // completion counts against the author's daily limit (same accounting the
+  // desktop proxy uses).
+  if (modelData.provider === "CognixOwn") {
+    if (!getCognixOwnConfig().isConfigured) {
+      throw new Error(
+        "COGNIXOWN_API_KEY is not configured on the server, so CognixOwn models are unavailable.",
+      );
+    }
+    if (userId) {
+      const usage = await recordCognixOwnUsage(userId);
+      if (!usage.allowed) {
+        throw new Error(
+          `CognixOwn daily limit exceeded (${usage.limit} requests/day). Try again tomorrow.`,
+        );
+      }
+    }
   }
 
   // SPECIAL CASE: Local Models provider (doesn't exist in allModels)
