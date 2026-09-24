@@ -1,5 +1,63 @@
 # Changelog
 
+## 1.0.0 (2026-09-24)
+
+
+### Features
+
+* add FastCogni phi-4 LM Studio provider ([254bba4](https://github.com/officialpriyam/cognix/commit/254bba44b44fdc51a7eb4f0faa5f4b46e3cc3049))
+* add nvidia model routing and animations ([6c9f258](https://github.com/officialpriyam/cognix/commit/6c9f258f7bf91dae257437cf4dc5b8566c9fc598))
+* add nvidia provider and password reset ([fbac420](https://github.com/officialpriyam/cognix/commit/fbac420cb43cfde7a265bb9c20610ba45afce2db))
+* add shooting stars background ([24fa057](https://github.com/officialpriyam/cognix/commit/24fa05738cc9996b757e1fabfb1c7ad8bbc98992))
+* add Supabase SDK, storage driver, CLI folder, and migration sync ([951adda](https://github.com/officialpriyam/cognix/commit/951adda108fc49955ffbb8dcbc04510f29fac322))
+* add workspace panels and richer motion ([3456f5d](https://github.com/officialpriyam/cognix/commit/3456f5d674c07805451f464c1c86438f7a4b1ef3))
+* **auth, onboarding, ui:** terms gate, about-you step, motion, locale + projects fixes ([3afd0c2](https://github.com/officialpriyam/cognix/commit/3afd0c207f38dbec3a7c7877b6f56a86b9e14497))
+* **auth:** float sign-in side animation in a rounded card ([080a1dd](https://github.com/officialpriyam/cognix/commit/080a1dd066b3dae68991125de60cd443c5eebbcd))
+* **brand:** replace app icons and logo with new brand mark ([7f5814b](https://github.com/officialpriyam/cognix/commit/7f5814bb8c1b91e15a3e5b2823d99e45727491fa))
+* **browser:** add Browser Automation toolkit with browse-page tool; add desktop release workflow for Windows installer ([4448a2d](https://github.com/officialpriyam/cognix/commit/4448a2d77be2b97e88dfe0e9a5d94c39c72e6b14))
+* **cognix:** desktop OAuth login + cloud chat/memory sync, fix Mermaid + build ([860a2e8](https://github.com/officialpriyam/cognix/commit/860a2e878bd20ba62f84ce440365ae7e5e86da69))
+* **deploy:** add Render blueprint for web, excluding desktop ([0594512](https://github.com/officialpriyam/cognix/commit/0594512fc7317e07f58ce143d43be16c6c66542e))
+* **deploy:** add Vercel config for web, keep Render ([2acec8f](https://github.com/officialpriyam/cognix/commit/2acec8f21a24f00e38de2a7ff0300f4681314c41))
+* **imagine:** Grok-style hero prompt bar with toolbar, presets, and voice input ([74cc64a](https://github.com/officialpriyam/cognix/commit/74cc64ac3a352d385b6f75b1865f6d9a3a94029e))
+* **imagine:** Qwen image/video section with Wan models plus chat image-tool support ([bde9e21](https://github.com/officialpriyam/cognix/commit/bde9e21156523d56f6eebccd5a6582a54e8db716))
+* **mcp:** add tool-info caching columns for lazy-connection architecture ([6b09873](https://github.com/officialpriyam/cognix/commit/6b09873ea66d2628acb27e61aaa7bf3682be6eb4))
+* migrate OpenAI realtime API to GA and add Gemini voice chat support ([77f4d0e](https://github.com/officialpriyam/cognix/commit/77f4d0ed93cdc8fb42d791174a54f47912f2d8b7))
+* migrate OpenAI realtime API to GA and add Gemini voice chat support2 ([fdc23ab](https://github.com/officialpriyam/cognix/commit/fdc23ab589ec55a50138e826bb6e5e215422333c))
+* **models:** add OpenRouter free-tier provider, extend Gemini catalog, hide keyless providers ([593f945](https://github.com/officialpriyam/cognix/commit/593f9450581bb77c0840ba0afc20124dca315687))
+* **models:** seed org catalog for new models, free-tier support, Vercel-safe durations ([c3a9468](https://github.com/officialpriyam/cognix/commit/c3a94686841d62b4692817d04176f2d3d5cba62c))
+* **organization:** workspace manage UI, create dialog, free billing, browser-automation policy ([5c8f8b6](https://github.com/officialpriyam/cognix/commit/5c8f8b678eaf6d37ea655b40a23a9d5ecf1a3c54))
+* Server now tries gemini-3.0-flash-live first, falls back to gemini-live-2.5-flash-native-audio ([9a4e29c](https://github.com/officialpriyam/cognix/commit/9a4e29cb9ffe836b1e0d75c55dfd209c41512a19))
+* **tools:** add smart page-reader browse tool (Exa with direct-fetch fallback) ([a45e174](https://github.com/officialpriyam/cognix/commit/a45e174970933c8fe6ea8ad366e9cfe5aebdf96b))
+* update favicon and brand logo ([0c3aa6f](https://github.com/officialpriyam/cognix/commit/0c3aa6f69fcefa0ac46e30493023f5f55dfef0c9))
+* **user-menu:** group settings into submenu with profile/usage entries ([c6c6236](https://github.com/officialpriyam/cognix/commit/c6c6236f00f3532744fef28d65ae76c4082cf0b9))
+* **web:** CognixOwn provider with Qoder/Relay models and authenticated desktop proxy ([c6f541e](https://github.com/officialpriyam/cognix/commit/c6f541e7ee10b1aeef482a682bf7fab706195689))
+* **web:** user console for sessions, connected apps and usage ([6d8af69](https://github.com/officialpriyam/cognix/commit/6d8af6955745138c387dff5be13fc031c69ee966))
+* **workspace:** restore localStorage workspace sections deleted Sep 16 ([7562f35](https://github.com/officialpriyam/cognix/commit/7562f35186456ff666f52441e6f3ba13e539ac66))
+
+
+### Bug Fixes
+
+* allow trusted OAuth clients without app row (drop client_id FKs) ([1ebfbe3](https://github.com/officialpriyam/cognix/commit/1ebfbe3debbda3ad22620e08d1a6217b3d771ba8))
+* **api:** bound DB queries with timeouts, exempt static files from auth gate ([51ffc5c](https://github.com/officialpriyam/cognix/commit/51ffc5c98b7894966ad1f32ecd4630796a4d77b6))
+* **api:** return 400 on empty body for text source ingest ([3415099](https://github.com/officialpriyam/cognix/commit/34150995bc25f0e7c4874ae73d2e7663a680033b))
+* **build:** exclude example-up-update from typecheck; restore cognix tables migration ([075d5d6](https://github.com/officialpriyam/cognix/commit/075d5d6a5a6cac76fdbacb7d0b7fa641f0e8a6dd))
+* **build:** move AI policy schema out of route exports, update Discord invite ([4846adc](https://github.com/officialpriyam/cognix/commit/4846adc9636056734dbad35769c2903479853823))
+* **chat:** fail fast without OpenRouter key, tag stream errors with model ([8552831](https://github.com/officialpriyam/cognix/commit/85528312cde64b18904a5a69649e75959060342b))
+* **db:** fail closed on non-UUID ids instead of 500 via 22P02 ([090c90e](https://github.com/officialpriyam/cognix/commit/090c90e9463d4d1aa3eeffbe4899221ab79afaa9))
+* **db:** run migrations on dedicated client, drizzle() crashes on reserved conns ([e0ab68e](https://github.com/officialpriyam/cognix/commit/e0ab68eabfbdc57ae22143f7de41df92fdbe9f4f))
+* fixed bucket ([bb4ec48](https://github.com/officialpriyam/cognix/commit/bb4ec486ba37b1378fe6a5bc7cae4a4e195a16c3))
+* harden pg pool for Supabase Supavisor (fix EMAXCONNSESSION) and best-effort startup/storage init ([3dccdc5](https://github.com/officialpriyam/cognix/commit/3dccdc5be3e3e48e088141138b40afb82fd97120))
+* **imagine:** fails in saving ([105e06b](https://github.com/officialpriyam/cognix/commit/105e06b12131eaa7af53af71b4a23321956a2c6a))
+* **imagine:** move ssr:false dynamic import into client loader ([8a0965f](https://github.com/officialpriyam/cognix/commit/8a0965f5898cb66dac9eddfb119370c50c07b335))
+* **imagine:** prevent SSR of ImagineStudio to fix Vercel serialization error ([bb953e0](https://github.com/officialpriyam/cognix/commit/bb953e0d2563ad2a9e517e4fb7e1f5996b0ae7bc))
+* **imagine:** repair Qwen image/video APIs, restore model picker, add Discord OAuth ([59dc1d9](https://github.com/officialpriyam/cognix/commit/59dc1d91b6db294a881bb46a7c17ca5cb587b77b))
+* **imagine:** repair Qwen image/video APIs, restore model picker, add Discord OAuth ([84b4050](https://github.com/officialpriyam/cognix/commit/84b40500f5e6e39b5911b40b07b57d1a957c6d53))
+* improve auth pages and reset flow ([389730d](https://github.com/officialpriyam/cognix/commit/389730d5aaa2e2001ded7eb116c06ed3cdbe39d7))
+* migrate on locked Supabase session ([bcfd390](https://github.com/officialpriyam/cognix/commit/bcfd390b3d93d4af1c3eee279209ce0419d2df35))
+* **models:** treat empty OPENAI_COMPATIBLE_DATA as unconfigured ([50a86ee](https://github.com/officialpriyam/cognix/commit/50a86ee165a2263dbc2b3a4b7b1eb102e07eca3c))
+* prevent migrations from failing pnpm install ([4600f1e](https://github.com/officialpriyam/cognix/commit/4600f1e67b25f6780a1e09990cbf7862536c5df4))
+* respect pinned chat model and refresh auth panel ([293401c](https://github.com/officialpriyam/cognix/commit/293401c1804826450d252cbd787a67e99f492843))
+
 ## [2.0.0](https://github.com/officialpriyam/cognix/releases/tag/v2.0.0)
 
 cognix is now the community edition of
