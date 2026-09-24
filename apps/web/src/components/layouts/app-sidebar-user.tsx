@@ -1,22 +1,23 @@
 "use client";
 
 import { appStore } from "@/app/store";
-import { useThemeStyle } from "@/hooks/use-theme-style";
-import { getLocaleAction } from "@/i18n/get-locale";
-import { BasicUser } from "app-types/user";
 import { FreeBillingMenuItem } from "@/components/billing/free-billing-menu-item";
 import { OrgMenuSection } from "@/components/organization/org-menu-section";
+import { useThemeStyle } from "@/hooks/use-theme-style";
+import { getLocaleAction } from "@/i18n/get-locale";
 import { IS_CLOUD_EDITION } from "@/lib/edition";
+import { BasicUser } from "app-types/user";
 import { authClient } from "auth/client";
 import { BASE_THEMES, COOKIE_KEY_LOCALE, SUPPORTED_LOCALES } from "lib/const";
 import { getUserAvatar } from "lib/user/utils";
 import { capitalizeFirstLetter, cn, fetcher } from "lib/utils";
 import {
+  ChartColumn,
   ChevronRight,
   ChevronsUpDown,
   Command,
-  ChartColumn,
   Languages,
+  LayoutDashboard,
   LogOutIcon,
   Mail,
   MessagesSquare,
@@ -185,6 +186,16 @@ export function AppSidebarUserInner(props: {
                   </DropdownMenuSubContent>
                 </DropdownMenuPortal>
               </DropdownMenuSub>
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={() => {
+                  window.location.href = "/console";
+                }}
+                data-testid="console-menu-item"
+              >
+                <LayoutDashboard className="size-4 text-foreground" />
+                <span>Console</span>
+              </DropdownMenuItem>
               <SelectTheme />
               <SelectLanguage />
               <DropdownMenuSeparator />

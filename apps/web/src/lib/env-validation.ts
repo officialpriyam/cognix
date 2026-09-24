@@ -76,6 +76,12 @@ const OPTIONAL_FEATURES: OptionalFeature[] = [
     feature: "Observability (Superlog / OpenTelemetry)",
     fallback: "traces and logs stay local",
   },
+  {
+    vars: ["COGNIXOWN_API_KEY"],
+    feature: "CognixOwn self-hosted models (Qoder, Relay) on web and desktop",
+    fallback:
+      "the CognixOwn models stay hidden and the /api/cognixown/v1 proxy returns 503",
+  },
 ];
 
 /**

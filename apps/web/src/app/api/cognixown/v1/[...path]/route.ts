@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
 import {
   getCognixOwnConfig,
   recordCognixOwnUsage,
 } from "lib/ai/providers/cognixown";
 import { getBearerToken } from "lib/voice/device-token";
+import { NextResponse } from "next/server";
 
 // Long generations stream through this proxy; match the chat routes.
 export const maxDuration = 300;
@@ -77,7 +77,10 @@ async function proxy(request: Request, path: string[]) {
   const config = getCognixOwnConfig();
   if (!config.isConfigured) {
     return NextResponse.json(
-      { error: "CognixOwn is not configured on the server" },
+      {
+        error:
+          "CognixOwn is not configured on the server. Set COGNIXOWN_API_KEY in the web .env (LM Studio API token) and restart — the models stay hidden until then.",
+      },
       { status: 503 },
     );
   }
